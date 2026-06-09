@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { supabase } from "../../supabase";
 import { Gamepad2 } from "lucide-react";
@@ -118,4 +118,4 @@ export function Signup() {
       </div>
     </div>
   );
-}s
+}
