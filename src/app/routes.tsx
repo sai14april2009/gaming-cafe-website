@@ -4,6 +4,8 @@ import { BrowseCafes } from "./components/BrowseCafes";
 import { SearchByGame } from "./components/SearchByGame";
 import { FilterByHardware } from "./components/FilterByHardware";
 import { CafeDetails } from "./components/CafeDetails";
+import { Login } from "./components/Login";
+import { Signup } from "./components/Signup";
 
 export const router = createBrowserRouter([
   {
@@ -16,4 +18,6 @@ export const router = createBrowserRouter([
       { path: "cafe/:id", Component: CafeDetails },
     ],
   },
+  { path: "/login", Component: Login },
+  { path: "/signup", Component: Signup },
 ]);
