@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { GamingSystem } from "../data/mockData";
 import { Button } from "./ui/button";
 import { AdvancedBookingInterface } from "./AdvancedBookingInterface";
 
 interface GamingSystemSelectorProps {
+  cafeName: string;
   systems: GamingSystem[];
   onSelect: (selectedSystems: GamingSystem[]) => void;
   onHoursChange?: (hours: number) => void;
@@ -18,14 +20,15 @@ export function GamingSystemSelector({
   onHoursChange,
   onDateChange,
   pricePerHour,
-  operatingHours
+  operatingHours,
+  cafeName
 }: GamingSystemSelectorProps) {
   const [partySize, setPartySize] = useState<"solo" | "group" | null>(null);
   const [numberOfFriends, setNumberOfFriends] = useState(1);
   const [numberOfHours, setNumberOfHours] = useState(1);
   const [showHourSelection, setShowHourSelection] = useState(false);
   const [showAdvancedBooking, setShowAdvancedBooking] = useState(false);
-
+const navigate = useNavigate();
   const handleProceedToBooking = () => {
     setShowHourSelection(true);
   };
@@ -35,21 +38,28 @@ export function GamingSystemSelector({
   };
 
   const handleBookingComplete = (bookings: any) => {
-    // Extract all selected systems from bookings
-    const selectedSystemIds = bookings.map((b: any) => b.systemId);
-    const selectedSystems = systems.filter(s => selectedSystemIds.includes(s.id));
+  const selectedSystemIds = bookings.map((b: any) => b.systemId);
+  const selectedSystems = systems.filter(s => selectedSystemIds.includes(s.id));
+  const totalHours = bookings.reduce((sum: number, b: any) => sum + b.timeSlots.length, 0);
+  const totalPrice = totalHours * pricePerHour;
 
-    // Calculate total hours
-    const totalHours = bookings.reduce((sum: number, b: any) => sum + b.timeSlots.length, 0);
+  onSelect(selectedSystems);
+  if (onHoursChange) onHoursChange(totalHours);
+  if (onDateChange && bookings.length > 0) onDateChange(bookings[0].date);
 
-    onSelect(selectedSystems);
-    if (onHoursChange) onHoursChange(totalHours);
-    if (onDateChange && bookings.length > 0) onDateChange(bookings[0].date);
-
-    // Show booking summary
-    const totalPrice = totalHours * pricePerHour;
-    alert(`Booking Confirmed!\n\nDate: ${bookings[0]?.date.toLocaleDateString()}\nSystems: ${bookings.length}\nTotal Slots: ${totalHours}\nTotal Price: $${totalPrice}\n\nThank you for your booking!`);
-  };
+  navigate("/booking/confirm", {
+    state: {
+      bookings,
+      systems: selectedSystems,
+      partySize,
+      numberOfFriends,
+      numberOfHours,
+      pricePerHour,
+      totalPrice,
+      cafeName,
+    }
+  });
+};
 
   // Show Advanced Booking Interface after party size and hour selection
   if (showAdvancedBooking) {
