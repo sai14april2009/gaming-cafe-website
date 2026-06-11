@@ -6,7 +6,7 @@ import { FilterByHardware } from "./components/FilterByHardware";
 import { CafeDetails } from "./components/CafeDetails";
 import { Login } from "./components/Login";
 import { Signup } from "./components/Signup";
-
+import { BookingConfirm } from "./components/BookingConfirm";
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -20,4 +20,5 @@ export const router = createBrowserRouter([
   },
   { path: "/login", Component: Login },
   { path: "/signup", Component: Signup },
+{ path: "booking/confirm", Component: BookingConfirm },
 ]);
