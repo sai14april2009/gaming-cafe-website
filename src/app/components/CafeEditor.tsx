@@ -70,8 +70,8 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
     setSearchLoading(true);
     try {
       const res = await fetch(
-        `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(query)}&l=english&cc=US`
-      );
+  `https://corsproxy.io/?url=${encodeURIComponent(`https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(query)}&l=english&cc=US`)}`
+);
       const data = await res.json();
       const items: SteamGame[] = (data.items || []).slice(0, 8).map((item: any) => ({
         id: item.id,
