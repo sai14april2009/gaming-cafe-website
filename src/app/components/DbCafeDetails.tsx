@@ -6,6 +6,7 @@ import { supabase } from "../../supabase";
 import { gameImages } from "../data/mockData";
 import { AdvancedBookingInterface } from "./AdvancedBookingInterface";
 import { useNavigate } from "react-router";
+import { DbReviewsSection } from "./DbReviewsSection";
 
 interface DbCafe {
   id: string;
@@ -313,6 +314,9 @@ export function DbCafeDetails() {
             </div>
           </div>
         )}
+
+        {/* Reviews */}
+        <DbReviewsSection cafeId={cafe.id} cafeName={cafe.name} />
       </div>
     </div>
   );
