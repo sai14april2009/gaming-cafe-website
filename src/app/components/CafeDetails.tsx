@@ -198,6 +198,7 @@ export function CafeDetails() {
                 onDateChange={(date) => setSelectedDate(date)}
                 pricePerHour={cafe.pricePerHour}
                 operatingHours={cafe.operatingHours}
+                cafeName={cafe.name}
               />
             </div>
 

@@ -1,6 +1,12 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { Search, Gamepad2, Cpu, User, LogOut } from "lucide-react";
+import { Search, Gamepad2, Cpu, User, LogOut, ShieldCheck } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+
+const ADMIN_EMAILS = [
+  "srisaikumar.ojjela@gmail.com",
+  "sai14april2009@gmail.com",
+  "alekhya.ojjela@gmail.com",
+];
 
 export function Root() {
   const location = useLocation();
@@ -17,6 +23,9 @@ export function Root() {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
+
+  const userEmail = profile?.email || user?.email || "";
+  const isAdmin = ADMIN_EMAILS.includes(userEmail.toLowerCase());
 
   async function handleSignOut() {
     await signOut();
@@ -65,6 +74,12 @@ export function Root() {
                   {profile?.role === "owner" && (
                     <Link to="/dashboard" className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 transition-colors">
                       Dashboard
+                    </Link>
+                  )}
+                  {isAdmin && (
+                    <Link to="/admin" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 transition-colors">
+                      <ShieldCheck className="w-4 h-4" />
+                      Admin
                     </Link>
                   )}
                   <button

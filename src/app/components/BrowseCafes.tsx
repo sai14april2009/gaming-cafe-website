@@ -1,26 +1,75 @@
-import { useState } from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router";
+import { Search, SlidersHorizontal, Star, MapPin } from "lucide-react";
 import { gamingCafes } from "../data/mockData";
 import { CafeCard } from "./CafeCard";
 import { Input } from "./ui/input";
-import { Button } from "./ui/button";
+import { supabase } from "../../supabase";
+
+interface DbCafe {
+  id: string;
+  name: string;
+  description: string;
+  city: string;
+  address: string;
+  price_per_hour: number;
+  image_url: string | null;
+  is_approved: boolean;
+}
 
 export function BrowseCafes() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState<string>("all");
+  const [dbCafes, setDbCafes] = useState<DbCafe[]>([]);
 
-  const cities = ["all", ...Array.from(new Set(gamingCafes.map((cafe) => cafe.city)))];
+  useEffect(() => {
+    const fetchCafes = async () => {
+      const { data, error } = await supabase
+        .from("cafes")
+        .select("id, name, description, city, address, price_per_hour, image_url, is_approved")
+        .eq("is_approved", true);
 
-  const filteredCafes = gamingCafes.filter((cafe) => {
+      if (!error && data) {
+        setDbCafes(data as DbCafe[]);
+      }
+    };
+
+    fetchCafes();
+  }, []);
+
+  const cities = [
+    "all",
+    ...Array.from(
+      new Set([
+        ...gamingCafes.map((cafe) => cafe.city),
+        ...dbCafes.map((cafe) => cafe.city),
+      ])
+    ),
+  ];
+
+  const filteredMockCafes = gamingCafes.filter((cafe) => {
     const matchesSearch =
       cafe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       cafe.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       cafe.city.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesCity = selectedCity === "all" || cafe.city === selectedCity;
 
     return matchesSearch && matchesCity;
   });
+
+  const filteredDbCafes = dbCafes.filter((cafe) => {
+    const matchesSearch =
+      cafe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      cafe.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      cafe.city.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCity = selectedCity === "all" || cafe.city === selectedCity;
+
+    return matchesSearch && matchesCity;
+  });
+
+  const totalCount = filteredMockCafes.length + filteredDbCafes.length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -68,18 +117,63 @@ export function BrowseCafes() {
       {/* Results */}
       <div className="mb-4">
         <p className="text-gray-600">
-          {filteredCafes.length} {filteredCafes.length === 1 ? "cafe" : "cafes"} found
+          {totalCount} {totalCount === 1 ? "cafe" : "cafes"} found
         </p>
       </div>
 
       {/* Cafes Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCafes.map((cafe) => (
+        {filteredDbCafes.map((cafe) => (
+          <Link
+            key={cafe.id}
+            to={`/cafe/db/${cafe.id}`}
+            className="group block bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300"
+          >
+            <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+              {cafe.image_url ? (
+                <img
+                  src={cafe.image_url}
+                  alt={cafe.name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+                  No Image
+                </div>
+              )}
+            </div>
+
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <h3 className="font-semibold text-lg line-clamp-1">{cafe.name}</h3>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  <span className="text-sm font-medium">New</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1 text-gray-600 mb-2">
+                <MapPin className="w-4 h-4" />
+                <span className="text-sm">{cafe.address}, {cafe.city}</span>
+              </div>
+
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                <span className="text-sm text-gray-600">{cafe.description}</span>
+                <div className="text-right">
+                  <span className="font-semibold text-lg">${cafe.price_per_hour}</span>
+                  <span className="text-sm text-gray-600">/hour</span>
+                </div>
+              </div>
+            </div>
+          </Link>
+        ))}
+
+        {filteredMockCafes.map((cafe) => (
           <CafeCard key={cafe.id} cafe={cafe} />
         ))}
       </div>
 
-      {filteredCafes.length === 0 && (
+      {totalCount === 0 && (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg">No cafes found matching your criteria</p>
         </div>
