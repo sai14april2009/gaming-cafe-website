@@ -66,10 +66,8 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
     }
     setSearchLoading(true);
     try {
-      const steamUrl = "https://store.steampowered.com/api/storesearch/?term=" + encodeURIComponent(query) + "&l=english&cc=US";
-      const res = await fetch("https://api.allorigins.win/get?url=" + encodeURIComponent(steamUrl));
-      const raw = await res.json();
-      const data = JSON.parse(raw.contents);
+      const res = await fetch("/api/steam-search?term=" + encodeURIComponent(query));
+      const data = await res.json();
       const items: SteamGame[] = (data.items || []).slice(0, 8).map((item: any) => ({
         id: item.id,
         name: item.name,
