@@ -6,8 +6,9 @@ const searchSteam = async (query: string) => {
   }
   setSearchLoading(true);
   try {
+   const steamUrl = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(query)}&l=english&cc=US`;
     const res = await fetch(
-      `https://api.allorigins.win/get?url=${encodeURIComponent(`https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(query)}&l=english&cc=US`)}`
+      `https://api.allorigins.win/get?url=${encodeURIComponent(steamUrl)}`
     );
     const raw = await res.json();
     const data = JSON.parse(raw.contents);
