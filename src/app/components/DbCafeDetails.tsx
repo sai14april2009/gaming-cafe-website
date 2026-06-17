@@ -209,11 +209,13 @@ export function DbCafeDetails() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {cafe.games.map((game) => (
                 <div key={game} className="flex flex-col overflow-hidden rounded-lg border-2 border-gray-200">
-                  {gameImages[game] && (
-                    <div className="w-full h-24 overflow-hidden">
-                      <img src={gameImages[game]} alt={game} className="w-full h-full object-cover" />
-                    </div>
-                  )}
+                  <div className="w-full h-24 overflow-hidden bg-gray-100 flex items-center justify-center">
+  {gameImages[game] ? (
+    <img src={gameImages[game]} alt={game} className="w-full h-full object-cover" />
+  ) : (
+    <Gamepad2 className="w-8 h-8 text-gray-400" />
+  )}
+</div>
                   <div className="p-2 bg-white"><span className="text-sm font-medium">{game}</span></div>
                 </div>
               ))}
