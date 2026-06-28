@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabase";
-import { Calendar, Users, DollarSign, Phone } from "lucide-react";
+import { Calendar, Users, Clock, DollarSign } from "lucide-react";
 
 interface BookingsListProps {
   cafeId: string;
@@ -16,11 +16,12 @@ export function BookingsList({ cafeId }: BookingsListProps) {
 
   const fetchBookings = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("bookings")
       .select("*")
       .eq("cafe_id", cafeId)
       .order("created_at", { ascending: false });
+    if (error) console.error(error);
     setBookings(data || []);
     setLoading(false);
   };
@@ -48,27 +49,28 @@ export function BookingsList({ cafeId }: BookingsListProps) {
               <Calendar className="w-4 h-4" />
               {new Date(booking.booking_date).toDateString()}
             </div>
-            <div className="flex items-center gap-2 text-sm font-semibold text-purple-600">
-              <DollarSign className="w-4 h-4" />
-              ${booking.total_price}
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              booking.status === "confirmed"
+                ? "bg-green-100 text-green-700"
+                : "bg-yellow-100 text-yellow-700"
+            }`}>
+              {booking.status || "pending"}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+            <div className="flex items-center gap-1">
+              <Clock className="w-4 h-4" />
+              {booking.start_time} – {booking.end_time}
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-            <Users className="w-4 h-4" />
-            {booking.party_size} {booking.party_size === 1 ? "player" : "players"}
-          </div>
-
-          <div className="border-t pt-3 space-y-2">
-            {booking.players?.map((player: any, i: number) => (
-              <div key={i} className="flex items-center justify-between text-sm">
-                <span className="font-medium">{player.name}</span>
-                <span className="flex items-center gap-1 text-gray-500">
-                  <Phone className="w-3 h-3" />
-                  {player.phone}
-                </span>
-              </div>
-            ))}
+            <div className="flex items-center gap-1">
+              <Users className="w-4 h-4" />
+              {booking.num_people} {booking.num_people === 1 ? "player" : "players"}
+            </div>
+            <div className="flex items-center gap-1 font-semibold text-purple-600">
+              <DollarSign className="w-4 h-4" />
+              ₹{booking.total_price}
+            </div>
           </div>
         </div>
       ))}

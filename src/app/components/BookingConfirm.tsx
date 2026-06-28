@@ -142,28 +142,39 @@ export function BookingConfirm() {
     return errs;
   };
 
-  const handleConfirm = async () => {
+const handleConfirm = async () => {
     const errs = validate();
     if (errs.length > 0) { setErrors(errs); return; }
     setErrors([]);
     setLoading(true);
 
     try {
+      const bookingDate = new Date(bookings[0]?.date);
+      const startHour = Math.min(...bookings.flatMap((b: BookingData) => b.timeSlots));
+      const endHour = Math.max(...bookings.flatMap((b: BookingData) => b.timeSlots)) + 1;
+      const formatHour = (h: number) => `${String(h).padStart(2, "0")}:00`;
+
       const { error } = await supabase.from("bookings").insert({
         user_id: user?.id,
-        cafe_name: cafeName,
-        party_size: playerCount,
+        cafe_id: bookings[0]?.cafeId,
+        booking_date: bookingDate.toISOString().split("T")[0],
+        start_time: formatHour(startHour),
+        end_time: formatHour(endHour),
+        num_people: playerCount,
         total_price: totalPrice,
-        players: players,
-        assignments: assignments,
-        booking_date: bookings[0]?.date,
-        created_at: new Date().toISOString(),
+        status: "confirmed",
       });
 
-      if (error) console.error("Booking save error:", error);
+      if (error) {
+        console.error("Booking save error:", error);
+        setErrors([`Booking failed: ${error.message}`]);
+        return;
+      }
+
       setConfirmed(true);
     } catch (err) {
       console.error(err);
+      setErrors(["Something went wrong. Please try again."]);
     } finally {
       setLoading(false);
     }

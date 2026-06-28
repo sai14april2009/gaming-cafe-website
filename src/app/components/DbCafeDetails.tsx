@@ -105,15 +105,21 @@ export function DbCafeDetails() {
     bookingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const handleBookingComplete = (bookings: any) => {
+const handleBookingComplete = (bookings: any) => {
     const selectedSystemIds = bookings.map((b: any) => b.systemId);
     const selectedSystems = convertedSystems.filter((s) => selectedSystemIds.includes(s.id));
     const totalHours = bookings.reduce((sum: number, b: any) => sum + b.timeSlots.length, 0);
     const totalPrice = totalHours * (cafe?.price_per_hour || 0);
 
+    // Inject cafeId into each booking object
+    const bookingsWithCafe = bookings.map((b: any) => ({
+      ...b,
+      cafeId: cafe?.id,
+    }));
+
     navigate("/booking/confirm", {
       state: {
-        bookings,
+        bookings: bookingsWithCafe,
         systems: selectedSystems,
         partySize,
         numberOfFriends,
