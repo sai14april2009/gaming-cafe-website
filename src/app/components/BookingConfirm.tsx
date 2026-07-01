@@ -155,15 +155,17 @@ const handleConfirm = async () => {
       const formatHour = (h: number) => `${String(h).padStart(2, "0")}:00`;
 
       const { error } = await supabase.from("bookings").insert({
-        user_id: user?.id,
-        cafe_id: bookings[0]?.cafeId,
-        booking_date: bookingDate.toISOString().split("T")[0],
-        start_time: formatHour(startHour),
-        end_time: formatHour(endHour),
-        num_people: playerCount,
-        total_price: totalPrice,
-        status: "confirmed",
-      });
+  user_id: user?.id,
+  cafe_id: bookings[0]?.cafeId,
+  system_id: bookings[0]?.systemId,
+  booking_date: bookingDate.toISOString().split("T")[0],
+  start_time: formatHour(startHour),
+  end_time: formatHour(endHour),
+  num_people: playerCount,
+  total_price: totalPrice,
+  status: "confirmed",
+  players: players,
+});
 
       if (error) {
         console.error("Booking save error:", error);
