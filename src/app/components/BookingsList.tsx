@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabase";
-import { Calendar, Users, Clock, DollarSign } from "lucide-react";
+import { Calendar, Users, Clock, DollarSign, Phone, User } from "lucide-react";
 
 interface BookingsListProps {
   cafeId: string;
@@ -18,7 +18,10 @@ export function BookingsList({ cafeId }: BookingsListProps) {
     setLoading(true);
     const { data, error } = await supabase
       .from("bookings")
-      .select("*")
+      .select(`
+        *,
+        gaming_systems (name, type)
+      `)
       .eq("cafe_id", cafeId)
       .order("created_at", { ascending: false });
     if (error) console.error(error);
@@ -44,10 +47,11 @@ export function BookingsList({ cafeId }: BookingsListProps) {
       <h2 className="text-xl font-bold">Bookings ({bookings.length})</h2>
       {bookings.map((booking) => (
         <div key={booking.id} className="bg-white rounded-xl shadow-md p-5">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+          {/* Header row */}
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Calendar className="w-4 h-4" />
-              {new Date(booking.booking_date).toDateString()}
+              <span className="font-semibold">{new Date(booking.booking_date).toDateString()}</span>
             </div>
             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
               booking.status === "confirmed"
@@ -58,7 +62,8 @@ export function BookingsList({ cafeId }: BookingsListProps) {
             </span>
           </div>
 
-          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+          {/* Booking details */}
+          <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
             <div className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
               {booking.start_time} – {booking.end_time}
@@ -72,6 +77,44 @@ export function BookingsList({ cafeId }: BookingsListProps) {
               ₹{booking.total_price}
             </div>
           </div>
+
+          {/* System booked */}
+          {booking.gaming_systems && (
+            <div className="text-sm text-gray-600 mb-4 bg-gray-50 rounded-lg px-3 py-2">
+              🖥️ <span className="font-semibold">{booking.gaming_systems.name}</span>
+              <span className="text-gray-400 ml-1">({booking.gaming_systems.type})</span>
+            </div>
+          )}
+
+          {/* Player details */}
+          {booking.players && booking.players.length > 0 && (
+            <div className="border-t pt-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Player Details
+              </p>
+              <div className="space-y-2">
+                {booking.players.map((player: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between bg-purple-50 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="w-4 h-4 text-purple-500" />
+                      <span className="font-medium">{player.name || "—"}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-gray-600">
+                      <Phone className="w-3 h-3" />
+                      <span>{player.phone || "—"}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* No player info fallback */}
+          {(!booking.players || booking.players.length === 0) && (
+            <div className="border-t pt-3 text-sm text-gray-400 italic">
+              No player details recorded
+            </div>
+          )}
         </div>
       ))}
     </div>
