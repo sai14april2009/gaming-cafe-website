@@ -278,12 +278,12 @@ const handleBookingComplete = (bookings: any) => {
               <h2 className="text-2xl font-bold mb-6">Select Party Size</h2>
               {!partySize ? (
                 <div className="grid md:grid-cols-2 gap-4 mb-4">
-                  <button onClick={() => setPartySize("solo")} className="p-6 border-2 border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all">
+                  <button onClick={() => { if (!user) { navigate("/login", { state: { returnTo: `/cafe/db/${id}` } }); return; } setPartySize("solo"); }} className="p-6 border-2 border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all">
                     <div className="text-4xl mb-2">🎮</div>
                     <div className="font-semibold">Playing Solo</div>
                     <div className="text-sm text-gray-600 mt-1">Just me</div>
                   </button>
-                  <button onClick={() => setPartySize("group")} className="p-6 border-2 border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all">
+                  <button onClick={() => { if (!user) { navigate("/login", { state: { returnTo: `/cafe/db/${id}` } }); return; } setPartySize("group"); }} className="p-6 border-2 border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all">
                     <div className="text-4xl mb-2">👥</div>
                     <div className="font-semibold">With Friends</div>
                     <div className="text-sm text-gray-600 mt-1">Group gaming</div>
