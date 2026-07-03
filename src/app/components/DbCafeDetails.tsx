@@ -6,6 +6,7 @@ import { supabase } from "../../supabase";
 import { gameImages } from "../data/mockData";
 import { AdvancedBookingInterface } from "./AdvancedBookingInterface";
 import { useNavigate } from "react-router";
+import { useAuth } from "../context/AuthContext";
 import { DbReviewsSection } from "./DbReviewsSection";
 
 interface DbCafe {
@@ -49,6 +50,7 @@ export function DbCafeDetails() {
   const [numberOfHours, setNumberOfHours] = useState(1);
   const [showHourSelection, setShowHourSelection] = useState(false);
   const [showAdvancedBooking, setShowAdvancedBooking] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchCafe = async () => {
@@ -102,6 +104,10 @@ export function DbCafeDetails() {
     : { start: 8, end: 22 };
 
   const handleBookNow = () => {
+    if (!user) {
+      navigate("/login", { state: { returnTo: `/cafe/db/${id}` } });
+      return;
+    }
     bookingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 

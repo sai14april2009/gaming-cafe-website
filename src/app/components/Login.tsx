@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useLocation } from "react-router";
 import { supabase } from "../../supabase";
 import { Gamepad2 } from "lucide-react";
 
 export function Login() {
     const navigate = useNavigate();
+const location = useLocation();
+const returnTo = (location.state as any)?.returnTo || "/";
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -16,7 +18,7 @@ export function Login() {
         setError("");
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) setError(error.message);
-        else navigate("/");
+        else navigate(returnTo);
         setLoading(false);
     }
 
