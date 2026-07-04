@@ -35,7 +35,7 @@ export function AdvancedBookingInterface({
 }: AdvancedBookingInterfaceProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [bookingStates, setBookingStates] = useState<SystemBookingState[]>([]);
-  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
+  const [conflictWarning, setConflictWarning] = useState<{ systemId: string; message: string } | null>(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
   const next7Days = Array.from({ length: 7 }, (_, i) => {
@@ -58,15 +58,12 @@ export function AdvancedBookingInterface({
 
   const timeSlots = generateTimeSlots();
 
-  // Fetch real bookings from DB and build slot states
   useEffect(() => {
     const fetchBookedSlots = async () => {
       setLoadingSlots(true);
-
       const dateStr = selectedDate.toISOString().split("T")[0];
       const systemIds = systems.map((s) => s.id);
 
-      // Fetch all confirmed bookings for these systems on this date
       const { data: bookings } = await supabase
         .from("bookings")
         .select("system_id, start_time, end_time")
@@ -74,7 +71,6 @@ export function AdvancedBookingInterface({
         .eq("booking_date", dateStr)
         .eq("status", "confirmed");
 
-      // Build a map: systemId -> Set of booked hours
       const bookedHoursMap: Record<string, Set<number>> = {};
       systemIds.forEach((id) => (bookedHoursMap[id] = new Set()));
 
@@ -90,9 +86,7 @@ export function AdvancedBookingInterface({
       const newStates: SystemBookingState[] = systems.map((system) => {
         const slots: TimeSlotState[] = timeSlots.map((hour) => {
           let status: TimeSlotState["status"] = "available";
-          if (bookedHoursMap[system.id]?.has(hour)) {
-            status = "booked";
-          }
+          if (bookedHoursMap[system.id]?.has(hour)) status = "booked";
           return { hour, status };
         });
         return { systemId: system.id, slots };
@@ -105,6 +99,22 @@ export function AdvancedBookingInterface({
     if (systems.length > 0) fetchBookedSlots();
   }, [selectedDate, systems]);
 
+  const getSystemInfo = (systemId: string) => systems.find((s) => s.id === systemId);
+
+  const formatTime = (hour: number): string => {
+    if (hour === 0) return "12:00 AM";
+    if (hour < 12) return `${hour}:00 AM`;
+    if (hour === 12) return "12:00 PM";
+    return `${hour - 12}:00 PM`;
+  };
+
+  const formatDateShort = (date: Date) => {
+    const day = date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+    const dateNum = date.getDate();
+    const month = date.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+    return { day, dateNum, month };
+  };
+
   const handleSlotClick = (systemId: string, hour: number) => {
     const currentSlot = bookingStates
       .find((s) => s.systemId === systemId)
@@ -114,14 +124,18 @@ export function AdvancedBookingInterface({
 
     if (isSelecting) {
       if (partySize === "solo") {
-        const isTimeSlotUsedElsewhere = bookingStates.some(
+        const conflictingSystem = bookingStates.find(
           (state) =>
             state.systemId !== systemId &&
             state.slots.some((slot) => slot.hour === hour && slot.status === "selected")
         );
-        if (isTimeSlotUsedElsewhere) {
-          setConflictWarning("⚠️ You cannot select the same time slot on different systems. You can only use one PC at a time!");
-          setTimeout(() => setConflictWarning(null), 4000);
+        if (conflictingSystem) {
+          const conflictSystemName = getSystemInfo(conflictingSystem.systemId)?.name || "another system";
+          setConflictWarning({
+            systemId,
+            message: `❌ ${formatTime(hour)} is already selected on "${conflictSystemName}". You're playing solo — you can only use one system at a time. Deselect it there first.`,
+          });
+          setTimeout(() => setConflictWarning(null), 6000);
           return;
         }
       }
@@ -131,8 +145,11 @@ export function AdvancedBookingInterface({
           (state) => state.slots.some((slot) => slot.hour === hour && slot.status === "selected")
         ).length;
         if (timeSlotsUsedForThisHour >= numberOfFriends) {
-          setConflictWarning(`⚠️ You can select at most ${numberOfFriends} systems for the same time slot!`);
-          setTimeout(() => setConflictWarning(null), 4000);
+          setConflictWarning({
+            systemId,
+            message: `❌ All ${numberOfFriends} group slots for ${formatTime(hour)} are already taken. Your group has ${numberOfFriends} people, so only ${numberOfFriends} systems can share the same time. Choose a different time slot.`,
+          });
+          setTimeout(() => setConflictWarning(null), 6000);
           return;
         }
 
@@ -141,8 +158,11 @@ export function AdvancedBookingInterface({
           (slot) => slot.status === "selected"
         ).length || 0;
         if (slotsSelectedInThisSystem >= numberOfHours) {
-          setConflictWarning(`⚠️ You can select at most ${numberOfHours} time slot${numberOfHours !== 1 ? "s" : ""} on each system!`);
-          setTimeout(() => setConflictWarning(null), 4000);
+          setConflictWarning({
+            systemId,
+            message: `❌ You already selected ${numberOfHours} hour${numberOfHours !== 1 ? "s" : ""} on this system — that's the max per person. To book more hours, select a different system.`,
+          });
+          setTimeout(() => setConflictWarning(null), 6000);
           return;
         }
       }
@@ -163,20 +183,6 @@ export function AdvancedBookingInterface({
         };
       })
     );
-  };
-
-  const formatTime = (hour: number): string => {
-    if (hour === 0) return "12:00 AM";
-    if (hour < 12) return `${hour}:00 AM`;
-    if (hour === 12) return "12:00 PM";
-    return `${hour - 12}:00 PM`;
-  };
-
-  const formatDateShort = (date: Date) => {
-    const day = date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
-    const dateNum = date.getDate();
-    const month = date.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
-    return { day, dateNum, month };
   };
 
   const getSelectedCount = (): number =>
@@ -200,8 +206,6 @@ export function AdvancedBookingInterface({
     onBookingComplete(bookings);
   };
 
-  const getSystemInfo = (systemId: string) => systems.find((s) => s.id === systemId);
-
   const requiredSlots = partySize === "solo" ? numberOfHours : numberOfFriends * numberOfHours;
   const isRequiredSlotsMet = getSelectedCount() === requiredSlots;
 
@@ -211,12 +215,6 @@ export function AdvancedBookingInterface({
 
   return (
     <div className="bg-white rounded-xl shadow-md">
-      {conflictWarning && (
-        <div className="bg-red-500 text-white px-6 py-4 font-semibold text-center">
-          {conflictWarning}
-        </div>
-      )}
-
       {isRequiredSlotsMet && (
         <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 text-center shadow-lg">
           <div className="flex items-center justify-center gap-2">
@@ -229,7 +227,6 @@ export function AdvancedBookingInterface({
         </div>
       )}
 
-      {/* Date Selector */}
       <div className="flex items-center gap-0 border-b border-gray-200 overflow-x-auto">
         {next7Days.map((date, index) => {
           const { day, dateNum, month } = formatDateShort(date);
@@ -250,7 +247,6 @@ export function AdvancedBookingInterface({
         })}
       </div>
 
-      {/* Info Banner */}
       {partySize === "solo" && numberOfHours && (
         <div className="bg-blue-50 border-b border-blue-200 px-6 py-3">
           <p className="text-sm text-blue-800 text-center">
@@ -271,7 +267,6 @@ export function AdvancedBookingInterface({
         </div>
       )}
 
-      {/* Legend */}
       <div className="flex justify-between items-center gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200">
         <div className="text-sm text-gray-600">
           {loadingSlots ? "Loading availability..." : (
@@ -284,7 +279,6 @@ export function AdvancedBookingInterface({
         </div>
       </div>
 
-      {/* Systems List */}
       {loadingSlots ? (
         <div className="p-12 text-center text-gray-500">Loading availability...</div>
       ) : (
@@ -309,6 +303,11 @@ export function AdvancedBookingInterface({
                     </div>
                   )}
                 </div>
+                {conflictWarning?.systemId === bookingState.systemId && (
+                  <div className="mb-3 bg-red-50 border-2 border-red-400 rounded-lg px-4 py-3 text-red-700 text-sm font-medium">
+                    {conflictWarning.message}
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-3">
                   {bookingState.slots.map((slot) => (
                     <button
@@ -338,7 +337,6 @@ export function AdvancedBookingInterface({
         </div>
       )}
 
-      {/* Footer */}
       {getSelectedCount() > 0 && (
         <div className="sticky bottom-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 shadow-lg">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
