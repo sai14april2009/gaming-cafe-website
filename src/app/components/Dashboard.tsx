@@ -6,6 +6,7 @@ import { RegisterCafe } from "./RegisterCafe";
 import { CafeEditor } from "./CafeEditor";
 import { SystemsManager } from "./SystemsManager";
 import { BookingsList } from "./BookingsList";
+import { RepairSlotsManager } from "./RepairSlotsManager";
 import { RevenueStats } from "./RevenueStats";
 
 export function Dashboard() {
@@ -83,7 +84,12 @@ export function Dashboard() {
         {activeTab === "overview" && <RevenueStats cafeId={cafe.id} />}
         {activeTab === "details" && <CafeEditor cafe={cafe} onUpdated={fetchCafe} />}
         {activeTab === "systems" && <SystemsManager cafeId={cafe.id} />}
-        {activeTab === "bookings" && <BookingsList cafeId={cafe.id} />}
+        {activeTab === "bookings" && (
+  <>
+    <BookingsList cafeId={cafe.id} />
+    <RepairSlotsManager cafeId={cafe.id} />
+  </>
+)}
       </div>
     </div>
   );

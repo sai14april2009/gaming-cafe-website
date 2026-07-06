@@ -83,10 +83,28 @@ export function AdvancedBookingInterface({
         }
       });
 
+      // Fetch repair slots for this date
+      const { data: repairs } = await supabase
+        .from("repair_slots")
+        .select("system_id, start_hour, end_hour")
+        .in("system_id", systemIds)
+        .eq("repair_date", dateStr);
+
+      // Build repair hours map
+      const repairHoursMap: Record<string, Set<number>> = {};
+      systemIds.forEach((id) => (repairHoursMap[id] = new Set()));
+      (repairs || []).forEach((r) => {
+        if (!r.system_id) return;
+        for (let h = r.start_hour; h < r.end_hour; h++) {
+          repairHoursMap[r.system_id]?.add(h);
+        }
+      });
+
       const newStates: SystemBookingState[] = systems.map((system) => {
         const slots: TimeSlotState[] = timeSlots.map((hour) => {
           let status: TimeSlotState["status"] = "available";
           if (bookedHoursMap[system.id]?.has(hour)) status = "booked";
+          else if (repairHoursMap[system.id]?.has(hour)) status = "repair";
           return { hour, status };
         });
         return { systemId: system.id, slots };
