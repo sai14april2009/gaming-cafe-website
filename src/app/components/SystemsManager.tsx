@@ -93,7 +93,9 @@ export function SystemsManager({ cafeId }: SystemsManagerProps) {
         const startedAt = new Date(session.started_at);
         const durationMs = (session.end_time - session.start_time) * 60 * 60 * 1000;
         const endsAt = new Date(startedAt.getTime() + durationMs);
-        if (now >= endsAt) {
+        // Only auto-end if session has been active for at least 1 minute
+        const activeForMs = now.getTime() - startedAt.getTime();
+        if (now >= endsAt && activeForMs > 60000) {
           handleAutoEndSession(session);
         }
       }
