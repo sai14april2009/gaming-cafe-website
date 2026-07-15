@@ -86,19 +86,19 @@ export function SystemsManager({ cafeId }: SystemsManagerProps) {
     return () => clearInterval(interval);
   }, []);
 
-  // Check for sessions that should auto-notify when ended
+ // Check for sessions that should auto-notify when ended
   useEffect(() => {
     walkInSessions.forEach((session) => {
-      if (session.status === "active" && session.started_at) {
-        const startedAt = new Date(session.started_at);
-        const durationHours = session.slots.length;
-        const durationMs = durationHours * 60 * 60 * 1000;
-        const endsAt = new Date(startedAt.getTime() + durationMs);
-        const activeForMs = now.getTime() - startedAt.getTime();
-        // Only auto-end if session has been active for at least 5 minutes
-        // AND the full duration has passed
-        if (activeForMs >= durationMs && activeForMs > 5 * 60 * 1000) {
-          handleAutoEndSession(session);
+      if (session.status === "active") {
+        const currentHour = now.getHours();
+        const currentMinutes = now.getMinutes();
+        // Auto-end only when clock passes the end slot hour
+        // AND session has been active for at least 2 minutes (prevents instant end)
+        if (session.started_at) {
+          const activeForMs = now.getTime() - new Date(session.started_at).getTime();
+          if (currentHour >= session.end_time && activeForMs > 2 * 60 * 1000) {
+            handleAutoEndSession(session);
+          }
         }
       }
     });
@@ -289,19 +289,18 @@ export function SystemsManager({ cafeId }: SystemsManagerProps) {
   };
 
   const getProgressPercent = (session: WalkInSession) => {
-    if (!session.started_at) return 0;
-    const startedAt = new Date(session.started_at).getTime();
-    const totalMs = session.slots.length * 60 * 60 * 1000;
-    const elapsedMs = now.getTime() - startedAt;
-    return Math.min(100, Math.round((elapsedMs / totalMs) * 100));
+    // Progress based purely on clock time vs slot boundary
+    const startHour = session.start_time;
+    const endHour = session.end_time;
+    const totalMs = (endHour - startHour) * 60 * 60 * 1000;
+    const slotStartTime = new Date(now);
+    slotStartTime.setHours(startHour, 0, 0, 0);
+    const elapsedMs = now.getTime() - slotStartTime.getTime();
+    return Math.min(100, Math.max(0, Math.round((elapsedMs / totalMs) * 100)));
   };
 
   const getEndTime = (session: WalkInSession) => {
-    if (!session.started_at) return formatHour(session.end_time);
-    const startedAt = new Date(session.started_at);
-    const totalMs = session.slots.length * 60 * 60 * 1000;
-    const endsAt = new Date(startedAt.getTime() + totalMs);
-    return endsAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    return formatHour(session.end_time);
   };
 
   // Generate today's time slots from cafe opening hours
