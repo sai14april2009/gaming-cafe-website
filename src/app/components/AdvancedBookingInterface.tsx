@@ -16,7 +16,7 @@ interface AdvancedBookingInterfaceProps {
 
 interface TimeSlotState {
   hour: number;
-  status: "available" | "booked" | "repair" | "selected";
+  status: "available" | "booked" | "repair" | "selected" | "walkin";
 }
 
 interface SystemBookingState {
@@ -90,6 +90,14 @@ export function AdvancedBookingInterface({
         .in("system_id", systemIds)
         .eq("repair_date", dateStr);
 
+      // Fetch active/scheduled walk-in sessions for this date
+      const { data: walkIns } = await supabase
+        .from("walk_in_sessions")
+        .select("system_id, slots, status")
+        .in("system_id", systemIds)
+        .eq("session_date", dateStr)
+        .in("status", ["active", "scheduled"]);
+
       // Build repair hours map
       const repairHoursMap: Record<string, Set<number>> = {};
       systemIds.forEach((id) => (repairHoursMap[id] = new Set()));
@@ -100,16 +108,26 @@ export function AdvancedBookingInterface({
         }
       });
 
+      // Build walk-in hours map
+      const walkInHoursMap: Record<string, Set<number>> = {};
+      systemIds.forEach((id) => (walkInHoursMap[id] = new Set()));
+      (walkIns || []).forEach((w) => {
+        if (!w.system_id) return;
+        (w.slots as number[]).forEach((h) => {
+          walkInHoursMap[w.system_id]?.add(h);
+        });
+      });
+
       const newStates: SystemBookingState[] = systems.map((system) => {
         const slots: TimeSlotState[] = timeSlots.map((hour) => {
           let status: TimeSlotState["status"] = "available";
           if (bookedHoursMap[system.id]?.has(hour)) status = "booked";
           else if (repairHoursMap[system.id]?.has(hour)) status = "repair";
+          else if (walkInHoursMap[system.id]?.has(hour)) status = "walkin";
           return { hour, status };
         });
         return { systemId: system.id, slots };
       });
-
       setBookingStates(newStates);
       setLoadingSlots(false);
     };
@@ -294,6 +312,8 @@ export function AdvancedBookingInterface({
         <div className="flex items-center gap-4 text-xs">
           <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-green-600"></div><span>Available</span></div>
           <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-red-500"></div><span>Booked</span></div>
+          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-orange-500"></div><span>Occupied</span></div>
+          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-purple-500"></div><span>Repair</span></div>
         </div>
       </div>
 
@@ -342,10 +362,12 @@ export function AdvancedBookingInterface({
                           ? "border-2 border-green-600 bg-green-600 text-white cursor-pointer"
                           : slot.status === "booked"
                           ? "border-2 border-red-500 bg-red-500 text-white cursor-not-allowed"
+                          : slot.status === "walkin"
+                          ? "border-2 border-orange-500 bg-orange-500 text-white cursor-not-allowed"
                           : "border-2 border-purple-500 bg-purple-500 text-white cursor-not-allowed"
                       }`}
                     >
-                      {slot.status === "booked" ? "BOOKED" : slot.status === "repair" ? "REPAIR" : formatTime(slot.hour)}
+                      {slot.status === "booked" ? "BOOKED" : slot.status === "repair" ? "REPAIR" : slot.status === "walkin" ? "OCCUPIED" : formatTime(slot.hour)}
                     </button>
                   ))}
                 </div>
