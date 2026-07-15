@@ -91,11 +91,13 @@ export function SystemsManager({ cafeId }: SystemsManagerProps) {
     walkInSessions.forEach((session) => {
       if (session.status === "active" && session.started_at) {
         const startedAt = new Date(session.started_at);
-        const durationMs = (session.end_time - session.start_time) * 60 * 60 * 1000;
+        const durationHours = session.slots.length;
+        const durationMs = durationHours * 60 * 60 * 1000;
         const endsAt = new Date(startedAt.getTime() + durationMs);
-        // Only auto-end if session has been active for at least 1 minute
         const activeForMs = now.getTime() - startedAt.getTime();
-        if (now >= endsAt && activeForMs > 60000) {
+        // Only auto-end if session has been active for at least 5 minutes
+        // AND the full duration has passed
+        if (activeForMs >= durationMs && activeForMs > 5 * 60 * 1000) {
           handleAutoEndSession(session);
         }
       }
@@ -289,7 +291,7 @@ export function SystemsManager({ cafeId }: SystemsManagerProps) {
   const getProgressPercent = (session: WalkInSession) => {
     if (!session.started_at) return 0;
     const startedAt = new Date(session.started_at).getTime();
-    const totalMs = (session.end_time - session.start_time) * 60 * 60 * 1000;
+    const totalMs = session.slots.length * 60 * 60 * 1000;
     const elapsedMs = now.getTime() - startedAt;
     return Math.min(100, Math.round((elapsedMs / totalMs) * 100));
   };
@@ -297,7 +299,7 @@ export function SystemsManager({ cafeId }: SystemsManagerProps) {
   const getEndTime = (session: WalkInSession) => {
     if (!session.started_at) return formatHour(session.end_time);
     const startedAt = new Date(session.started_at);
-    const totalMs = (session.end_time - session.start_time) * 60 * 60 * 1000;
+    const totalMs = session.slots.length * 60 * 60 * 1000;
     const endsAt = new Date(startedAt.getTime() + totalMs);
     return endsAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   };
