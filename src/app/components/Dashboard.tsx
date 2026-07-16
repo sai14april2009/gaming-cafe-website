@@ -83,7 +83,7 @@ export function Dashboard() {
 
         {activeTab === "overview" && <RevenueStats cafeId={cafe.id} />}
         {activeTab === "details" && <CafeEditor cafe={cafe} onUpdated={fetchCafe} />}
-        {activeTab === "systems" && <SystemsManager cafeId={cafe.id} />}
+        {activeTab === "systems" && <SystemsManager cafeId={cafe.id} pricePerHour={cafe.price_per_hour} />}
         {activeTab === "bookings" && (
   <>
     <BookingsList cafeId={cafe.id} />

@@ -5,6 +5,7 @@ import { Trash2, Plus, Monitor, Play, Square, Clock, Wrench } from "lucide-react
 
 interface SystemsManagerProps {
   cafeId: string;
+  pricePerHour: number;
 }
 
 interface GamingSystemRow {
@@ -52,7 +53,7 @@ interface ConflictInfo {
   conflictingBooking: OnlineBooking;
 }
 
-export function SystemsManager({ cafeId }: SystemsManagerProps) {
+export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
   const [systems, setSystems] = useState<GamingSystemRow[]>([]);
   const [walkInSessions, setWalkInSessions] = useState<WalkInSession[]>([]);
   const [repairSlots, setRepairSlots] = useState<RepairSlot[]>([]);
@@ -71,7 +72,7 @@ export function SystemsManager({ cafeId }: SystemsManagerProps) {
   const [waitingForReschedule, setWaitingForReschedule] = useState(false);
 
   // Session end notification
-  const [endedSession, setEndedSession] = useState<{ systemName: string; nextBooking: OnlineBooking | null } | null>(null);
+  const [endedSession, setEndedSession] = useState<{ systemName: string; nextBooking: OnlineBooking | null; amountToCollect: number | null } | null>(null);
 
   // Add system form
   const [form, setForm] = useState({
@@ -132,6 +133,69 @@ export function SystemsManager({ cafeId }: SystemsManagerProps) {
     if (hour < 12) return `${hour}:00 AM`;
     if (hour === 12) return "12:00 PM";
     return `${hour - 12}:00 PM`;
+  };
+
+  const calculateWalkInPrice = (slots: number[]): { breakdown: string[]; total: number } => {
+    if (slots.length === 0) return { breakdown: [], total: 0 };
+    const sortedSlots = [...slots].sort((a, b) => a - b);
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const breakdown: string[] = [];
+    let total = 0;
+
+    sortedSlots.forEach((slot, index) => {
+      const slotEndMinutes = (slot + 1) * 60;
+      let minutesPlayed: number;
+
+      if (index === 0) {
+        // First slot — proportional from current time
+        const slotStartMinutes = slot * 60;
+        const actualStartMinutes = Math.max(currentMinutes, slotStartMinutes);
+        minutesPlayed = slotEndMinutes - actualStartMinutes;
+      } else {
+        // Subsequent slots — full hour
+        minutesPlayed = 60;
+      }
+
+      const slotPrice = Math.round((minutesPlayed / 60) * pricePerHour * 100) / 100;
+      total += slotPrice;
+      breakdown.push(
+        `${formatHour(slot)} → ${minutesPlayed} min → ₹${slotPrice.toFixed(2)}`
+      );
+    });
+
+    return { breakdown, total: Math.round(total * 100) / 100 };
+  };
+
+  const canStartWalkIn = (systemId: string, slots: number[]): { allowed: boolean; reason: string } => {
+    if (slots.length === 0) return { allowed: false, reason: "" };
+
+    const sortedSlots = [...slots].sort((a, b) => a - b);
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const firstSlot = sortedSlots[0];
+
+    // Check if first slot is current hour
+    if (firstSlot === currentHour) {
+      const minutesLeftInSlot = 60 - currentMinutes;
+      const nextSlot = firstSlot + 1;
+      const nextSlotBooked = getConflictingBooking(systemId, [nextSlot]);
+
+      // Hard block: less than 20 min left AND next slot is booked
+      if (minutesLeftInSlot < 20 && nextSlotBooked) {
+        return {
+          allowed: false,
+          reason: `Only ${minutesLeftInSlot} minutes left in this slot and ${formatHour(nextSlot)} is already booked online by ${nextSlotBooked.players?.[0]?.name || "a customer"}. Move this customer to a different system or ask them to wait for a free slot.`
+        };
+      }
+
+      // Soft warning: less than 20 min left but next slot is free
+      if (minutesLeftInSlot < 20 && !nextSlotBooked) {
+        // Still allowed but we'll show warning in UI
+        return { allowed: true, reason: `warning:Only ${minutesLeftInSlot} minutes left in this slot. Customer will play until ${formatHour(firstSlot + 1)}.` };
+      }
+    }
+
+    return { allowed: true, reason: "" };
   };
 
   const getSystemStatus = (systemId: string) => {
@@ -280,7 +344,10 @@ export function SystemsManager({ cafeId }: SystemsManagerProps) {
       return b.system_id === session.system_id && startH === nextHour;
     }) || null;
 
-    setEndedSession({ systemName: system?.name || "System", nextBooking });
+    // Calculate amount to collect
+    const { total } = calculateWalkInPrice(session.slots);
+
+    setEndedSession({ systemName: system?.name || "System", nextBooking, amountToCollect: total });
     fetchAll();
   };
 
@@ -360,9 +427,15 @@ export function SystemsManager({ cafeId }: SystemsManagerProps) {
           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
             <div className="text-5xl mb-4">⏰</div>
             <h2 className="text-2xl font-bold mb-2">Session Complete!</h2>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-2">
               <span className="font-semibold">{endedSession.systemName}</span> walk-in session has ended. The system is now free.
             </p>
+            {endedSession.amountToCollect && (
+              <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-4 mb-4">
+                <p className="text-sm text-orange-700">Amount to collect from customer:</p>
+                <p className="text-3xl font-bold text-orange-600">₹{endedSession.amountToCollect.toFixed(2)}</p>
+              </div>
+            )}
             {endedSession.nextBooking && (
               <div className="bg-yellow-50 border-2 border-yellow-400 rounded-xl p-4 mb-4 text-left">
                 <p className="font-bold text-yellow-800 mb-1">🔔 Heads Up!</p>
@@ -658,11 +731,62 @@ export function SystemsManager({ cafeId }: SystemsManagerProps) {
                         );
                       })}
                     </div>
-                    {selectedWalkInSlots.length > 0 && (
-                      <p className="text-xs text-gray-500 mb-2">
-                        Selected: {selectedWalkInSlots.map(formatHour).join(", ")}
-                      </p>
-                    )}
+                    {selectedWalkInSlots.length > 0 && (() => {
+                      const { breakdown, total } = calculateWalkInPrice(selectedWalkInSlots);
+                      const check = canStartWalkIn(system.id, selectedWalkInSlots);
+                      const isWarning = check.reason.startsWith("warning:");
+                      const warningMsg = check.reason.replace("warning:", "");
+                      const nextSlot = Math.max(...selectedWalkInSlots) + 1;
+                      const nextSlotFree = !getConflictingBooking(system.id, [nextSlot]) &&
+                        !walkInSessions.find(s => s.system_id === system.id && s.slots.includes(nextSlot));
+
+                      return (
+                        <div className="mb-2">
+                          {/* Price breakdown */}
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 mb-2">
+                            <p className="text-xs font-semibold text-orange-800 mb-1">Price Breakdown:</p>
+                            {breakdown.map((line, i) => (
+                              <p key={i} className="text-xs text-orange-700">{line}</p>
+                            ))}
+                            <p className="text-xs font-bold text-orange-900 mt-1 border-t border-orange-200 pt-1">
+                              Total to collect: ₹{total.toFixed(2)}
+                            </p>
+                          </div>
+
+                          {/* Hard block warning */}
+                          {!check.allowed && (
+                            <div className="bg-red-50 border-2 border-red-400 rounded-lg p-2 mb-2">
+                              <p className="text-xs font-semibold text-red-700">❌ Cannot start walk-in</p>
+                              <p className="text-xs text-red-600 mt-0.5">{check.reason}</p>
+                            </div>
+                          )}
+
+                          {/* Soft warning */}
+                          {check.allowed && isWarning && (
+                            <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-2 mb-2">
+                              <p className="text-xs font-semibold text-yellow-700">⚠️ Short session</p>
+                              <p className="text-xs text-yellow-600 mt-0.5">{warningMsg}</p>
+                            </div>
+                          )}
+
+                          {/* Suggest next slot if available */}
+                          {check.allowed && nextSlotFree && nextSlot <= 22 && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-2">
+                              <p className="text-xs text-blue-700">
+                                💡 {formatHour(nextSlot)} is also free.
+                              </p>
+                              <button
+                                onClick={() => setSelectedWalkInSlots(prev => [...prev, nextSlot].sort((a,b) => a-b))}
+                                className="text-xs text-blue-600 font-semibold underline mt-0.5"
+                              >
+                                Add {formatHour(nextSlot)} too →
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
                     <div className="flex gap-2">
                       <button
                         onClick={() => { setWalkInSystemId(null); setSelectedWalkInSlots([]); }}
@@ -671,8 +795,12 @@ export function SystemsManager({ cafeId }: SystemsManagerProps) {
                         Cancel
                       </button>
                       <button
-                        onClick={() => handleStartWalkIn(system.id)}
-                        disabled={selectedWalkInSlots.length === 0}
+                        onClick={() => {
+                          const check = canStartWalkIn(system.id, selectedWalkInSlots);
+                          if (!check.allowed) return;
+                          handleStartWalkIn(system.id);
+                        }}
+                        disabled={selectedWalkInSlots.length === 0 || !canStartWalkIn(system.id, selectedWalkInSlots).allowed}
                         className="flex-1 text-xs py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
                       >
                         Start Walk-in →
