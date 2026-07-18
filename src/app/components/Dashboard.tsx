@@ -5,6 +5,7 @@ import { Navigate } from "react-router";
 import { RegisterCafe } from "./RegisterCafe";
 import { CafeEditor } from "./CafeEditor";
 import { SystemsManager } from "./SystemsManager";
+import { LiveSessions } from "./LiveSessions";
 import { BookingsList } from "./BookingsList";
 import { RepairSlotsManager } from "./RepairSlotsManager";
 import { RevenueStats } from "./RevenueStats";
@@ -13,7 +14,7 @@ export function Dashboard() {
   const { user, profile, loading: authLoading } = useAuth();
   const [cafe, setCafe] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "details" | "systems" | "bookings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "details" | "systems" | "live" | "bookings">("overview");
 
   useEffect(() => {
     if (!user) return;
@@ -65,6 +66,7 @@ export function Dashboard() {
             { key: "overview", label: "Overview" },
             { key: "details", label: "Cafe Details" },
             { key: "systems", label: "Gaming Systems" },
+            { key: "live", label: "🔴 Live Now" },
             { key: "bookings", label: "Bookings" },
           ].map((tab) => (
             <button
@@ -83,7 +85,17 @@ export function Dashboard() {
 
         {activeTab === "overview" && <RevenueStats cafeId={cafe.id} />}
         {activeTab === "details" && <CafeEditor cafe={cafe} onUpdated={fetchCafe} />}
-        {activeTab === "systems" && <SystemsManager cafeId={cafe.id} pricePerHour={cafe.price_per_hour} />}
+        {activeTab === "systems" && (
+          <SystemsManager
+            cafeId={cafe.id}
+            pricePerHour={cafe.price_per_hour}
+            openingTime={cafe.opening_time}
+            closingTime={cafe.closing_time}
+          />
+        )}
+        {activeTab === "live" && (
+          <LiveSessions cafeId={cafe.id} pricePerHour={cafe.price_per_hour} />
+        )}
         {activeTab === "bookings" && (
   <>
     <BookingsList cafeId={cafe.id} />
