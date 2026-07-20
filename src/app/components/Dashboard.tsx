@@ -14,7 +14,7 @@ export function Dashboard() {
   const { user, profile, loading: authLoading } = useAuth();
   const [cafe, setCafe] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "details" | "systems" | "live" | "bookings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "details" | "systems" | "live" | "advanced" | "bookings">("overview");
 
   useEffect(() => {
     if (!user) return;
@@ -67,7 +67,8 @@ export function Dashboard() {
             { key: "details", label: "Cafe Details" },
             { key: "systems", label: "Gaming Systems" },
             { key: "live", label: "🔴 Live Now" },
-            { key: "bookings", label: "Bookings" },
+            { key: "advanced", label: "Advanced Booking" },
+            { key: "bookings", label: "Booking History" },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -96,12 +97,15 @@ export function Dashboard() {
         {activeTab === "live" && (
           <LiveSessions cafeId={cafe.id} pricePerHour={cafe.price_per_hour} />
         )}
+        {activeTab === "advanced" && (
+          <BookingsList cafeId={cafe.id} mode="advanced" />
+        )}
         {activeTab === "bookings" && (
-  <>
-    <BookingsList cafeId={cafe.id} />
-    <RepairSlotsManager cafeId={cafe.id} />
-  </>
-)}
+          <>
+            <BookingsList cafeId={cafe.id} mode="history" />
+            <RepairSlotsManager cafeId={cafe.id} />
+          </>
+        )}
       </div>
     </div>
   );
