@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { supabase } from "../../supabase";
 import { Button } from "./ui/button";
 import { Square, Play } from "lucide-react";
+import { toLocalDateString } from "../utils/date";
 
 interface LiveSessionsProps {
   cafeId: string;
@@ -29,14 +30,23 @@ interface OnlineBooking {
   system_id: string;
   start_time: string;
   end_time: string;
+  total_price: number;
   players: { name: string; phone: string }[] | null;
 }
 
-interface EndedSessionInfo {
-  systemName: string;
-  nextBooking: OnlineBooking | null;
+interface OwnerNotice {
+  emoji: string;
+  title: string;
+  message: ReactNode;
   amountToCollect: number | null;
+  amountLabel?: string;
+  nextBooking: OnlineBooking | null;
 }
+
+// A unified Live Now item — either a walk-in session or an active online booking.
+type LiveItem =
+  | { kind: "walkin"; startHour: number; session: WalkInSession }
+  | { kind: "online"; startHour: number; booking: OnlineBooking };
 
 export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
   const [sessions, setSessions] = useState<WalkInSession[]>([]);
@@ -44,7 +54,7 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
   const [onlineBookings, setOnlineBookings] = useState<OnlineBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
-  const [endedSession, setEndedSession] = useState<EndedSessionInfo | null>(null);
+  const [notice, setNotice] = useState<OwnerNotice | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
@@ -52,7 +62,7 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
   }, []);
 
   const fetchAll = useCallback(async () => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = toLocalDateString(new Date());
     const [{ data: sessionsData }, { data: systemsData }, { data: bookingsData }] = await Promise.all([
       supabase.from("walk_in_sessions").select("*").eq("cafe_id", cafeId).in("status", ["active", "scheduled"]).eq("session_date", today),
       supabase.from("gaming_systems").select("id, name").eq("cafe_id", cafeId),
@@ -66,7 +76,7 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // Auto-end check
+  // Auto-end check (walk-ins only — online bookings simply drop off Live Now when their slot passes)
   useEffect(() => {
     sessions.forEach((session) => {
       if (session.status === "active" && session.started_at) {
@@ -88,12 +98,27 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
   const getSystemName = (systemId: string) =>
     systems.find((s) => s.id === systemId)?.name || "Unknown System";
 
+  const nowMinutes = () => now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+
+  const parseMinutes = (t: string) => {
+    const [h, m] = t.split(":");
+    return parseInt(h) * 60 + (parseInt(m) || 0);
+  };
+
   const getProgressPercent = (session: WalkInSession) => {
     const totalMs = (session.end_time - session.start_time) * 60 * 60 * 1000;
     const slotStart = new Date(now);
     slotStart.setHours(session.start_time, 0, 0, 0);
     const elapsed = now.getTime() - slotStart.getTime();
     return Math.min(100, Math.max(0, Math.round((elapsed / totalMs) * 100)));
+  };
+
+  const getBookingProgressPercent = (booking: OnlineBooking) => {
+    const startMin = parseMinutes(booking.start_time);
+    const endMin = parseMinutes(booking.end_time);
+    const total = endMin - startMin;
+    if (total <= 0) return 0;
+    return Math.min(100, Math.max(0, Math.round(((nowMinutes() - startMin) / total) * 100)));
   };
 
   const calculatePrice = (slots: number[]) => {
@@ -121,7 +146,13 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
       return b.system_id === session.system_id && startH === session.end_time;
     }) || null;
     const amountToCollect = calculatePrice(session.slots);
-    setEndedSession({ systemName: getSystemName(session.system_id), nextBooking, amountToCollect });
+    setNotice({
+      emoji: "⏰",
+      title: "Session Complete!",
+      message: <><span className="font-semibold">{getSystemName(session.system_id)}</span> walk-in session has ended.</>,
+      amountToCollect,
+      nextBooking,
+    });
     fetchAll();
   };
 
@@ -151,39 +182,150 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
     fetchAll();
   };
 
+  // --- Online booking controls ---
+
+  const handleAddBookingHour = async (booking: OnlineBooking) => {
+    const startH = parseInt(booking.start_time.split(":")[0]);
+    const endH = parseInt(booking.end_time.split(":")[0]);
+    const nextHour = endH;
+
+    // Conflict check — same availability rule as walk-ins, plus other online bookings.
+    // Honors the zero-double-booking rule against BOTH online bookings and walk-ins.
+    const onlineConflict = onlineBookings.find((b) => {
+      if (b.id === booking.id) return false;
+      const bStart = parseInt(b.start_time.split(":")[0]);
+      const bEnd = parseInt(b.end_time.split(":")[0]);
+      return b.system_id === booking.system_id && nextHour >= bStart && nextHour < bEnd;
+    });
+    const walkinConflict = sessions.find((s) =>
+      s.system_id === booking.system_id &&
+      (s.slots.includes(nextHour) || (nextHour >= s.start_time && nextHour < s.end_time))
+    );
+    if (onlineConflict || walkinConflict) {
+      alert(`Cannot add hour — ${formatHour(nextHour)} is already booked on this system.`);
+      return;
+    }
+
+    const durationHours = endH - startH;
+    const perHour = durationHours > 0 ? booking.total_price / durationHours : booking.total_price;
+    const extra = Math.round(perHour * 100) / 100;
+    const newEnd = `${String(nextHour + 1).padStart(2, "0")}:00`;
+    const newTotal = Math.round((booking.total_price + extra) * 100) / 100;
+
+    const { data, error } = await supabase
+      .from("bookings")
+      .update({ end_time: newEnd, total_price: newTotal })
+      .eq("id", booking.id)
+      .select();
+    if (error) {
+      alert(`Could not add hour: ${error.message}`);
+      return;
+    }
+    if (!data || data.length === 0) {
+      alert(
+        "Could not add the hour — the update was blocked (0 rows changed).\n\n" +
+        "This usually means the cafe owner lacks UPDATE permission on the bookings table (Row-Level Security). See the fix instructions."
+      );
+      return;
+    }
+
+    const name = booking.players?.[0]?.name || "the customer";
+    setNotice({
+      emoji: "💰",
+      title: "Extra Hour Added",
+      message: <>Collect <span className="font-semibold">₹{extra.toFixed(2)}</span> from <span className="font-semibold">{name}</span> for the extra hour (cash/UPI).</>,
+      amountToCollect: extra,
+      amountLabel: "Amount to collect:",
+      nextBooking: null,
+    });
+    fetchAll();
+  };
+
+  const handleEndBooking = async (booking: OnlineBooking) => {
+    const { data, error } = await supabase
+      .from("bookings")
+      .update({ status: "completed" })
+      .eq("id", booking.id)
+      .select();
+    if (error) {
+      alert(`Could not end booking: ${error.message}`);
+      return;
+    }
+    if (!data || data.length === 0) {
+      alert(
+        "Could not end this booking — the update was blocked (0 rows changed).\n\n" +
+        "This usually means the cafe owner lacks UPDATE permission on the bookings table (Row-Level Security). See the fix instructions."
+      );
+      return;
+    }
+    const endH = parseInt(booking.end_time.split(":")[0]);
+    const nextBooking = onlineBookings.find((b) =>
+      b.id !== booking.id &&
+      b.system_id === booking.system_id &&
+      parseInt(b.start_time.split(":")[0]) === endH
+    ) || null;
+    setNotice({
+      emoji: "✅",
+      title: "Booking Complete!",
+      message: <><span className="font-semibold">{getSystemName(booking.system_id)}</span> online booking has ended.</>,
+      amountToCollect: null,
+      nextBooking,
+    });
+    fetchAll();
+  };
+
+  // Build the merged, start-time-sorted Live Now list.
+  const liveItems: LiveItem[] = [
+    ...sessions.map((session): LiveItem => ({
+      kind: "walkin",
+      startHour: session.start_time,
+      session,
+    })),
+    ...onlineBookings
+      .filter((b) => {
+        const startMin = parseMinutes(b.start_time);
+        const endMin = parseMinutes(b.end_time);
+        const cur = nowMinutes();
+        return cur >= startMin && cur < endMin;
+      })
+      .map((booking): LiveItem => ({
+        kind: "online",
+        startHour: parseInt(booking.start_time.split(":")[0]),
+        booking,
+      })),
+  ].sort((a, b) => a.startHour - b.startHour);
+
   if (loading) return <div className="text-center py-8 text-gray-500">Loading live sessions...</div>;
 
   return (
     <div className="space-y-4">
 
-      {/* Session End Popup */}
-      {endedSession && (
+      {/* Owner notice popup */}
+      {notice && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-            <div className="text-5xl mb-4">⏰</div>
-            <h2 className="text-2xl font-bold mb-2">Session Complete!</h2>
-            <p className="text-gray-600 mb-2">
-              <span className="font-semibold">{endedSession.systemName}</span> walk-in session has ended.
-            </p>
-            {endedSession.amountToCollect !== null && (
+            <div className="text-5xl mb-4">{notice.emoji}</div>
+            <h2 className="text-2xl font-bold mb-2">{notice.title}</h2>
+            <p className="text-gray-600 mb-2">{notice.message}</p>
+            {notice.amountToCollect !== null && (
               <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-4 mb-4">
-                <p className="text-sm text-orange-700">Amount to collect:</p>
-                <p className="text-3xl font-bold text-orange-600">₹{endedSession.amountToCollect.toFixed(2)}</p>
+                <p className="text-sm text-orange-700">{notice.amountLabel || "Amount to collect:"}</p>
+                <p className="text-3xl font-bold text-orange-600">₹{notice.amountToCollect.toFixed(2)}</p>
               </div>
             )}
-            {endedSession.nextBooking && (
+            {notice.nextBooking && (
               <div className="bg-yellow-50 border-2 border-yellow-400 rounded-xl p-4 mb-4 text-left">
                 <p className="font-bold text-yellow-800">🔔 Heads Up!</p>
                 <p className="text-sm text-yellow-700 mt-1">
-                  <span className="font-semibold">{endedSession.nextBooking.players?.[0]?.name || "A customer"}</span> arrives at{" "}
-                  {formatHour(parseInt(endedSession.nextBooking.start_time.split(":")[0]))}
+                  <span className="font-semibold">{notice.nextBooking.players?.[0]?.name || "A customer"}</span> arrives at{" "}
+                  {formatHour(parseInt(notice.nextBooking.start_time.split(":")[0]))}
                 </p>
-                {endedSession.nextBooking.players?.[0]?.phone && (
-                  <p className="text-sm text-yellow-700">📞 {endedSession.nextBooking.players[0].phone}</p>
+                {notice.nextBooking.players?.[0]?.phone && (
+                  <p className="text-sm text-yellow-700">📞 {notice.nextBooking.players[0].phone}</p>
                 )}
               </div>
             )}
-            <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600" onClick={() => setEndedSession(null)}>
+            <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600" onClick={() => setNotice(null)}>
               OK, Got it!
             </Button>
           </div>
@@ -192,68 +334,120 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
 
       <h2 className="text-xl font-bold">Live Now</h2>
 
-      {sessions.length === 0 ? (
+      {liveItems.length === 0 ? (
         <div className="bg-white rounded-xl shadow-md p-12 text-center text-gray-400">
           <p className="text-lg font-medium mb-1">No active sessions</p>
-          <p className="text-sm">Start a walk-in from the Gaming Systems tab</p>
+          <p className="text-sm">Start a walk-in from the Gaming Systems tab, or wait for an online booking to begin</p>
         </div>
       ) : (
-        sessions.map((session) => (
-          <div key={session.id} className={`bg-white rounded-xl shadow-md p-5 border-2 ${
-            session.status === "active" ? "border-orange-400" : "border-yellow-400"
-          }`}>
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <h3 className="font-bold text-gray-900">{getSystemName(session.system_id)}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Slots: {session.slots.map(formatHour).join(" → ")}
-                </p>
-              </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                session.status === "active"
-                  ? "bg-orange-100 text-orange-700"
-                  : "bg-yellow-100 text-yellow-700"
+        liveItems.map((item) => {
+          if (item.kind === "walkin") {
+            const session = item.session;
+            return (
+              <div key={`walkin-${session.id}`} className={`bg-white rounded-xl shadow-md p-5 border-2 ${
+                session.status === "active" ? "border-orange-400" : "border-yellow-400"
               }`}>
-                {session.status === "active" ? "🟠 OCCUPIED" : "🟡 RESERVED"}
-              </span>
-            </div>
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-bold text-gray-900">{getSystemName(session.system_id)}</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Slots: {session.slots.map(formatHour).join(" → ")}
+                    </p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    session.status === "active"
+                      ? "bg-orange-100 text-orange-700"
+                      : "bg-yellow-100 text-yellow-700"
+                  }`}>
+                    {session.status === "active" ? "🟠 OCCUPIED" : "🟡 RESERVED"}
+                  </span>
+                </div>
 
-            {session.status === "active" ? (
-              <>
-                <div className="flex justify-between text-xs text-gray-500 mb-1">
-                  <span>Walk-in session</span>
-                  <span>Ends {formatHour(session.end_time)}</span>
+                {session.status === "active" ? (
+                  <>
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>Walk-in session</span>
+                      <span>Ends {formatHour(session.end_time)}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                      <div
+                        className="bg-orange-500 h-2 rounded-full transition-all"
+                        style={{ width: `${getProgressPercent(session)}%` }}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleAddHour(session)}
+                        className="flex-1 text-sm py-2 border-2 border-orange-400 text-orange-600 rounded-lg hover:bg-orange-50 font-semibold">
+                        + Add 1 Hour
+                      </button>
+                      <button onClick={() => handleEndSession(session)}
+                        className="flex-1 text-sm py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 font-semibold flex items-center justify-center gap-1">
+                        <Square className="w-4 h-4" /> End Session
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-yellow-700 mb-3">
+                      Customer waiting • Starts at {formatHour(session.start_time)}
+                    </p>
+                    <Button className="w-full bg-orange-500 hover:bg-orange-600"
+                      onClick={() => handleActivate(session)}>
+                      <Play className="w-4 h-4 mr-1" /> Start Session Now
+                    </Button>
+                  </>
+                )}
+              </div>
+            );
+          }
+
+          // Online booking card
+          const b = item.booking;
+          const startH = parseInt(b.start_time.split(":")[0]);
+          const endH = parseInt(b.end_time.split(":")[0]);
+          const customer = b.players?.[0];
+          return (
+            <div key={`online-${b.id}`} className="bg-white rounded-xl shadow-md p-5 border-2 border-blue-400">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h3 className="font-bold text-gray-900">{getSystemName(b.system_id)}</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {formatHour(startH)} → {formatHour(endH)}
+                  </p>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                  <div
-                    className="bg-orange-500 h-2 rounded-full transition-all"
-                    style={{ width: `${getProgressPercent(session)}%` }}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleAddHour(session)}
-                    className="flex-1 text-sm py-2 border-2 border-orange-400 text-orange-600 rounded-lg hover:bg-orange-50 font-semibold">
-                    + Add 1 Hour
-                  </button>
-                  <button onClick={() => handleEndSession(session)}
-                    className="flex-1 text-sm py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 font-semibold flex items-center justify-center gap-1">
-                    <Square className="w-4 h-4" /> End Session
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-yellow-700 mb-3">
-                  Customer waiting • Starts at {formatHour(session.start_time)}
-                </p>
-                <Button className="w-full bg-orange-500 hover:bg-orange-600"
-                  onClick={() => handleActivate(session)}>
-                  <Play className="w-4 h-4 mr-1" /> Start Session Now
-                </Button>
-              </>
-            )}
-          </div>
-        ))
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
+                  🌐 Online Booking
+                </span>
+              </div>
+
+              <div className="text-sm text-gray-700 mb-3 space-y-0.5">
+                <p>👤 <span className="font-medium">{customer?.name || "—"}</span></p>
+                <p className="text-gray-600">📞 {customer?.phone || "—"}</p>
+              </div>
+
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>Online booking</span>
+                <span>Ends {formatHour(endH)}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                <div
+                  className="bg-blue-500 h-2 rounded-full transition-all"
+                  style={{ width: `${getBookingProgressPercent(b)}%` }}
+                />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => handleAddBookingHour(b)}
+                  className="flex-1 text-sm py-2 border-2 border-blue-400 text-blue-600 rounded-lg hover:bg-blue-50 font-semibold">
+                  + Add 1 Hour
+                </button>
+                <button onClick={() => handleEndBooking(b)}
+                  className="flex-1 text-sm py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 font-semibold flex items-center justify-center gap-1">
+                  <Square className="w-4 h-4" /> End Session
+                </button>
+              </div>
+            </div>
+          );
+        })
       )}
     </div>
   );

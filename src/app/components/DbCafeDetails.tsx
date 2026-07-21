@@ -83,6 +83,7 @@ export function DbCafeDetails() {
   };
 
   const parseHour = (time: string) => parseInt(time?.split(":")[0] || "8", 10);
+  const parseMinute = (time: string) => parseInt(time?.split(":")[1] || "0", 10) || 0;
 
   // Convert DB systems to the shape AdvancedBookingInterface expects
   const convertedSystems = systems.map((s) => ({
@@ -99,9 +100,18 @@ export function DbCafeDetails() {
     timeSlots: [], // AdvancedBookingInterface generates its own from operatingHours
   }));
 
+  // Full-hour slots only. First slot starts at/after opening (round up if opening has
+  // minutes, e.g. 6:29 -> first slot 7:00). Last slot must END by closing, so its start
+  // is one hour before the closing hour (e.g. close 21:32 -> last slot start 20:00, ends 21:00).
+  // `end` here is the last bookable slot START (AdvancedBookingInterface loops start..end inclusive).
   const operatingHours = cafe
-    ? { start: parseHour(cafe.opening_time), end: parseHour(cafe.closing_time) }
-    : { start: 8, end: 22 };
+    ? {
+        start: parseMinute(cafe.opening_time) > 0
+          ? parseHour(cafe.opening_time) + 1
+          : parseHour(cafe.opening_time),
+        end: parseHour(cafe.closing_time) - 1,
+      }
+    : { start: 8, end: 21 };
 
   const handleBookNow = () => {
     if (!user) {

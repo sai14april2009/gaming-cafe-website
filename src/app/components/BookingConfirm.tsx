@@ -5,6 +5,7 @@ import { supabase } from "../../supabase";
 import { useAuth } from "../context/AuthContext";
 import { CheckCircle, User, Phone, Monitor, Clock, Calendar } from "lucide-react";
 import { Button } from "./ui/button";
+import { toLocalDateString } from "../utils/date";
 
 interface BookingData {
   systemId: string;
@@ -150,23 +151,119 @@ const handleConfirm = async () => {
 
     try {
       const bookingDate = new Date(bookings[0]?.date);
-      const startHour = Math.min(...bookings.flatMap((b: BookingData) => b.timeSlots));
-      const endHour = Math.max(...bookings.flatMap((b: BookingData) => b.timeSlots)) + 1;
+      const dateStr = toLocalDateString(bookingDate); // FIX #4: local day, not UTC
+      const cafeId = bookings[0]?.cafeId;
       const formatHour = (h: number) => `${String(h).padStart(2, "0")}:00`;
+      const getSystemName = (systemId: string) =>
+        systems?.find((s: GamingSystem) => s.id === systemId)?.name || systemId;
 
-      const { error } = await supabase.from("bookings").insert({
-  user_id: user?.id,
-  cafe_id: bookings[0]?.cafeId,
-  system_id: bookings[0]?.systemId,
-  booking_date: bookingDate.toISOString().split("T")[0],
-  start_time: formatHour(startHour),
-  end_time: formatHour(endHour),
-  num_people: playerCount,
-  total_price: totalPrice,
-  status: "confirmed",
-  players: players,
-});
+      // FIX #1 & #2: one row per system, split into consecutive runs.
+      // e.g. system A picked [10,11,12] -> 1 row 10:00-13:00
+      //      system A picked [10,13]    -> 2 rows 10:00-11:00 and 13:00-14:00
+      //      systems A,B,C picked       -> at least 3 rows total (one per system)
+      type Row = {
+        user_id: string | undefined;
+        cafe_id: string;
+        system_id: string;
+        booking_date: string;
+        start_time: string;
+        end_time: string;
+        num_people: number;
+        total_price: number;
+        status: string;
+        players: PlayerInfo[];
+      };
+      const rows: Row[] = [];
+      for (const b of bookings as BookingData[]) {
+        if (!b.timeSlots || b.timeSlots.length === 0) continue;
+        const hours = [...b.timeSlots].sort((a, b) => a - b);
+        let runStart = hours[0];
+        let prev = hours[0];
+        for (let i = 1; i <= hours.length; i++) {
+          const h = hours[i];
+          if (h === prev + 1) { prev = h; continue; }
+          // Close current run [runStart .. prev]
+          const runHours = prev - runStart + 1;
+          rows.push({
+            user_id: user?.id,
+            cafe_id: cafeId,
+            system_id: b.systemId,
+            booking_date: dateStr,
+            start_time: formatHour(runStart),
+            end_time: formatHour(prev + 1),
+            num_people: playerCount,
+            total_price: runHours * (pricePerHour || 0),
+            status: "confirmed",
+            players: players,
+          });
+          if (i < hours.length) { runStart = h; prev = h; }
+        }
+      }
 
+      if (rows.length === 0) {
+        setErrors(["Nothing to book — no time slots selected."]);
+        return;
+      }
+
+      // FIX #3: re-check availability right before inserting.
+      // Any change since the grid was last loaded (new booking, walk-in, repair) is caught here.
+      const systemIds = Array.from(new Set(rows.map((r) => r.system_id)));
+      const [{ data: liveBookings }, { data: liveWalkIns }, { data: liveRepairs }] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("system_id, start_time, end_time")
+          .in("system_id", systemIds)
+          .eq("booking_date", dateStr)
+          .eq("status", "confirmed"),
+        supabase
+          .from("walk_in_sessions")
+          .select("system_id, slots, status")
+          .in("system_id", systemIds)
+          .eq("session_date", dateStr)
+          .in("status", ["active", "scheduled"]),
+        supabase
+          .from("repair_slots")
+          .select("system_id, start_hour, end_hour")
+          .in("system_id", systemIds)
+          .eq("repair_date", dateStr),
+      ]);
+
+      const occupied: Record<string, Set<number>> = {};
+      const mark = (sysId: string, h: number) => {
+        if (!occupied[sysId]) occupied[sysId] = new Set();
+        occupied[sysId].add(h);
+      };
+      (liveBookings || []).forEach((b: any) => {
+        const startH = parseInt(b.start_time.split(":")[0], 10);
+        const endH = parseInt(b.end_time.split(":")[0], 10);
+        for (let h = startH; h < endH; h++) mark(b.system_id, h);
+      });
+      (liveWalkIns || []).forEach((w: any) => {
+        (w.slots as number[] | null || []).forEach((h) => mark(w.system_id, h));
+      });
+      (liveRepairs || []).forEach((r: any) => {
+        for (let h = r.start_hour; h < r.end_hour; h++) mark(r.system_id, h);
+      });
+
+      const conflicts: string[] = [];
+      for (const row of rows) {
+        const startH = parseInt(row.start_time.split(":")[0], 10);
+        const endH = parseInt(row.end_time.split(":")[0], 10);
+        for (let h = startH; h < endH; h++) {
+          if (occupied[row.system_id]?.has(h)) {
+            const displayH = h === 0 ? "12:00 AM" : h < 12 ? `${h}:00 AM` : h === 12 ? "12:00 PM" : `${h - 12}:00 PM`;
+            conflicts.push(`${getSystemName(row.system_id)} at ${displayH} was just booked — please go back and pick another slot.`);
+          }
+        }
+      }
+      if (conflicts.length > 0) {
+        // Dedupe (a multi-hour run can produce the same message multiple times)
+        setErrors(Array.from(new Set(conflicts)));
+        return;
+      }
+
+      // Single multi-row insert — Supabase treats this as one statement.
+      const { error } = await supabase.from("bookings").insert(rows);
       if (error) {
         console.error("Booking save error:", error);
         setErrors([`Booking failed: ${error.message}`]);

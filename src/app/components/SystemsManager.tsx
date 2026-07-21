@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../supabase";
 import { Button } from "./ui/button";
 import { Trash2, Plus } from "lucide-react";
+import { toLocalDateString } from "../utils/date";
 
 interface SystemsManagerProps {
   cafeId: string;
@@ -95,16 +96,20 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
 
   // Generate slots from café opening hours
   const parseHour = (time: string) => parseInt(time?.split(":")[0] || "8", 10);
+  const parseMinute = (time: string) => parseInt(time?.split(":")[1] || "0", 10) || 0;
   const openHour = parseHour(openingTime);
   const closeHour = parseHour(closingTime);
+  // First slot starts at/after opening (round up if opening has minutes, e.g. 6:29 -> 7:00).
+  // Last slot ends by the closing hour, so slots run firstSlot .. closeHour-1.
+  const firstSlot = parseMinute(openingTime) > 0 ? openHour + 1 : openHour;
   const todaySlots = Array.from(
-    { length: closeHour - openHour },
-    (_, i) => openHour + i
+    { length: Math.max(0, closeHour - firstSlot) },
+    (_, i) => firstSlot + i
   );
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const today = new Date().toISOString().split("T")[0];
+    const today = toLocalDateString(new Date());
     const [{ data: systemsData }, { data: walkInData }, { data: repairData }, { data: bookingsData }] =
       await Promise.all([
         supabase.from("gaming_systems").select("*").eq("cafe_id", cafeId).order("created_at", { ascending: true }),
@@ -261,7 +266,7 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
 
   const createWalkInSession = async (systemId: string, slots: number[]) => {
     const sortedSlots = [...slots].sort((a, b) => a - b);
-    const today = new Date().toISOString().split("T")[0];
+    const today = toLocalDateString(new Date());
     const currentHour = now.getHours();
     const isNow = sortedSlots.includes(currentHour);
     await supabase.from("walk_in_sessions").insert({

@@ -3,6 +3,7 @@ import { Monitor, Cpu, MemoryStick } from "lucide-react";
 import { GamingSystem } from "../data/mockData";
 import { Button } from "./ui/button";
 import { supabase } from "../../supabase";
+import { toLocalDateString } from "../utils/date";
 
 interface AdvancedBookingInterfaceProps {
   systems: GamingSystem[];
@@ -61,7 +62,7 @@ export function AdvancedBookingInterface({
   useEffect(() => {
     const fetchBookedSlots = async () => {
       setLoadingSlots(true);
-      const dateStr = selectedDate.toISOString().split("T")[0];
+      const dateStr = toLocalDateString(selectedDate);
       const systemIds = systems.map((s) => s.id);
 
       const { data: bookings } = await supabase
