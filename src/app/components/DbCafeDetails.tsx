@@ -193,7 +193,7 @@ const handleBookingComplete = (bookings: any) => {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               <div>
                 <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-3xl font-bold text-purple-600">${cafe.price_per_hour}</span>
+                  <span className="text-3xl font-bold text-purple-600">₹{cafe.price_per_hour}</span>
                   <span className="text-gray-600">per hour</span>
                 </div>
               </div>

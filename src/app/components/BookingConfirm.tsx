@@ -173,10 +173,30 @@ const handleConfirm = async () => {
         status: string;
         players: PlayerInfo[];
       };
+      // FIX #5: preserve player-to-slot assignments. Each row = one system + one
+      // player + one consecutive run of THAT player's hours on THAT system, so the
+      // owner sees exactly who is at each machine (Product Rule #5). Downstream
+      // components (LiveSessions, SystemsManager) already read players[0] as "the
+      // customer", so this makes them correct for group bookings too.
+      // Solo assigns every slot to player 0, so this collapses to one run per
+      // system — identical rows to before, just with the correct single player.
+      const groups = new Map<
+        string,
+        { systemId: string; playerIndex: number; hours: number[] }
+      >();
+      for (const a of assignments) {
+        if (a.assignedTo === null) continue; // groups are fully assigned (validated); solo is always 0
+        const key = `${a.systemId}__${a.assignedTo}`;
+        if (!groups.has(key))
+          groups.set(key, { systemId: a.systemId, playerIndex: a.assignedTo, hours: [] });
+        groups.get(key)!.hours.push(a.hour);
+      }
+
       const rows: Row[] = [];
-      for (const b of bookings as BookingData[]) {
-        if (!b.timeSlots || b.timeSlots.length === 0) continue;
-        const hours = [...b.timeSlots].sort((a, b) => a - b);
+      for (const group of groups.values()) {
+        if (group.hours.length === 0) continue;
+        const hours = [...group.hours].sort((a, b) => a - b);
+        const player = players[group.playerIndex];
         let runStart = hours[0];
         let prev = hours[0];
         for (let i = 1; i <= hours.length; i++) {
@@ -187,14 +207,14 @@ const handleConfirm = async () => {
           rows.push({
             user_id: user?.id,
             cafe_id: cafeId,
-            system_id: b.systemId,
+            system_id: group.systemId,
             booking_date: dateStr,
             start_time: formatHour(runStart),
             end_time: formatHour(prev + 1),
-            num_people: playerCount,
+            num_people: 1,
             total_price: runHours * (pricePerHour || 0),
             status: "confirmed",
-            players: players,
+            players: player ? [player] : [],
           });
           if (i < hours.length) { runStart = h; prev = h; }
         }
@@ -289,7 +309,7 @@ const handleConfirm = async () => {
           <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left space-y-2">
             <p className="text-sm text-gray-600"><span className="font-semibold">Cafe:</span> {cafeName}</p>
             <p className="text-sm text-gray-600"><span className="font-semibold">Players:</span> {playerCount}</p>
-            <p className="text-sm text-gray-600"><span className="font-semibold">Total Paid:</span> ${totalPrice}</p>
+            <p className="text-sm text-gray-600"><span className="font-semibold">Total Paid:</span> ₹{totalPrice}</p>
           </div>
           <Button
             className="w-full bg-gradient-to-r from-purple-600 to-pink-600"
@@ -439,16 +459,16 @@ const handleConfirm = async () => {
           <h2 className="text-xl font-bold mb-4">Price Breakdown</h2>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">{playerCount} player{playerCount > 1 ? "s" : ""} × {numberOfHours} hour{numberOfHours > 1 ? "s" : ""} × ${pricePerHour}/hr</span>
-              <span className="font-semibold">${totalPrice}</span>
+              <span className="text-gray-600">{playerCount} player{playerCount > 1 ? "s" : ""} × {numberOfHours} hour{numberOfHours > 1 ? "s" : ""} × ₹{pricePerHour}/hr</span>
+              <span className="font-semibold">₹{totalPrice}</span>
             </div>
             <div className="flex justify-between text-gray-500">
               <span>Service fee</span>
-              <span>$0</span>
+              <span>₹0</span>
             </div>
             <div className="border-t pt-2 flex justify-between text-lg font-bold">
               <span>Total</span>
-              <span className="text-purple-600">${totalPrice}</span>
+              <span className="text-purple-600">₹{totalPrice}</span>
             </div>
           </div>
         </div>
@@ -466,7 +486,7 @@ const handleConfirm = async () => {
           disabled={loading}
           className="w-full h-14 text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
         >
-          {loading ? "Confirming..." : `Confirm & Pay $${totalPrice}`}
+          {loading ? "Confirming..." : `Confirm & Pay ₹${totalPrice}`}
         </Button>
 
         <p className="text-center text-sm text-gray-400 mt-3">

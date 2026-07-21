@@ -285,8 +285,8 @@ export function DbBookingFlow({
         {/* Price preview */}
         <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 mb-6 border-2 border-purple-200">
           <div className="flex justify-between items-center">
-            <span className="text-gray-600">{playerCount} player{playerCount > 1 ? "s" : ""} × {numberOfHours} hr × ${pricePerHour}/hr</span>
-            <span className="text-2xl font-bold text-purple-600">${totalPrice}</span>
+            <span className="text-gray-600">{playerCount} player{playerCount > 1 ? "s" : ""} × {numberOfHours} hr × ₹{pricePerHour}/hr</span>
+            <span className="text-2xl font-bold text-purple-600">₹{totalPrice}</span>
           </div>
         </div>
 

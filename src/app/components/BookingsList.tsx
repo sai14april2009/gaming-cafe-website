@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabase";
-import { Calendar, Users, Clock, DollarSign, Phone, User } from "lucide-react";
+import { Calendar, Users, Clock, IndianRupee, Phone, User } from "lucide-react";
+import { toLocalDateString } from "../utils/date";
 
 interface BookingsListProps {
   cafeId: string;
@@ -8,7 +9,8 @@ interface BookingsListProps {
 }
 
 function toToday(): string {
-  return new Date().toISOString().split("T")[0];
+  // Local day, not UTC — matches how booking_date is stored (see utils/date.ts).
+  return toLocalDateString(new Date());
 }
 
 function slotEndDateTime(bookingDate: string, endTime: string): Date {
@@ -113,8 +115,8 @@ export function BookingsList({ cafeId, mode }: BookingsListProps) {
                 {booking.num_people} {booking.num_people === 1 ? "player" : "players"}
               </div>
               <div className="flex items-center gap-1 font-semibold text-purple-600">
-                <DollarSign className="w-4 h-4 flex-shrink-0" />
-                ₹{booking.total_price}
+                <IndianRupee className="w-4 h-4 flex-shrink-0" />
+                {booking.total_price}
               </div>
             </div>
 

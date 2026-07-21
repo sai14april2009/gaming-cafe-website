@@ -190,7 +190,7 @@ export function AdminApprovals() {
                   {cafe.description}
                 </p>
                 <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                  <span>${cafe.price_per_hour}/hour</span>
+                  <span>₹{cafe.price_per_hour}/hour</span>
                   {cafe.email && <span>{cafe.email}</span>}
                   {cafe.phone && <span>{cafe.phone}</span>}
                 </div>

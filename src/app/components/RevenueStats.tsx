@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabase";
-import { DollarSign, Calendar, Users, TrendingUp } from "lucide-react";
+import { IndianRupee, Calendar, Users, TrendingUp } from "lucide-react";
 
 interface RevenueStatsProps {
   cafeId: string;
@@ -30,7 +30,7 @@ export function RevenueStats({ cafeId }: RevenueStatsProps) {
 
     if (data) {
       const totalRevenue = data.reduce((sum, b) => sum + (b.total_price || 0), 0);
-      const totalPlayers = data.reduce((sum, b) => sum + (b.party_size || 0), 0);
+      const totalPlayers = data.reduce((sum, b) => sum + (b.num_people || 0), 0);
       const now = new Date();
       const upcomingBookings = data.filter(
         (b) => new Date(b.booking_date) >= now
@@ -54,8 +54,8 @@ export function RevenueStats({ cafeId }: RevenueStatsProps) {
   const cards = [
     {
       label: "Total Revenue",
-      value: `$${stats.totalRevenue}`,
-      icon: DollarSign,
+      value: `₹${stats.totalRevenue}`,
+      icon: IndianRupee,
       color: "from-green-500 to-emerald-600",
     },
     {
@@ -105,9 +105,9 @@ export function RevenueStats({ cafeId }: RevenueStatsProps) {
               <div key={booking.id} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0 last:pb-0">
                 <div>
                   <p className="font-medium text-sm">{new Date(booking.booking_date).toDateString()}</p>
-                  <p className="text-xs text-gray-500">{booking.party_size} player{booking.party_size !== 1 ? "s" : ""}</p>
+                  <p className="text-xs text-gray-500">{booking.num_people} player{booking.num_people !== 1 ? "s" : ""}</p>
                 </div>
-                <p className="font-bold text-purple-600">${booking.total_price}</p>
+                <p className="font-bold text-purple-600">₹{booking.total_price}</p>
               </div>
             ))}
           </div>

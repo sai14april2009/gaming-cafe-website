@@ -107,7 +107,7 @@ export function CafeDetails() {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <div>
                 <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-3xl font-bold text-purple-600">${cafe.pricePerHour}</span>
+                  <span className="text-3xl font-bold text-purple-600">₹{cafe.pricePerHour}</span>
                   <span className="text-gray-600">per hour</span>
                 </div>
                 <div className="flex items-center gap-1 text-sm text-gray-600">

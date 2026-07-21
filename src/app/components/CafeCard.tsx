@@ -37,7 +37,7 @@ export function CafeCard({ cafe }: CafeCardProps) {
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
           <span className="text-sm text-gray-600">{cafe.totalStations} stations</span>
           <div className="text-right">
-            <span className="font-semibold text-lg">${cafe.pricePerHour}</span>
+            <span className="font-semibold text-lg">₹{cafe.pricePerHour}</span>
             <span className="text-sm text-gray-600">/hour</span>
           </div>
         </div>
