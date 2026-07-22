@@ -68,7 +68,7 @@ Cafe owners can start ad-hoc "walk-in" sessions for a system from the dashboard 
 - Do not add `.css`, `.tsx`, or `.ts` to `assetsInclude` in `vite.config.ts`.
 # GameOrbit / GameSpot — Project Brain
 *Paste this entire file at the start of any new chat so the AI has full context immediately.*
-*Last updated: 2026-07-18*
+*Last updated: 2026-07-22*
 
 ---
 
@@ -158,15 +158,17 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - ✅ Walk-in conflict popup — 3-option resolution (move, cancel+refund, call+reschedule)
 - ✅ Walk-in proportional pricing — price breakdown shown before start, amount shown at end
 - ✅ Walk-in 20-minute cutoff restriction — hard block when <20 min left and next slot booked
+- ✅ "Live Now" tab — active/upcoming walk-ins AND online bookings, with timer controls
+- ✅ Walk-in RESERVED status — scheduled walk-ins show amber RESERVED on customer page
+- ✅ Slot grid respects café opening hours (reads opening_time/closing_time from DB)
+- ✅ DB-level double-booking prevention (`bookings_no_overlap` exclusion constraint)
+- ✅ Advanced Booking tab with 7-day date picker — owner sees future bookings
 - 🔲 Dashboard redesign — Gaming Systems tab shows full day slot grid per system (IN PROGRESS)
-- 🔲 "Live Now" tab — separate tab for active/upcoming sessions with timer controls
-- 🔲 Walk-in RESERVED status — future walk-in slots show as yellow RESERVED on customer page
-- 🔲 Slot grid respects café opening hours (currently hardcoded 8AM-10PM — BUG)
 - 🔲 Owner cancel booking + refund note
 - 🔲 My Bookings page for customers (/my-bookings)
 - 🔲 Edit/delete own review (customer)
 - 🔲 Photos in reviews
-- 🔲 RevenueStats fix (shows empty/mock data)
+- 🔲 RevenueStats — cancelled bookings still counted in revenue; upcoming count wrong
 - 🔲 Image upload for cafe cover (currently URL paste only)
 - 🔲 Buffer system implementation (Smart Transition Buffer)
 - 🔲 Filter in booking interface (PC/Console, GPU) — Phase 2
@@ -179,7 +181,7 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 
 ---
 
-## 4. CURRENT TECHNICAL STATE (as of 2026-07-18)
+## 4. CURRENT TECHNICAL STATE (as of 2026-07-22)
 
 **Stack:** React + TypeScript + Vite + Tailwind + shadcn/ui + React Router + Supabase
 **Live:** gaming-cafe-website.vercel.app
@@ -198,7 +200,7 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - `repair_slots` — columns: `id, system_id, cafe_id, repair_date, start_hour, end_hour, reason, created_at`
 - `walk_in_sessions` — columns: `id, system_id, cafe_id, status (scheduled/active/ended), slots (integer[]), session_date, start_time, end_time, started_at, ended_at, created_at`
 
-### Completed (as of 2026-07-18)
+### Completed (as of 2026-07-22)
 - Full auth, profiles, browse cafes, advanced booking flow
 - Café registration → Admin approval → public listing
 - Owner dashboard with Overview, Cafe Details, Gaming Systems, Bookings tabs
@@ -221,28 +223,53 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - Walk-in soft warning when <20 min left but next slot free
 - Walk-in next-slot suggestion when next slot is free
 
+#### Added 2026-07-19 → 2026-07-22
+- Dashboard tabs restructured: Overview | Cafe Details | Gaming Systems | Live Now | Advanced Booking | Booking History
+- Online bookings shown in Live Now with +Add 1 Hour (extra-hour price collection popup) and End Session (marks `completed`)
+- RLS UPDATE policy added on `bookings` so owners can modify customer-owned rows; `bookings_status_check` widened to allow `completed`
+- **DB exclusion constraint `bookings_no_overlap`** — true server-side double-booking prevention (btree_gist + int4range on hour range, `where status = 'confirmed'`). Product Rule #1 is now enforced by Postgres, not just the UI.
+- **Opening-hours bug FIXED** — slot grids derive from the café's `opening_time`/`closing_time` in SystemsManager + DbCafeDetails. First slot rounds up when opening has minutes (6:29 → 7:00); last slot must END by closing (21:32 → last slot starts 20:00).
+- Group bookings save ALL selected systems (was saving only the first)
+- Non-consecutive slots split into separate DB rows (were stored as one contiguous block)
+- Availability re-checked immediately before insert (closes the race window)
+- **Local-date helper `src/app/utils/date.ts`** — replaces `toISOString().split("T")[0]`, which shifted IST bookings after midnight to the wrong day. Use `toLocalDateString()` for ALL `booking_date`/`session_date`/`repair_date` values.
+- Player-to-slot assignments persisted: one booking row per (system + player + consecutive run), so `players[0]` is the actual person at that machine
+- ₹ currency everywhere (was `$` on customer pages, `₹` on dashboard) + `IndianRupee` icons
+- Walk-in `scheduled` slots show amber RESERVED, distinct from orange OCCUPIED (`active`)
+- RevenueStats reads `num_people` (the column `party_size` never existed)
+- **Advanced Booking tab now has a 7-day date picker with per-day count badges** — future bookings were previously invisible in every dashboard surface
+- Date-switch race guard in AdvancedBookingInterface; `convertedSystems` memoised so the grid no longer resets and wipes selections
+- Past slots/dates blocked in the grid AND validated at submit (covers tabs left open past midnight)
+- Booking History scoped to days before today (no more duplicate listings across tabs)
+- BookingsList queries scoped per tab (7-day window / 200 most recent) instead of fetching every booking ever taken
+- Stale walk-ins from previous days auto-closed on Live Now load
+
 ### Known bugs / in progress
-- **BUG: Slot grid hardcoded 8AM-10PM** — should respect café's actual opening_time and closing_time from DB. Currently `todaySlots = Array.from({ length: 15 }, (_, i) => i + 8)` in SystemsManager.tsx. Must be fixed before dashboard redesign.
 - **IN PROGRESS: Dashboard Gaming Systems tab redesign** — see Section 8 for full spec
 - Walk-in sessions currently use a Live System Status grid in the Gaming Systems tab. This is being redesigned — see Section 8.
+- **Gaming Systems + Live Now tabs are today-only** — no date picker. Owners cannot see or manage future days' slot grids (only the Advanced Booking tab covers future days).
+- **RevenueStats counts cancelled bookings** in Total Revenue, and `upcomingBookings` compares a UTC-parsed `booking_date` against `now`, so today's later bookings are not counted as upcoming.
+- **Exclusion constraint only covers `status = 'confirmed'`** — ending or cancelling a booking releases its slot from the DB-level guard. Low impact today (past hours are filtered from the grid), but relevant if booking editing is added.
+- Mock demo data still ships alongside real data — the homepage lists 7 sample cafés (`mockData.ts`) next to real DB cafés. Decide whether to drop them before real users.
 
 ### Remaining backlog
 **Critical:**
 - Dashboard redesign (Section 8)
-- Opening hours bug fix
 - Owner cancel booking + refund note
 
 **Important:**
 - My Bookings page for customers
 - Edit/delete own review
 - Buffer system (Smart Transition Buffer)
+- Date picker for Gaming Systems / Live Now tabs (future-day visibility)
 
 **Nice to have:**
 - Photos in reviews
-- RevenueStats fix
+- RevenueStats: exclude cancelled from revenue, fix upcoming count
 - Image upload for cafe cover
 - Custom SMTP
 - Mobile responsiveness
+- Remove mock café data path
 
 ---
 

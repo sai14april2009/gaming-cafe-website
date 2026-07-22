@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useParams, Link } from "react-router";
 import { MapPin, Clock, Phone, Mail, ArrowLeft, Star, Coffee, Gamepad2 } from "lucide-react";
 import { Button } from "./ui/button";
@@ -85,20 +85,27 @@ export function DbCafeDetails() {
   const parseHour = (time: string) => parseInt(time?.split(":")[0] || "8", 10);
   const parseMinute = (time: string) => parseInt(time?.split(":")[1] || "0", 10) || 0;
 
-  // Convert DB systems to the shape AdvancedBookingInterface expects
-  const convertedSystems = systems.map((s) => ({
-    id: s.id,
-    name: s.name,
-    type: s.type as "PC" | "Console",
-    gpu: s.gpu || undefined,
-    cpu: s.cpu || undefined,
-    ram: s.ram || undefined,
-    console: s.console || undefined,
-    monitor: undefined,
-    storage: undefined,
-    bookingStatus: { isBooked: false },
-    timeSlots: [], // AdvancedBookingInterface generates its own from operatingHours
-  }));
+  // Convert DB systems to the shape AdvancedBookingInterface expects.
+  // Memoised: this array is a dependency of the availability fetch inside
+  // AdvancedBookingInterface, so rebuilding it on every render re-fired that
+  // fetch constantly and reset the grid — wiping the customer's slot selections.
+  const convertedSystems = useMemo(
+    () =>
+      systems.map((s) => ({
+        id: s.id,
+        name: s.name,
+        type: s.type as "PC" | "Console",
+        gpu: s.gpu || undefined,
+        cpu: s.cpu || undefined,
+        ram: s.ram || undefined,
+        console: s.console || undefined,
+        monitor: undefined,
+        storage: undefined,
+        bookingStatus: { isBooked: false },
+        timeSlots: [], // AdvancedBookingInterface generates its own from operatingHours
+      })),
+    [systems]
+  );
 
   // Full-hour slots only. First slot starts at/after opening (round up if opening has
   // minutes, e.g. 6:29 -> first slot 7:00). Last slot must END by closing, so its start

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../supabase";
 import { Wrench, Trash2, Plus } from "lucide-react";
 import { Button } from "./ui/button";
+import { toLocalDateString } from "../utils/date";
 
 interface RepairSlotsManagerProps {
   cafeId: string;
@@ -54,7 +55,7 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
       .from("repair_slots")
       .select("*, gaming_systems(name)")
       .eq("cafe_id", cafeId)
-      .gte("repair_date", new Date().toISOString().split("T")[0])
+      .gte("repair_date", toLocalDateString(new Date()))
       .order("repair_date", { ascending: true });
 
     setSystems(systemsData || []);

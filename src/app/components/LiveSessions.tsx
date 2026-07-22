@@ -63,6 +63,18 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
 
   const fetchAll = useCallback(async () => {
     const today = toLocalDateString(new Date());
+
+    // Self-heal stale walk-ins. The auto-end check below only ever sees *today's*
+    // sessions (they're the only ones fetched), so a session left open on an
+    // earlier day stays 'active'/'scheduled' forever and skews reporting. Close
+    // out any from previous days before loading.
+    await supabase
+      .from("walk_in_sessions")
+      .update({ status: "ended", ended_at: new Date().toISOString() })
+      .eq("cafe_id", cafeId)
+      .lt("session_date", today)
+      .in("status", ["active", "scheduled"]);
+
     const [{ data: sessionsData }, { data: systemsData }, { data: bookingsData }] = await Promise.all([
       supabase.from("walk_in_sessions").select("*").eq("cafe_id", cafeId).in("status", ["active", "scheduled"]).eq("session_date", today),
       supabase.from("gaming_systems").select("id, name").eq("cafe_id", cafeId),

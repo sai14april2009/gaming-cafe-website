@@ -225,6 +225,21 @@ const handleConfirm = async () => {
         return;
       }
 
+      // Final guard: never insert a slot that has already started. The booking grid
+      // hides past slots, but that is only a UI filter — a tab left open past
+      // midnight, or a back-button return to this page, can still submit a stale
+      // date/time. Nothing downstream (including the DB constraint) rejects it.
+      const nowTs = Date.now();
+      const hasPastSlot = rows.some(
+        (r) => new Date(`${r.booking_date}T${r.start_time}:00`).getTime() <= nowTs
+      );
+      if (hasPastSlot) {
+        setErrors([
+          "That time has already passed. Please go back and choose a slot in the future.",
+        ]);
+        return;
+      }
+
       // FIX #3: re-check availability right before inserting.
       // Any change since the grid was last loaded (new booking, walk-in, repair) is caught here.
       const systemIds = Array.from(new Set(rows.map((r) => r.system_id)));

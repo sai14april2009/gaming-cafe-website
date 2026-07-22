@@ -13,9 +13,8 @@ function toToday(): string {
   return toLocalDateString(new Date());
 }
 
-function slotEndDateTime(bookingDate: string, endTime: string): Date {
-  return new Date(`${bookingDate}T${endTime}:00`);
-}
+// How many past bookings the History tab loads at once.
+const HISTORY_LIMIT = 200;
 
 function formatDateShort(date: Date) {
   return {
@@ -35,24 +34,44 @@ export function BookingsList({ cafeId, mode }: BookingsListProps) {
 
   useEffect(() => {
     fetchBookings();
-  }, [cafeId]);
+  }, [cafeId, mode]);
 
   const fetchBookings = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const todayStr = toToday();
+
+    // Scope the query to what each tab actually renders. This previously pulled
+    // every booking the cafe had ever taken and filtered in the browser, which
+    // silently truncates at PostgREST's default 1000-row cap once a cafe gets busy.
+    let query = supabase
       .from("bookings")
       .select(`
         *,
         gaming_systems (name, type)
       `)
       .eq("cafe_id", cafeId);
+
+    if (mode === "advanced") {
+      const lastDay = new Date();
+      lastDay.setDate(lastDay.getDate() + 6);
+      query = query
+        .gte("booking_date", todayStr)
+        .lte("booking_date", toLocalDateString(lastDay));
+    } else {
+      query = query
+        .lt("booking_date", todayStr)
+        .order("booking_date", { ascending: false })
+        .order("start_time", { ascending: false })
+        .limit(HISTORY_LIMIT);
+    }
+
+    const { data, error } = await query;
     if (error) console.error(error);
     setBookings(data || []);
     setLoading(false);
   };
 
   const today = toToday();
-  const now = new Date();
 
   // Today .. today+6, matching the customer-facing booking window.
   const next7Days = Array.from({ length: 7 }, (_, i) => {
@@ -72,8 +91,10 @@ export function BookingsList({ cafeId, mode }: BookingsListProps) {
     if (mode === "advanced") {
       return b.booking_date === selectedDate;
     }
-    // history: slot has ended (booking_date + end_time < now)
-    return slotEndDateTime(b.booking_date, b.end_time) < now;
+    // history: strictly earlier days. Today is covered by the Advanced tab's day
+    // picker, so scoping history to past days stops a booking that finished today
+    // from being listed in both tabs at the same time.
+    return b.booking_date < today;
   });
 
   const sorted = [...filtered].sort((a, b) => {
@@ -152,6 +173,12 @@ export function BookingsList({ cafeId, mode }: BookingsListProps) {
       <h2 className="text-xl font-bold">
         {heading} ({sorted.length})
       </h2>
+
+      {mode === "history" && sorted.length >= HISTORY_LIMIT && (
+        <p className="-mt-2 text-xs text-gray-500">
+          Showing the {HISTORY_LIMIT} most recent bookings.
+        </p>
+      )}
 
       {sorted.length === 0 ? (
         <div className="bg-white rounded-xl shadow-md p-12 text-center">

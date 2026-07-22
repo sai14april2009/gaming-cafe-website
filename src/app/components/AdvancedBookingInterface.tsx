@@ -51,10 +51,14 @@ export function AdvancedBookingInterface({
   const generateTimeSlots = (): number[] => {
     const slots: number[] = [];
     const now = new Date();
-    const isToday = selectedDate.toDateString() === now.toDateString();
-    const currentHour = now.getHours();
     for (let hour = cafeOperatingHours.start; hour <= cafeOperatingHours.end; hour++) {
-      if (isToday && hour <= currentHour) continue;
+      // Compare the slot's actual start instant rather than just its hour number.
+      // Besides hiding today's past hours, this also covers the case where the tab
+      // has been left open past midnight: `selectedDate` is then a *past* day, and
+      // every one of its slots is correctly hidden instead of becoming bookable.
+      const slotStart = new Date(selectedDate);
+      slotStart.setHours(hour, 0, 0, 0);
+      if (slotStart.getTime() <= now.getTime()) continue;
       slots.push(hour);
     }
     return slots;
@@ -63,6 +67,11 @@ export function AdvancedBookingInterface({
   const timeSlots = generateTimeSlots();
 
   useEffect(() => {
+    // Guards against out-of-order responses: switching days quickly fires several
+    // fetches, and a slow reply for an earlier day must not overwrite the grid
+    // that is now showing a different day.
+    let cancelled = false;
+
     const fetchBookedSlots = async () => {
       setLoadingSlots(true);
       const dateStr = toLocalDateString(selectedDate);
@@ -138,11 +147,13 @@ export function AdvancedBookingInterface({
         });
         return { systemId: system.id, slots };
       });
+      if (cancelled) return; // a newer day was selected while this was in flight
       setBookingStates(newStates);
       setLoadingSlots(false);
     };
 
     if (systems.length > 0) fetchBookedSlots();
+    return () => { cancelled = true; };
   }, [selectedDate, systems]);
 
   const getSystemInfo = (systemId: string) => systems.find((s) => s.id === systemId);
