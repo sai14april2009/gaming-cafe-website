@@ -121,8 +121,8 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
   // Generate hours for dropdowns
   const hours = Array.from({ length: 24 }, (_, i) => i);
 
-  // Get today's date string for min date
-  const today = new Date().toISOString().split("T")[0];
+  // Get today's date string for min date (local day, not UTC — see utils/date.ts)
+  const today = toLocalDateString(new Date());
 
   if (loading) {
     return <div className="text-center py-8 text-gray-500">Loading repair slots...</div>;
