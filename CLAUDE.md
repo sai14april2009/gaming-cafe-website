@@ -200,6 +200,16 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - `repair_slots` — columns: `id, system_id, cafe_id, repair_date, start_hour, end_hour, reason, created_at`
 - `walk_in_sessions` — columns: `id, system_id, cafe_id, status (scheduled/active/ended), slots (integer[]), session_date, start_time, end_time, started_at, ended_at, created_at`
 
+### DB-level double-booking guards (LIVE — both applied 2026-07-22)
+Postgres exclusion constraints, so Product Rule #1 holds even under a race condition
+or a bug in the UI. Both need the `btree_gist` extension (already installed).
+
+- **`bookings_no_overlap`** on `bookings` — `EXCLUDE USING gist (system_id =, booking_date =, int4range(start_hour, end_hour, '[)') &&) WHERE (status = 'confirmed')`.
+  Hours are parsed out of the `"HH:MM"` text columns with `split_part`. Note the scope: only `confirmed` rows are guarded, so ending or cancelling a booking releases its slot.
+- **`walk_in_no_overlap`** on `walk_in_sessions` — `EXCLUDE USING gist (system_id =, session_date =, int4range(start_time, end_time, '[)') &&) WHERE (status <> 'ended')`.
+  `start_time`/`end_time` are already integers here. `ended` rows are excluded so historical overlaps (created before the UI guard existed) don't block the constraint.
+- **Not covered: walk-in vs online booking.** Exclusion constraints are single-table, so that direction is enforced only by app-level checks (now on every write path). See Section 9 for the Phase 2 trigger.
+
 ### Completed (as of 2026-07-22)
 - Full auth, profiles, browse cafes, advanced booking flow
 - Café registration → Admin approval → public listing
@@ -243,6 +253,18 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - Booking History scoped to days before today (no more duplicate listings across tabs)
 - BookingsList queries scoped per tab (7-day window / 200 most recent) instead of fetching every booking ever taken
 - Stale walk-ins from previous days auto-closed on Live Now load
+
+#### Walk-in / RESERVED audit — 2026-07-22
+Audited every walk-in path against online bookings. Confirmed clean: **zero** walk-in ↔
+online-booking collisions across all 37 sessions, RESERVED correctly blocks online booking
+in both the grid and the pre-insert re-check, and slot buttons are disabled for
+booked/occupied/reserved. Bugs found and fixed:
+- **Walk-in "+Add 1 Hour" ignored other walk-ins** (`LiveSessions.handleAddHour`) — checked only online bookings, so extending a walk-in could swallow a slot held by a RESERVED session. Its online-booking twin `handleAddBookingHour` had always checked both; the walk-in version was missing half the check.
+- **"Start Now" on a RESERVED session could cause a physical double-booking** (`LiveSessions.handleActivate`) — it just flipped status to `active` with no checks. An early arrival left the session attached to its reserved slot while the customer physically used a different hour that still showed FREE online. Now: on time → starts; exactly one hour early → offers to claim the current hour too (proportional pricing already charges only minutes played); otherwise blocked.
+- **No re-check before creating a walk-in** (`SystemsManager.createWalkInSession`) — the disabled slot buttons read state fetched at load. Now re-verifies against live bookings AND walk-ins immediately before insert, mirroring BookingConfirm.
+- **No-show reservations never expired** — the auto-end check only handled `active`, so an unstarted reservation held its slot indefinitely. Now closed quietly once its last slot passes.
+- **`walk_in_no_overlap` DB constraint applied** (see above), and functionally verified: a deliberate overlapping insert is rejected with `exclusion_violation`.
+- Historical note: the 7 overlapping sessions on hour 9 (2026-07-15) predate the disabled-button guard and are all `ended`. They pollute analytics but are not a live fault.
 
 ### Known bugs / in progress
 - **IN PROGRESS: Dashboard Gaming Systems tab redesign** — see Section 8 for full spec
@@ -376,7 +398,8 @@ Shows only systems with active or upcoming sessions today:
 5. **Opening hours respected** — only show slots within café's opening_time to closing_time
 
 ### Dashboard tabs (final order)
-Overview | Cafe Details | Gaming Systems | Live Now | Bookings
+Overview | Cafe Details | Gaming Systems | Live Now | Advanced Booking | Booking History
+*(shipped 2026-07-19: "Bookings" was renamed "Booking History" and "Advanced Booking" added)*
 
 ### Files to create/modify
 - `SystemsManager.tsx` — full rewrite with slot grid view
@@ -408,5 +431,19 @@ Based on SevenRooms pattern: café owners can designate specific systems as "wal
 
 ### Per-system buffer override
 Currently buffer is one setting for the whole café. Phase 2: each system can have its own buffer time (e.g. VR stations need 30 min, regular PCs need 10 min).
+
+### DB hardening: cross-table walk-in ↔ booking trigger
+**Decision 2026-07-22: deferred to Phase 2 — app-level checks are sufficient for Phase 1.**
+
+`bookings_no_overlap` and `walk_in_no_overlap` each guard their own table, but Postgres
+exclusion constraints cannot span two tables, so a walk-in overlapping an *online booking*
+is prevented only in application code (`BookingConfirm` pre-insert re-check,
+`SystemsManager.createWalkInSession` pre-insert re-check, `LiveSessions.handleAddHour` /
+`handleAddBookingHour`). Audited 2026-07-22: zero such collisions in real data.
+
+To close it properly in Phase 2, add `BEFORE INSERT OR UPDATE` triggers on **both** tables
+that reject a row overlapping the other table on the same `system_id` + date. Do it when
+booking editing/rescheduling lands, since that multiplies the write paths that must stay
+correct. Revisit sooner if any collision is ever observed in production.
 
 
