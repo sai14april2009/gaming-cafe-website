@@ -97,6 +97,12 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
           handleEndSession(session);
         }
       }
+      // A reservation nobody turned up for. Once its last slot has passed there is
+      // nothing left to start, so close it quietly rather than leaving it sitting in
+      // Live Now — and holding its slot — indefinitely.
+      if (session.status === "scheduled" && now.getHours() >= session.end_time) {
+        expireSession(session);
+      }
     });
   }, [now, sessions]);
 
@@ -168,7 +174,76 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
     fetchAll();
   };
 
+  // Quiet close for a no-show reservation — no "collect payment" popup, since
+  // nobody actually played.
+  const expireSession = async (session: WalkInSession) => {
+    await supabase.from("walk_in_sessions").update({
+      status: "ended",
+      ended_at: new Date().toISOString(),
+    }).eq("id", session.id);
+    fetchAll();
+  };
+
   const handleActivate = async (session: WalkInSession) => {
+    const currentHour = new Date().getHours();
+
+    // Activating a reservation outside its own slots detaches the session from the
+    // hour the customer is physically using: the PC is occupied, but that hour still
+    // shows FREE and an online customer can book it. Only allow it when the current
+    // hour is covered — or when they're exactly one hour early and that hour is free,
+    // in which case claim it too (proportional pricing already handles the part-hour).
+    if (!session.slots.includes(currentHour)) {
+      const firstSlot = Math.min(...session.slots);
+
+      if (currentHour + 1 !== firstSlot) {
+        alert(
+          `This walk-in is reserved for ${formatHour(firstSlot)}, but it's ${formatHour(currentHour)} now.\n\n` +
+            `Starting it would leave ${formatHour(currentHour)} showing as free while the customer is playing.\n\n` +
+            `Cancel this reservation and start a new walk-in for ${formatHour(currentHour)} instead.`
+        );
+        return;
+      }
+
+      const hourTaken =
+        onlineBookings.some((b) => {
+          const s = parseInt(b.start_time.split(":")[0]);
+          const e = parseInt(b.end_time.split(":")[0]);
+          return b.system_id === session.system_id && currentHour >= s && currentHour < e;
+        }) ||
+        sessions.some(
+          (s) =>
+            s.id !== session.id &&
+            s.system_id === session.system_id &&
+            s.slots.includes(currentHour)
+        );
+
+      if (hourTaken) {
+        alert(
+          `Cannot start yet — ${formatHour(currentHour)} is already taken on this system.\n\n` +
+            `This walk-in can start at ${formatHour(firstSlot)}.`
+        );
+        return;
+      }
+
+      const ok = confirm(
+        `This walk-in is reserved for ${formatHour(firstSlot)}, but it's ${formatHour(currentHour)} now.\n\n` +
+          `Add ${formatHour(currentHour)} to the session so the PC shows as occupied from now?\n\n` +
+          `The customer is only charged for the minutes actually played.`
+      );
+      if (!ok) return;
+
+      const newSlots = [...new Set([...session.slots, currentHour])].sort((a, b) => a - b);
+      await supabase.from("walk_in_sessions").update({
+        status: "active",
+        started_at: new Date().toISOString(),
+        slots: newSlots,
+        start_time: newSlots[0],
+        end_time: newSlots[newSlots.length - 1] + 1,
+      }).eq("id", session.id);
+      fetchAll();
+      return;
+    }
+
     await supabase.from("walk_in_sessions").update({
       status: "active",
       started_at: new Date().toISOString(),
@@ -185,6 +260,25 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
     });
     if (conflict) {
       alert(`Cannot add hour — ${formatHour(nextHour)} is booked online.`);
+      return;
+    }
+    // Also guard against OTHER walk-ins on this system — most importantly a
+    // RESERVED (scheduled) session sitting on the next hour. handleAddBookingHour
+    // already checks both sources; without the same check here a walk-in could be
+    // extended straight over a reservation, putting two sessions on one PC.
+    const walkinConflict = sessions.find(
+      (s) =>
+        s.id !== session.id &&
+        s.system_id === session.system_id &&
+        (s.slots.includes(nextHour) ||
+          (nextHour >= s.start_time && nextHour < s.end_time))
+    );
+    if (walkinConflict) {
+      alert(
+        `Cannot add hour — ${formatHour(nextHour)} is already ` +
+          `${walkinConflict.status === "active" ? "occupied by" : "reserved for"} ` +
+          `another walk-in on this system.`
+      );
       return;
     }
     await supabase.from("walk_in_sessions").update({

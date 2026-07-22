@@ -269,6 +269,47 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
     const today = toLocalDateString(new Date());
     const currentHour = now.getHours();
     const isNow = sortedSlots.includes(currentHour);
+
+    // Re-verify against live data immediately before inserting. The slot buttons
+    // are disabled for taken slots, but that guard reads state fetched on load —
+    // a second tab, another device, or a customer booking online in the meantime
+    // can claim a slot in between. Unlike `bookings`, walk_in_sessions has no DB
+    // overlap constraint to catch it afterwards.
+    const [{ data: liveWalkIns }, { data: liveBookings }] = await Promise.all([
+      supabase
+        .from("walk_in_sessions")
+        .select("slots, status")
+        .eq("system_id", systemId)
+        .eq("session_date", today)
+        .in("status", ["scheduled", "active"]),
+      supabase
+        .from("bookings")
+        .select("start_time, end_time")
+        .eq("system_id", systemId)
+        .eq("booking_date", today)
+        .eq("status", "confirmed"),
+    ]);
+
+    const taken = new Set<number>();
+    (liveWalkIns || []).forEach((w: any) =>
+      (w.slots || []).forEach((h: number) => taken.add(h))
+    );
+    (liveBookings || []).forEach((b: any) => {
+      const s = parseInt(b.start_time.split(":")[0], 10);
+      const e = parseInt(b.end_time.split(":")[0], 10);
+      for (let h = s; h < e; h++) taken.add(h);
+    });
+
+    const clash = sortedSlots.find((h) => taken.has(h));
+    if (clash !== undefined) {
+      setConsecutiveWarning(
+        `⚠️ ${formatHour(clash)} was just taken on this system. Please pick another slot.`
+      );
+      setSelectedWalkInSlots([]);
+      fetchAll();
+      return;
+    }
+
     await supabase.from("walk_in_sessions").insert({
       cafe_id: cafeId,
       system_id: systemId,
