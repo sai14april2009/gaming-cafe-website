@@ -77,12 +77,14 @@ export function AdvancedBookingInterface({
       const dateStr = toLocalDateString(selectedDate);
       const systemIds = systems.map((s) => s.id);
 
-      const { data: bookings } = await supabase
-        .from("bookings")
-        .select("system_id, start_time, end_time")
-        .in("system_id", systemIds)
-        .eq("booking_date", dateStr)
-        .eq("status", "confirmed");
+      // Read availability through a SECURITY DEFINER RPC that returns ONLY
+      // occupancy (system_id + start/end), never customer PII. This lets us lock
+      // the bookings table down with RLS while public visitors can still see which
+      // slots are taken. Same return shape as the old table query.
+      const { data: bookings } = await supabase.rpc("get_booked_slots", {
+        p_system_ids: systemIds,
+        p_date: dateStr,
+      });
 
       const bookedHoursMap: Record<string, Set<number>> = {};
       systemIds.forEach((id) => (bookedHoursMap[id] = new Set()));

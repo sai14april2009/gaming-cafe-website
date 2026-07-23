@@ -244,12 +244,12 @@ const handleConfirm = async () => {
       // Any change since the grid was last loaded (new booking, walk-in, repair) is caught here.
       const systemIds = Array.from(new Set(rows.map((r) => r.system_id)));
       const [{ data: liveBookings }, { data: liveWalkIns }, { data: liveRepairs }] = await Promise.all([
-        supabase
-          .from("bookings")
-          .select("system_id, start_time, end_time")
-          .in("system_id", systemIds)
-          .eq("booking_date", dateStr)
-          .eq("status", "confirmed"),
+        // PII-free availability via SECURITY DEFINER RPC (see AdvancedBookingInterface).
+        // Same { system_id, start_time, end_time } shape as the old table query.
+        supabase.rpc("get_booked_slots", {
+          p_system_ids: systemIds,
+          p_date: dateStr,
+        }),
         supabase
           .from("walk_in_sessions")
           .select("system_id, slots, status")
