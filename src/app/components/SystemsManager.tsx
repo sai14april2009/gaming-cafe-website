@@ -434,7 +434,29 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
               </button>
               <button onClick={async () => {
                 if (!confirm("Cancel this booking and mark refund as pending?")) return;
-                await supabase.from("bookings").update({ status: "cancelled_by_owner" }).eq("id", conflict.conflictingBooking.id);
+                // "cancelled" is the only valid status that releases the slot —
+                // bookings_status_check allows pending/confirmed/completed/cancelled.
+                const { data, error } = await supabase
+                  .from("bookings")
+                  .update({ status: "cancelled" })
+                  .eq("id", conflict.conflictingBooking.id)
+                  .select();
+                if (error) {
+                  alert(
+                    `Could not cancel the booking: ${error.message}\n\n` +
+                    "The walk-in was NOT started — the slot is still held by the online booking."
+                  );
+                  return;
+                }
+                if (!data || data.length === 0) {
+                  alert(
+                    "Could not cancel the booking — the update was blocked (0 rows changed).\n\n" +
+                    "This usually means the cafe owner lacks UPDATE permission on the bookings table (Row-Level Security).\n\n" +
+                    "The walk-in was NOT started — the slot is still held by the online booking."
+                  );
+                  return;
+                }
+                // Only take the slot once the booking has actually been released.
                 await createWalkInSession(conflict.systemId, conflict.selectedSlots);
               }} className="w-full bg-white border-2 border-red-400 hover:bg-red-50 text-red-600 font-bold py-3 px-6 rounded-xl text-left">
                 <div className="flex items-center gap-3">
@@ -467,7 +489,31 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
             </div>
             <div className="space-y-3">
               <Button className="w-full bg-green-500 hover:bg-green-600" onClick={async () => {
-                await supabase.from("bookings").update({ status: "reschedule_requested" }).eq("id", conflict.conflictingBooking.id);
+                // The customer agreed to give up this slot, so the booking must be
+                // released — "cancelled" is the only valid status that frees it.
+                // The reason (rescheduled vs refunded) isn't distinguishable yet;
+                // that needs the cancellation_reason column from the "Owner cancel
+                // booking + refund note" backlog item.
+                const { data, error } = await supabase
+                  .from("bookings")
+                  .update({ status: "cancelled" })
+                  .eq("id", conflict.conflictingBooking.id)
+                  .select();
+                if (error) {
+                  alert(
+                    `Could not release the booking: ${error.message}\n\n` +
+                    "The slot is still held by the online booking."
+                  );
+                  return;
+                }
+                if (!data || data.length === 0) {
+                  alert(
+                    "Could not release the booking — the update was blocked (0 rows changed).\n\n" +
+                    "This usually means the cafe owner lacks UPDATE permission on the bookings table (Row-Level Security).\n\n" +
+                    "The slot is still held by the online booking."
+                  );
+                  return;
+                }
                 setWaitingForReschedule(false); setConflict(null); setSelectedWalkInSlots([]); fetchAll();
               }}>✅ Customer Agreed — Request Sent</Button>
               <Button variant="outline" className="w-full" onClick={() => setWaitingForReschedule(false)}>← Back to Options</Button>
