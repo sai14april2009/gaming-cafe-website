@@ -191,6 +191,14 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 **Supabase project ID:** zvgfmjzrnzallkwgrgqb
 **Admin emails (hardcoded):** srisaikumar.ojjela@gmail.com, sai14april2009@gmail.com, alekhya.ojjela@gmail.com
 
+**Security (as of 2026-07-23):** Availability is now **secure by default**. Customer data
+(names/phones in `bookings.players`) is **no longer exposed** — the `bookings` table is locked
+down with RLS so the anon key can't read it. Availability queries go through the
+`get_booked_slots()` RPC (occupancy only), **not** direct table reads. Full detail in the
+"Security hardening" subsection of Section 4. When adding a new surface that needs slot
+availability, call the RPC — do NOT `select` from `bookings` as anon/unauthenticated, it will
+return 0 rows.
+
 ### DB tables (RLS enabled on all)
 - `profiles`
 - `cafes`
@@ -209,6 +217,40 @@ or a bug in the UI. Both need the `btree_gist` extension (already installed).
 - **`walk_in_no_overlap`** on `walk_in_sessions` — `EXCLUDE USING gist (system_id =, session_date =, int4range(start_time, end_time, '[)') &&) WHERE (status <> 'ended')`.
   `start_time`/`end_time` are already integers here. `ended` rows are excluded so historical overlaps (created before the UI guard existed) don't block the constraint.
 - **Not covered: walk-in vs online booking.** Exclusion constraints are single-table, so that direction is enforced only by app-level checks (now on every write path). See Section 9 for the Phase 2 trigger.
+
+### Security hardening — bookings table lockdown (LIVE, 2026-07-23)
+Before this, the `bookings` table had two `public` RLS policies (`Anyone can view
+bookings` / `Anyone can insert bookings`). Because the anon key ships in the client
+bundle, **anyone could read every customer's name + phone from the `players` jsonb, or
+insert bookings while logged out.** Closed in two halves:
+
+- **`get_booked_slots(p_system_ids uuid[], p_date date)`** — `SECURITY DEFINER`, `stable`,
+  returns `TABLE(system_id uuid, start_time text, end_time text)` for `confirmed` bookings
+  only. **No `user_id`, `players`, or price.** Availability reads go through this RPC, not
+  the table, so logged-out visitors still see which slots are taken without seeing PII.
+  `execute` granted to `anon, authenticated`. Both availability call sites use it:
+  `AdvancedBookingInterface` (the grid) and `BookingConfirm` (the pre-insert re-check).
+- **RLS lockdown on `bookings`** — the two `public` policies were dropped and replaced with
+  three scoped policies (RLS confirmed enabled):
+  - `Owners view their cafe bookings` — SELECT, `authenticated`, `EXISTS cafe where owner_id = auth.uid()`
+  - `Customers view their own bookings` — SELECT, `authenticated`, `user_id = auth.uid()`
+  - `Customers insert their own bookings` — INSERT, `authenticated`, `user_id = auth.uid() AND NOT (owner of that cafe)`
+  - The pre-existing `Cafe owners can update their cafe's bookings` (UPDATE) was left intact —
+    the dashboard's status writes (cancel, complete, add-hour) depend on it.
+
+**Verified against real data (role simulation + live anon fetch):**
+
+| Actor | Direct read of `bookings` | Availability via RPC | Insert |
+|-------|---------------------------|----------------------|--------|
+| anon (logged out) | **0 rows** (was 15 w/ PII) | ✅ works | ❌ blocked (42501) |
+| owner | all their cafe's rows (15) | ✅ | ❌ own-cafe blocked (42501) |
+| customer | **only their own** (2 of 15) | ✅ | ✅ their own allowed |
+
+Where it lives: **code half = commit `0892dbf6`** (the two RPC call-site swaps); **DB half =
+Supabase migration `lock_down_bookings_rls`** plus the `get_booked_slots` function migration.
+The SQL is NOT in the repo (no migrations dir — schema is inferred); it lives only in
+Supabase's migration history. To reproduce on another project, re-create the function and the
+three policies.
 
 ### Completed (as of 2026-07-22)
 - Full auth, profiles, browse cafes, advanced booking flow
@@ -445,5 +487,16 @@ To close it properly in Phase 2, add `BEFORE INSERT OR UPDATE` triggers on **bot
 that reject a row overlapping the other table on the same `system_id` + date. Do it when
 booking editing/rescheduling lands, since that multiplies the write paths that must stay
 correct. Revisit sooner if any collision is ever observed in production.
+
+### Security follow-ups from the 2026-07-23 bookings lockdown
+Not blocking, but do before the features that touch them:
+- **Backfill `user_id` on the 5 legacy `bookings` rows where it's NULL** — under the new
+  customer SELECT policy (`user_id = auth.uid()`) those rows are invisible to the customers
+  who made them (owner still sees them via `cafe_id`). Must be backfilled **before** the
+  "My Bookings" customer page ships, or those customers won't see their own history.
+- **UPDATE policy role inconsistency (minor cleanup)** — `Cafe owners can update their cafe's
+  bookings` is scoped to role `{public}` while the three new policies use `{authenticated}`.
+  Not a hole (its `auth.uid()` owner-check fails for anon), just inconsistent; re-create it as
+  `to authenticated` when convenient.
 
 
