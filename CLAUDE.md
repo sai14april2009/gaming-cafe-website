@@ -319,7 +319,20 @@ booked/occupied/reserved. Bugs found and fixed:
 ### Remaining backlog
 **Critical:**
 - Dashboard redesign (Section 8)
-- Owner cancel booking + refund note
+
+**Done 2026-07-23 — Owner cancel booking + refund note (Advanced Booking tab):**
+Owner expands a booking row → "Cancel Booking" (shown for `confirmed` bookings only) →
+`window.confirm` → writes `status='cancelled', cancellation_reason='owner_cancelled'`
+with the same error + 0-rows/RLS handling as `SystemsManager`. A refund reminder is shown
+in the detail view for any cancelled booking. The slot frees automatically — `get_booked_slots`
+RPC and the `bookings_no_overlap` constraint both filter `status='confirmed'` (verified by
+rolled-back simulation). New nullable column `bookings.cancellation_reason` (migration
+`add_cancellation_reason_to_bookings`).
+- **Follow-up (NOT done yet):** the two walk-in cancel writes in `SystemsManager` still write
+  no reason, so the column is half-populated. Set `cancellation_reason='walkin_conflict_refund'`
+  at ~`SystemsManager.tsx:441` ("Cancel Online Booking & Refund" in the walk-in conflict popup)
+  and `cancellation_reason='customer_agreed_reschedule'` at ~`:499` ("Customer Agreed — Request
+  Sent"). Deferred here only because it touches the walk-in flow.
 
 **Important:**
 - My Bookings page for customers
