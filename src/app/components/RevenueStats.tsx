@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabase";
 import { IndianRupee, Calendar, Users, TrendingUp } from "lucide-react";
+import { toLocalDateString } from "../utils/date";
 
 interface RevenueStatsProps {
   cafeId: string;
@@ -29,16 +30,33 @@ export function RevenueStats({ cafeId }: RevenueStatsProps) {
       .order("created_at", { ascending: false });
 
     if (data) {
-      const totalRevenue = data.reduce((sum, b) => sum + (b.total_price || 0), 0);
-      const totalPlayers = data.reduce((sum, b) => sum + (b.num_people || 0), 0);
+      // Cancelled bookings were never paid, so they must not count toward revenue,
+      // booking totals, or players served. pending/null aren't committed money either,
+      // so an allowlist (not a `!== "cancelled"` denylist) is the safe filter — it
+      // also excludes null status without special-casing.
+      const COUNTS_AS_REVENUE = ["confirmed", "completed"];
+      const countable = data.filter((b) => COUNTS_AS_REVENUE.includes(b.status));
+
+      const totalRevenue = countable.reduce((sum, b) => sum + (b.total_price || 0), 0);
+      const totalPlayers = countable.reduce((sum, b) => sum + (b.num_people || 0), 0);
+
+      // Upcoming = a confirmed booking whose slot hasn't started yet. Compare on the
+      // LOCAL day: booking_date is a local "YYYY-MM-DD" and start_time a zero-padded
+      // "HH:MM", so both compare lexicographically. The old `new Date(booking_date) >= now`
+      // parsed the date as UTC midnight, which in IST dropped every later-today booking.
       const now = new Date();
+      const today = toLocalDateString(now);
+      const nowHHMM = now.toTimeString().slice(0, 5); // local "HH:MM"
       const upcomingBookings = data.filter(
-        (b) => new Date(b.booking_date) >= now
+        (b) =>
+          b.status === "confirmed" &&
+          (b.booking_date > today ||
+            (b.booking_date === today && b.start_time > nowHHMM))
       ).length;
 
       setStats({
         totalRevenue,
-        totalBookings: data.length,
+        totalBookings: countable.length,
         totalPlayers,
         upcomingBookings,
       });
@@ -101,15 +119,30 @@ export function RevenueStats({ cafeId }: RevenueStatsProps) {
           <p className="text-gray-500 text-sm text-center py-6">No bookings yet</p>
         ) : (
           <div className="space-y-3">
-            {recentBookings.map((booking) => (
-              <div key={booking.id} className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-                <div>
-                  <p className="font-medium text-sm">{new Date(booking.booking_date).toDateString()}</p>
-                  <p className="text-xs text-gray-500">{booking.num_people} player{booking.num_people !== 1 ? "s" : ""}</p>
+            {recentBookings.map((booking) => {
+              // Recent list keeps ALL statuses (unlike the totals) so a cancellation
+              // is visible when revenue dips — styled like BookingsList's cancelled rows.
+              const isCancelled = booking.status === "cancelled";
+              return (
+                <div
+                  key={booking.id}
+                  className={`flex items-center justify-between border-b border-gray-100 pb-3 last:border-0 last:pb-0 ${isCancelled ? "opacity-60" : ""}`}
+                >
+                  <div>
+                    <p className="font-medium text-sm">{new Date(booking.booking_date).toDateString()}</p>
+                    <p className="text-xs text-gray-500">{booking.num_people} player{booking.num_people !== 1 ? "s" : ""}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isCancelled && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-600">
+                        cancelled
+                      </span>
+                    )}
+                    <p className={`font-bold text-purple-600 ${isCancelled ? "line-through" : ""}`}>₹{booking.total_price}</p>
+                  </div>
                 </div>
-                <p className="font-bold text-purple-600">₹{booking.total_price}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
