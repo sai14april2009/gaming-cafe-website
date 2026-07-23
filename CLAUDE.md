@@ -203,7 +203,7 @@ return 0 rows.
 - `profiles`
 - `cafes`
 - `gaming_systems`
-- `bookings` — columns: `id, user_id, cafe_id, system_id, booking_date, start_time, end_time, num_people, total_price, status, players, created_at`
+- `bookings` — columns: `id, user_id (NOT NULL as of 2026-07-24), cafe_id, system_id, booking_date, start_time, end_time, num_people, total_price, status, players, cancellation_reason, created_at`
 - `reviews`
 - `repair_slots` — columns: `id, system_id, cafe_id, repair_date, start_hour, end_hour, reason, created_at`
 - `walk_in_sessions` — columns: `id, system_id, cafe_id, status (scheduled/active/ended), slots (integer[]), session_date, start_time, end_time, started_at, ended_at, created_at`
@@ -502,10 +502,15 @@ correct. Revisit sooner if any collision is ever observed in production.
 
 ### Security follow-ups from the 2026-07-23 bookings lockdown
 Not blocking, but do before the features that touch them:
-- **Backfill `user_id` on the 5 legacy `bookings` rows where it's NULL** — under the new
-  customer SELECT policy (`user_id = auth.uid()`) those rows are invisible to the customers
-  who made them (owner still sees them via `cafe_id`). Must be backfilled **before** the
-  "My Bookings" customer page ships, or those customers won't see their own history.
+- **RESOLVED 2026-07-24 — the 5 legacy NULL-`user_id` rows.** Investigated: all were
+  pre-auth-enforcement test bookings on the test cafe (names `guest`/`guest2`/`player friday`,
+  placeholder phone `1234567890`, no email), created Jul 1–3, unattributable to any auth user
+  (phone maps ambiguously to 2 test accounts, name matches none). Deleted after a JSON backup
+  (scoped `where user_id is null and cafe_id = <test cafe>`, 5 rows, table 15 → 10), then
+  `user_id` was made **NOT NULL** (migration `bookings_user_id_not_null`) so attribution is now
+  DB-guaranteed — verified a NULL insert is rejected with SQLSTATE 23502 even bypassing RLS.
+  `BookingConfirm.handleConfirm` also gained an early `if (!user)` guard (clean "please log in"
+  message instead of a raw DB error).
 - **UPDATE policy role inconsistency (minor cleanup)** — `Cafe owners can update their cafe's
   bookings` is scoped to role `{public}` while the three new policies use `{authenticated}`.
   Not a hole (its `auth.uid()` owner-check fails for anon), just inconsistent; re-create it as

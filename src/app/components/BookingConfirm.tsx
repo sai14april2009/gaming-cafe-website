@@ -144,6 +144,15 @@ export function BookingConfirm() {
   };
 
 const handleConfirm = async () => {
+    // Fail closed if there's no signed-in user. The flow is login-gated upstream,
+    // and both RLS (user_id = auth.uid()) and the NOT NULL constraint on
+    // bookings.user_id would reject the insert anyway — but that surfaces as a raw
+    // DB error. Catch it here with a clear message instead.
+    if (!user) {
+      setErrors(["Please log in to book — your session may have expired."]);
+      return;
+    }
+
     const errs = validate();
     if (errs.length > 0) { setErrors(errs); return; }
     setErrors([]);
