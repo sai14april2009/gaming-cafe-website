@@ -327,12 +327,11 @@ with the same error + 0-rows/RLS handling as `SystemsManager`. A refund reminder
 in the detail view for any cancelled booking. The slot frees automatically — `get_booked_slots`
 RPC and the `bookings_no_overlap` constraint both filter `status='confirmed'` (verified by
 rolled-back simulation). New nullable column `bookings.cancellation_reason` (migration
-`add_cancellation_reason_to_bookings`).
-- **Follow-up (NOT done yet):** the two walk-in cancel writes in `SystemsManager` still write
-  no reason, so the column is half-populated. Set `cancellation_reason='walkin_conflict_refund'`
-  at ~`SystemsManager.tsx:441` ("Cancel Online Booking & Refund" in the walk-in conflict popup)
-  and `cancellation_reason='customer_agreed_reschedule'` at ~`:499` ("Customer Agreed — Request
-  Sent"). Deferred here only because it touches the walk-in flow.
+`add_cancellation_reason_to_bookings`). The two walk-in cancel writes in `SystemsManager`
+now populate it too — `cancellation_reason='walkin_conflict_refund'` at `:441` ("Cancel
+Online Booking & Refund") and `'customer_agreed_reschedule'` at `:496` ("Customer Agreed —
+Request Sent") — so all three write paths (owner-cancel, walk-in-conflict, reschedule) are
+covered; the column is no longer half-populated.
 
 **Important:**
 - My Bookings page for customers

@@ -438,7 +438,7 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
                 // bookings_status_check allows pending/confirmed/completed/cancelled.
                 const { data, error } = await supabase
                   .from("bookings")
-                  .update({ status: "cancelled" })
+                  .update({ status: "cancelled", cancellation_reason: "walkin_conflict_refund" })
                   .eq("id", conflict.conflictingBooking.id)
                   .select();
                 if (error) {
@@ -491,12 +491,9 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
               <Button className="w-full bg-green-500 hover:bg-green-600" onClick={async () => {
                 // The customer agreed to give up this slot, so the booking must be
                 // released — "cancelled" is the only valid status that frees it.
-                // The reason (rescheduled vs refunded) isn't distinguishable yet;
-                // that needs the cancellation_reason column from the "Owner cancel
-                // booking + refund note" backlog item.
                 const { data, error } = await supabase
                   .from("bookings")
-                  .update({ status: "cancelled" })
+                  .update({ status: "cancelled", cancellation_reason: "customer_agreed_reschedule" })
                   .eq("id", conflict.conflictingBooking.id)
                   .select();
                 if (error) {
