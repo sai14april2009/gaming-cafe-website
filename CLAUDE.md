@@ -68,7 +68,7 @@ Cafe owners can start ad-hoc "walk-in" sessions for a system from the dashboard 
 - Do not add `.css`, `.tsx`, or `.ts` to `assetsInclude` in `vite.config.ts`.
 # GameOrbit / GameSpot — Project Brain
 *Paste this entire file at the start of any new chat so the AI has full context immediately.*
-*Last updated: 2026-07-22*
+*Last updated: 2026-07-26*
 
 ---
 
@@ -164,11 +164,12 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - ✅ DB-level double-booking prevention (`bookings_no_overlap` exclusion constraint)
 - ✅ Advanced Booking tab with 7-day date picker — owner sees future bookings
 - 🔲 Dashboard redesign — Gaming Systems tab shows full day slot grid per system (IN PROGRESS)
-- 🔲 Owner cancel booking + refund note
-- 🔲 My Bookings page for customers (/my-bookings)
-- 🔲 Edit/delete own review (customer)
-- 🔲 Photos in reviews
-- 🔲 RevenueStats — cancelled bookings still counted in revenue; upcoming count wrong
+- ✅ Owner cancel booking + refund note (2026-07-23)
+- ✅ My Bookings page for customers (/my-bookings) (2026-07-24)
+- ✅ Edit/delete own review (customer) (2026-07-25)
+- ✅ Review section overhaul — verified-booker gate, 5 category sub-ratings, threaded replies, "Cafe Owner" reply badge (2026-07-26, see Section 10)
+- 🔲 Photos in reviews (deferred — needs Supabase Storage)
+- ✅ RevenueStats — excludes cancelled from revenue totals; fixed UTC upcoming-count bug; shows cancelled in recent list (2026-07-24)
 - 🔲 Image upload for cafe cover (currently URL paste only)
 - 🔲 Buffer system implementation (Smart Transition Buffer)
 - 🔲 Filter in booking interface (PC/Console, GPU) — Phase 2
@@ -181,7 +182,7 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 
 ---
 
-## 4. CURRENT TECHNICAL STATE (as of 2026-07-22)
+## 4. CURRENT TECHNICAL STATE (as of 2026-07-26)
 
 **Stack:** React + TypeScript + Vite + Tailwind + shadcn/ui + React Router + Supabase
 **Live:** gaming-cafe-website.vercel.app
@@ -204,7 +205,8 @@ return 0 rows.
 - `cafes`
 - `gaming_systems`
 - `bookings` — columns: `id, user_id (NOT NULL as of 2026-07-24), cafe_id, system_id, booking_date, start_time, end_time, num_people, total_price, status, players, cancellation_reason, created_at`
-- `reviews`
+- `reviews` — columns: `id, cafe_id, user_id, user_name, rating, comment, created_at, rating_systems, rating_internet, rating_cleanliness, rating_staff, rating_value` (the 5 nullable category sub-ratings added 2026-07-26; overall `rating` = rounded avg of the filled ones). INSERT gated to verified bookers via `has_visited_cafe()`; SELECT/UPDATE/DELETE author-scoped. See Section 10.
+- `review_replies` — columns: `id, review_id (FK→reviews ON DELETE CASCADE), user_id, user_name, comment, created_at`. Flat 2-level threading (review→replies). Added 2026-07-26. SELECT public; INSERT by verified booker of the review's cafe OR that cafe's owner; UPDATE/DELETE author-scoped. See Section 10.
 - `repair_slots` — columns: `id, system_id, cafe_id, repair_date, start_hour, end_hour, reason, created_at`
 - `walk_in_sessions` — columns: `id, system_id, cafe_id, status (scheduled/active/ended), slots (integer[]), session_date, start_time, end_time, started_at, ended_at, created_at`
 
