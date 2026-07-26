@@ -10,6 +10,7 @@ import { Signup } from "./components/Signup";
 import { BookingConfirm } from "./components/BookingConfirm";
 import { Dashboard } from "./components/Dashboard";
 import { AdminApprovals } from "./components/AdminApprovals";
+import { MyBookings } from "./components/MyBookings";
 
 export const router = createBrowserRouter([
   {
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
       { path: "hardware", Component: FilterByHardware },
       { path: "cafe/db/:id", Component: DbCafeDetails },
       { path: "cafe/:id", Component: CafeDetails },
+      { path: "my-bookings", Component: MyBookings },
     ],
   },
   { path: "/login", Component: Login },

@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { Search, Gamepad2, Cpu, User, LogOut, ShieldCheck } from "lucide-react";
+import { Search, Gamepad2, Cpu, User, LogOut, ShieldCheck, Ticket } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const ADMIN_EMAILS = [
@@ -71,6 +71,17 @@ export function Root() {
                     <User className="w-4 h-4" />
                     <span className="text-sm font-medium">{profile?.full_name || user.email}</span>
                   </div>
+                  <Link
+                    to="/my-bookings"
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive("/my-bookings")
+                        ? "bg-purple-100 text-purple-700"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Ticket className="w-4 h-4" />
+                    <span className="hidden lg:inline">My Bookings</span>
+                  </Link>
                   {profile?.role === "owner" && (
                     <Link to="/dashboard" className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 transition-colors">
                       Dashboard
@@ -121,6 +132,19 @@ export function Root() {
                 </Link>
               );
             })}
+            {user && (
+              <Link
+                to="/my-bookings"
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors whitespace-nowrap ${
+                  isActive("/my-bookings")
+                    ? "bg-purple-100 text-purple-700"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <Ticket className="w-4 h-4" />
+                <span className="text-sm">My Bookings</span>
+              </Link>
+            )}
           </div>
         </div>
       </header>

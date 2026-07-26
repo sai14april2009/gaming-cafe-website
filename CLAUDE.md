@@ -252,6 +252,15 @@ The SQL is NOT in the repo (no migrations dir — schema is inferred); it lives 
 Supabase's migration history. To reproduce on another project, re-create the function and the
 three policies.
 
+**Pattern — customer-facing "my own X" queries need an explicit `.eq("user_id", user.id)`.**
+Do NOT rely on RLS alone to scope a "my bookings"-style page. The founder/test account is
+both a customer AND a cafe owner, so the `bookings` SELECT policies OR together: the owner
+policy returns that account's *whole cafe's* rows on top of its own. RLS scopes a *pure*
+customer correctly, but an owner-customer sees far more. Always add the explicit
+`.eq("user_id", user.id)` filter (a strict subset of what RLS allows, so it can't leak) —
+e.g. `MyBookings.tsx`. Verified: with the filter the owner-customer sees only their own 8
+rows, not all 11 on their cafe.
+
 ### Completed (as of 2026-07-22)
 - Full auth, profiles, browse cafes, advanced booking flow
 - Café registration → Admin approval → public listing
