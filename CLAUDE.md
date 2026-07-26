@@ -343,13 +343,14 @@ Request Sent") — so all three write paths (owner-cancel, walk-in-conflict, res
 covered; the column is no longer half-populated.
 
 **Important:**
-- My Bookings page for customers
-- Edit/delete own review
+- ~~My Bookings page for customers~~ **DONE 2026-07-24** (commit `df6f807e` — see `MyBookings.tsx`)
+- ~~Edit/delete own review~~ **DONE 2026-07-25** (commit `5033ce8b` + migration `reviews_update_own_policy`)
+- ~~Review section overhaul (verified-booker + categories + threaded replies + owner badge)~~ **DONE 2026-07-26** — migrations `review_overhaul_schema` + `review_overhaul_policies`, `DbReviewsSection.tsx` rewrite. See Section 10.
 - Buffer system (Smart Transition Buffer)
 - Date picker for Gaming Systems / Live Now tabs (future-day visibility)
 
 **Nice to have:**
-- Photos in reviews
+- Photos in reviews (see Section 10 — deferred until Storage bucket added)
 - RevenueStats: exclude cancelled from revenue, fix upcoming count
 - Image upload for cafe cover
 - Custom SMTP
@@ -524,5 +525,191 @@ Not blocking, but do before the features that touch them:
   bookings` is scoped to role `{public}` while the three new policies use `{authenticated}`.
   Not a hole (its `auth.uid()` owner-check fails for anon), just inconsistent; re-create it as
   `to authenticated` when convenient.
+
+---
+
+## 10. REVIEW SECTION OVERHAUL (BUILT 2026-07-26)
+
+**Status: LIVE.** Applied as migrations `review_overhaul_schema` + `review_overhaul_policies`
+(DB) and a full rewrite of `DbReviewsSection.tsx` (code). Verified by role simulation before
+commit — see the matrix at the end of this section. Reviews/replies tables are empty (0 rows)
+at build time, so the section renders its empty state until real completed sessions accrue.
+
+**One deviation from the original plan — the eligibility rule was loosened** (founder's call):
+verified = **`status IN ('completed','confirmed') AND booking_date < today` (IST)**, i.e. a
+non-cancelled booking whose day has already passed — NOT strict `completed`-only. Reason:
+only 1 booking is `completed` (that status is set manually via Live Now "End Session"), so
+strict would gate out nearly everyone. The helper is named **`has_visited_cafe(uuid)`**
+(SECURITY DEFINER), not `has_completed_booking_at_cafe`.
+
+### Locked decisions
+
+1. **Only verified bookers can write a review.** Verified = `has_visited_cafe(cafe_id)` =
+   the user has a booking on this cafe with `status IN ('completed','confirmed')` AND
+   `booking_date < today` (IST). (Loosened from the original strict `completed`-only — see
+   the deviation note above.)
+2. **Owners cannot review their own cafe.** They can only reply to others' reviews.
+   Enforced in the INSERT policy `with_check`.
+3. **The one existing test review has already been deleted** by the founder (verified
+   2026-07-26: `select count(*) from reviews = 0`).
+4. **Replies are restricted** to verified bookers of that cafe + the cafe owner.
+   Not "any signed-in user" (rejected the YouTube-open model). Also enforced at RLS.
+5. **5 sub-rating categories** (see below). Overall star rating = rounded average of
+   the categories the customer filled in. Categories are optional individually —
+   customer can rate 3 of 5 if they only care about those — but at least one
+   category is required to submit.
+
+### Eligibility tradeoff (accepted, deliberate decision)
+
+The gate is `status IN ('completed','confirmed') AND booking_date < today`. This means a
+**confirmed booking whose date has passed counts as eligible even if the customer never
+attended** (a no-show). This is a deliberate, accepted tradeoff:
+
+- **(a) False-DENIAL is worse than false-AWARD.** A real attendee wrongly blocked from
+  reviewing is both more likely and more harmful than a no-show wrongly allowed to review.
+  We optimize against the harmful, common case.
+- **(b) Fake-booking-for-reviews is economically irrational at our scale.** Booking a paid
+  slot purely to leave a review costs real money/effort, so gaming the badge this way
+  doesn't pay off for anyone at current volumes.
+- **(c) The badge wording is truthful.** It says **"Verified booking"**, NOT "attendance" —
+  so it reflects exactly what is checked (a real, past, non-cancelled booking), and promises
+  nothing about physically showing up.
+
+**KNOWN LIMITATION to revisit at volume:** at large booking counts, no-show false-awards
+accumulate and could erode badge credibility. If/when that becomes material, reconsider an
+attendance-based signal — e.g. a `checked_in_at` timestamp set when the owner starts the
+session in Live Now — and gate on that instead of (or in addition to) past-date confirmed.
+
+### The 5 categories (gaming-cafe specific)
+
+| # | Category | What it rates |
+|---|---|---|
+| 1 | **Gaming Systems** | Hardware quality — CPU/GPU, monitor, peripherals, chair. This is the core product. |
+| 2 | **Internet Speed** | Latency, stability, bandwidth. Non-negotiable for online gaming; deserves its own line, not lumped under amenities. |
+| 3 | **Cleanliness & Comfort** | Physical space, keyboard/desk hygiene, temperature, lighting. Gamers sit 2–4+ hours. |
+| 4 | **Staff & Service** | Helpfulness, responsiveness when something breaks, quick issue resolution. Unlike Airbnb self-check-in, cafes are staffed. |
+| 5 | **Value** | Worth the price paid? Aggregates the other four against price. |
+
+If trimming ever needed, priority order is: **Gaming Systems > Internet Speed > Value
+> Cleanliness > Staff & Service**. Top 3 covers the most decision-critical signal.
+
+### Schema changes (APPLIED — migration `review_overhaul_schema`)
+
+```sql
+-- 1. Category sub-rating columns on reviews (all nullable, all 1..5)
+alter table public.reviews
+  add column if not exists rating_systems     smallint check (rating_systems     between 1 and 5),
+  add column if not exists rating_internet    smallint check (rating_internet    between 1 and 5),
+  add column if not exists rating_cleanliness smallint check (rating_cleanliness between 1 and 5),
+  add column if not exists rating_staff       smallint check (rating_staff       between 1 and 5),
+  add column if not exists rating_value       smallint check (rating_value       between 1 and 5);
+
+-- 2. Threaded replies (flat 2-level: review -> replies)
+create table if not exists public.review_replies (
+  id uuid primary key default gen_random_uuid(),
+  review_id uuid not null references public.reviews(id) on delete cascade,
+  user_id   uuid not null references auth.users(id)     on delete cascade,
+  user_name text not null,
+  comment   text not null,
+  created_at timestamp without time zone default now()
+);
+alter table public.review_replies enable row level security;
+```
+
+### RLS changes (APPLIED — migration `review_overhaul_policies`)
+
+**Helper function `has_visited_cafe`** (`SECURITY DEFINER`; also called from the UI via
+`supabase.rpc("has_visited_cafe", { p_cafe_id })` to gate the "Write a Review" button):
+```sql
+create or replace function public.has_visited_cafe(p_cafe_id uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.bookings b
+    where b.user_id = auth.uid()
+      and b.cafe_id = p_cafe_id
+      and b.status in ('completed','confirmed')          -- loosened (see deviation note)
+      and b.booking_date < (now() at time zone 'Asia/Kolkata')::date
+  );
+$$;
+revoke all on function public.has_visited_cafe(uuid) from public;
+grant execute on function public.has_visited_cafe(uuid) to authenticated;
+```
+
+**Reviews INSERT policy** (replaced the old `Users can insert reviews`):
+```sql
+create policy "Verified bookers can insert reviews"
+on public.reviews for insert to authenticated
+with check (
+  auth.uid() = user_id
+  and public.has_visited_cafe(cafe_id)
+  and not exists (select 1 from public.cafes c where c.id = cafe_id and c.owner_id = auth.uid())
+);
+```
+Existing SELECT / UPDATE / DELETE policies on `reviews` stay as-is (all author-scoped) —
+so edit/delete-own-review (Section: commit `5033ce8b`) still works alongside this.
+Replies' policies use `has_visited_cafe(r.cafe_id)` in the same shape.
+
+**Review replies policies:**
+```sql
+create policy "Anyone can view replies"
+  on public.review_replies for select using (true);
+
+create policy "Verified bookers or cafe owner can reply"
+  on public.review_replies for insert to authenticated
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from public.reviews r
+      where r.id = review_id
+        and (
+          public.has_completed_booking_at_cafe(r.cafe_id)
+          or exists (select 1 from public.cafes c where c.id = r.cafe_id and c.owner_id = auth.uid())
+        )
+    )
+  );
+
+create policy "Users can update own reply"
+  on public.review_replies for update to authenticated
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "Users can delete own reply"
+  on public.review_replies for delete to authenticated
+  using (auth.uid() = user_id);
+```
+
+### UI (planned — `DbReviewsSection.tsx`)
+
+- **Gate "Write a Review"** on `has_completed_booking_at_cafe` RPC. Non-eligible users
+  see: *"Only customers who've completed a session at this cafe can leave a review."*
+- **Owner** viewing their own cafe never sees "Write a Review" — they see "Reply" affordances only.
+- **Review form**: 5 category star-rows instead of the single row. Overall rating computed live.
+- **Review card**: overall stars + per-category breakdown (compact row of 5 mini-ratings);
+  **Verified booking** badge on every review (since gate guarantees it — cheap trust signal);
+  **Reply** button → inline reply composer (verified bookers + owner only).
+- **Owner badge**: any reply where `reply.user_id === cafe.owner_id` gets a distinctive
+  **"Cafe Owner"** pill (purple, matching brand). Any review with such a reply shows a
+  **"Cafe owner replied"** marker at the top of the review card — highly visible trust signal.
+- **YouTube-style toggle**: replies collapsed by default under a **"View N replies"** button.
+
+### Verification (DONE 2026-07-26 — role simulation, all rolled back)
+
+| Actor | Review INSERT | Reply INSERT |
+|---|---|---|
+| Verified booker (`2e4d7d4c`, past booking) | ✅ | ✅ |
+| Future-only booking (`3cc63011`, not eligible) | ❌ | ❌ |
+| Cafe owner (`0d41c503`) | ❌ (owner block) | ✅ |
+| Anon | ❌ | ❌ |
+
+Each test seeded a review as superuser, switched role via `set_config`, attempted both
+inserts inside caught sub-blocks, then RAISEd to roll back. Confirmed 0 reviews / 0 replies
+persisted afterward.
+
+### What's deferred / rejected
+
+- **Photos in reviews** — requires Supabase Storage bucket + upload + moderation.
+  Deferred until Storage is set up (a whole other decision).
+- **Helpful votes, sort/filter, keyword chips** — rejected for now. All require
+  review volume (>20/cafe) to earn their keep. Revisit post-launch.
+- **Report/flag abuse** — needed before real scale, not before.
 
 
