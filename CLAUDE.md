@@ -322,7 +322,16 @@ booked/occupied/reserved. Bugs found and fixed:
 ### Known bugs / in progress
 - **IN PROGRESS: Dashboard Gaming Systems tab redesign** — see Section 8 for full spec
 - Walk-in sessions currently use a Live System Status grid in the Gaming Systems tab. This is being redesigned — see Section 8.
-- **Gaming Systems + Live Now tabs are today-only** — no date picker. Owners cannot see or manage future days' slot grids (only the Advanced Booking tab covers future days).
+- **KNOWN GAP (from the Gaming Systems merge, Stage 1 — 2026-07-27):** after merging the
+  Advanced Booking tab into the date-aware Gaming Systems grid, **cancelled bookings no longer
+  persist a browsable refund reminder** — the owner only sees it at cancel time (in the confirm
+  dialog + the cancel modal's cancelled state). Once a slot frees, there's no list surface that
+  keeps showing "remember to refund X". **Fast-follow:** a **"Pending Refunds" view** listing
+  cancelled-but-unacknowledged bookings, which also pairs with the planned apology-popup and
+  cancellation-fee-ledger work.
+- ~~**Gaming Systems + Live Now tabs are today-only**~~ — **Gaming Systems now has the 7-day
+  date picker as of Stage 1 (2026-07-27).** Live Now is still today-only (future-day management
+  there is out of scope for now).
 - **RevenueStats counts cancelled bookings** in Total Revenue, and `upcomingBookings` compares a UTC-parsed `booking_date` against `now`, so today's later bookings are not counted as upcoming.
 - **Exclusion constraint only covers `status = 'confirmed'`** — ending or cancelling a booking releases its slot from the DB-level guard. Low impact today (past hours are filtered from the grid), but relevant if booking editing is added.
 - Mock demo data still ships alongside real data — the homepage lists 7 sample cafés (`mockData.ts`) next to real DB cafés. Decide whether to drop them before real users.

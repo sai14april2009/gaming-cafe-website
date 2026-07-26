@@ -14,7 +14,7 @@ export function Dashboard() {
   const { user, profile, loading: authLoading } = useAuth();
   const [cafe, setCafe] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "details" | "systems" | "live" | "advanced" | "bookings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "details" | "systems" | "live" | "bookings">("overview");
 
   useEffect(() => {
     if (!user) return;
@@ -67,7 +67,6 @@ export function Dashboard() {
             { key: "details", label: "Cafe Details" },
             { key: "systems", label: "Gaming Systems" },
             { key: "live", label: "🔴 Live Now" },
-            { key: "advanced", label: "Advanced Booking" },
             { key: "bookings", label: "Booking History" },
           ].map((tab) => (
             <button
@@ -96,9 +95,6 @@ export function Dashboard() {
         )}
         {activeTab === "live" && (
           <LiveSessions cafeId={cafe.id} pricePerHour={cafe.price_per_hour} />
-        )}
-        {activeTab === "advanced" && (
-          <BookingsList cafeId={cafe.id} mode="advanced" />
         )}
         {activeTab === "bookings" && (
           <>

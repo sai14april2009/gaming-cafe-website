@@ -47,6 +47,9 @@ interface OnlineBooking {
   start_time: string;
   end_time: string;
   num_people: number;
+  total_price: number | null;
+  status: string | null;
+  cancellation_reason: string | null;
   players: { name: string; phone: string }[] | null;
 }
 
@@ -54,6 +57,18 @@ interface ConflictInfo {
   systemId: string;
   selectedSlots: number[];
   conflictingBooking: OnlineBooking;
+}
+
+function toToday(): string {
+  return toLocalDateString(new Date());
+}
+
+function formatDateShort(date: Date) {
+  return {
+    day: date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
+    dateNum: date.getDate(),
+    month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
+  };
 }
 
 export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime }: SystemsManagerProps) {
@@ -65,6 +80,15 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [now, setNow] = useState(new Date());
+
+  // Which of the next 7 days (today..+6) the grid is showing. The grid data below
+  // now spans the whole window; this just selects which day's statuses to render.
+  const [selectedDate, setSelectedDate] = useState<string>(toToday());
+
+  // Cancel/refund modal — opened by clicking a Booked (red) slot. Replicates the
+  // old Advanced Booking tab's cancel flow (kept identical; BookingsList untouched).
+  const [cancelBooking, setCancelBooking] = useState<OnlineBooking | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   // Walk-in state per system
   const [walkInSystemId, setWalkInSystemId] = useState<string | null>(null);
@@ -109,13 +133,18 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const today = toLocalDateString(new Date());
+    // Fetch the whole 7-day window (today..+6) once and filter per-day client-side —
+    // mirrors BookingsList's window approach, so switching days has no loading flash.
+    const todayStr = toLocalDateString(new Date());
+    const last = new Date();
+    last.setDate(last.getDate() + 6);
+    const lastStr = toLocalDateString(last);
     const [{ data: systemsData }, { data: walkInData }, { data: repairData }, { data: bookingsData }] =
       await Promise.all([
         supabase.from("gaming_systems").select("*").eq("cafe_id", cafeId).order("created_at", { ascending: true }),
-        supabase.from("walk_in_sessions").select("*").eq("cafe_id", cafeId).in("status", ["scheduled", "active"]).eq("session_date", today),
-        supabase.from("repair_slots").select("*").eq("cafe_id", cafeId).eq("repair_date", today),
-        supabase.from("bookings").select("*").eq("cafe_id", cafeId).eq("booking_date", today).eq("status", "confirmed"),
+        supabase.from("walk_in_sessions").select("*").eq("cafe_id", cafeId).in("status", ["scheduled", "active"]).gte("session_date", todayStr).lte("session_date", lastStr),
+        supabase.from("repair_slots").select("*").eq("cafe_id", cafeId).gte("repair_date", todayStr).lte("repair_date", lastStr),
+        supabase.from("bookings").select("*").eq("cafe_id", cafeId).eq("status", "confirmed").gte("booking_date", todayStr).lte("booking_date", lastStr),
       ]);
     setSystems(systemsData || []);
     setWalkInSessions(walkInData || []);
@@ -133,19 +162,21 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
     return `${hour - 12}:00 PM`;
   };
 
+  // All three lookups are scoped to the selected day now that the state arrays span
+  // the whole 7-day window.
   const getSlotStatus = (systemId: string, hour: number) => {
     const walkIn = walkInSessions.find(
-      (s) => s.system_id === systemId && s.slots.includes(hour) && s.status !== "ended"
+      (s) => s.system_id === systemId && s.session_date === selectedDate && s.slots.includes(hour) && s.status !== "ended"
     );
     if (walkIn) return walkIn.status === "active" ? "occupied" : "reserved";
 
     const repair = repairSlots.find(
-      (r) => r.system_id === systemId && r.start_hour <= hour && r.end_hour > hour
+      (r) => r.system_id === systemId && r.repair_date === selectedDate && r.start_hour <= hour && r.end_hour > hour
     );
     if (repair) return "repair";
 
     const booking = onlineBookings.find((b) => {
-      if (b.system_id !== systemId) return false;
+      if (b.system_id !== systemId || b.booking_date !== selectedDate) return false;
       const startH = parseInt(b.start_time.split(":")[0]);
       const endH = parseInt(b.end_time.split(":")[0]);
       return startH <= hour && endH > hour;
@@ -155,9 +186,12 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
     return "available";
   };
 
+  // Scoped to selectedDate — which is always today when a walk-in is being started
+  // (future free slots aren't clickable in Stage 1). Without the date filter, a
+  // future booking on the same system+hour would falsely block a today walk-in.
   const getConflictingBooking = (systemId: string, slots: number[]) => {
     return onlineBookings.find((b) => {
-      if (b.system_id !== systemId) return false;
+      if (b.system_id !== systemId || b.booking_date !== selectedDate) return false;
       const startH = parseInt(b.start_time.split(":")[0]);
       const endH = parseInt(b.end_time.split(":")[0]);
       return slots.some((slot) => slot >= startH && slot < endH);
@@ -208,24 +242,82 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
     return { allowed: true, reason: "" };
   };
 
+  // Switch the day shown in the grid; drop any in-progress walk-in selection so it
+  // can't leak across days.
+  const selectDate = (dateStr: string) => {
+    setSelectedDate(dateStr);
+    setWalkInSystemId(null);
+    setSelectedWalkInSlots([]);
+    setConsecutiveWarning(null);
+  };
+
+  const removeRepair = (systemId: string, hour: number) => {
+    const repair = repairSlots.find(
+      (r) => r.system_id === systemId && r.repair_date === selectedDate && r.start_hour <= hour && r.end_hour > hour
+    );
+    if (repair && confirm(`Remove repair slot for ${formatHour(hour)}?`)) {
+      supabase.from("repair_slots").delete().eq("id", repair.id).then(() => fetchAll());
+    }
+  };
+
+  // Open the cancel/refund modal for the booking occupying this system+hour today/on
+  // the selected day.
+  const openCancelModal = (systemId: string, hour: number) => {
+    const booking = onlineBookings.find((b) => {
+      if (b.system_id !== systemId || b.booking_date !== selectedDate) return false;
+      const startH = parseInt(b.start_time.split(":")[0]);
+      const endH = parseInt(b.end_time.split(":")[0]);
+      return startH <= hour && endH > hour;
+    });
+    if (booking) setCancelBooking(booking);
+  };
+
+  // Identical behavior to BookingsList.handleCancel (Advanced Booking tab): same
+  // confirm text, same write, same error/0-rows-RLS handling. Kept as a replica so
+  // the History path in BookingsList stays provably untouched.
+  const handleCancelBooking = async (booking: OnlineBooking) => {
+    const name = booking.players?.[0]?.name || "the customer";
+    if (
+      !window.confirm(
+        `Cancel this booking for ${name}?\n\n` +
+          `${booking.start_time}–${booking.end_time} on ${new Date(booking.booking_date).toDateString()}\n` +
+          `₹${booking.total_price} will need to be refunded to the customer manually.`
+      )
+    )
+      return;
+
+    setCancellingId(booking.id);
+    const { data, error } = await supabase
+      .from("bookings")
+      .update({ status: "cancelled", cancellation_reason: "owner_cancelled" })
+      .eq("id", booking.id)
+      .select();
+    setCancellingId(null);
+
+    if (error) {
+      alert(`Could not cancel the booking: ${error.message}\n\nThe booking is unchanged.`);
+      return;
+    }
+    if (!data || data.length === 0) {
+      alert(
+        "Could not cancel the booking — the update was blocked (0 rows changed).\n\n" +
+          "This usually means the cafe owner lacks UPDATE permission on the bookings table (Row-Level Security).\n\n" +
+          "The booking is unchanged."
+      );
+      return;
+    }
+
+    // Drop it from the grid so the slot frees (green); keep the modal open on the
+    // cancelled row so its refund reminder is visible until the owner closes it.
+    setOnlineBookings((prev) => prev.filter((b) => b.id !== booking.id));
+    setCancelBooking((prev) => (prev ? { ...prev, ...data[0] } : prev));
+  };
+
   const handleSlotClick = (systemId: string, hour: number) => {
     if (walkInSystemId !== systemId) {
       setWalkInSystemId(systemId);
       setSelectedWalkInSlots([]);
       setConsecutiveWarning(null);
-    }
-
-    const slotStatus = getSlotStatus(systemId, hour);
-
-    // Repair slot — offer to remove
-    if (slotStatus === "repair") {
-      const repair = repairSlots.find(
-        (r) => r.system_id === systemId && r.start_hour <= hour && r.end_hour > hour
-      );
-      if (repair && confirm(`Remove repair slot for ${formatHour(hour)}?`)) {
-        supabase.from("repair_slots").delete().eq("id", repair.id).then(() => fetchAll());
-      }
-      return;
     }
 
     // Toggle selection with consecutive check
@@ -370,10 +462,105 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
     fetchAll();
   };
 
+  const today = toToday();
+  const isToday = selectedDate === today;
+
+  // Today .. today+6, matching the customer-facing booking window and the picker
+  // that used to live in the Advanced Booking tab.
+  const next7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+  const countForDate = (dateStr: string) =>
+    onlineBookings.filter((b) => b.booking_date === dateStr).length;
+
+  const selectedDayLabel = (() => {
+    if (isToday) return "Today";
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (selectedDate === toLocalDateString(tomorrow)) return "Tomorrow";
+    return new Date(`${selectedDate}T00:00:00`).toDateString();
+  })();
+
   if (loading) return <div className="text-center py-8 text-gray-500">Loading systems...</div>;
 
   return (
     <div className="space-y-6">
+
+      {/* Cancel / Refund Modal — opened from a Booked (red) slot. Same flow as the
+          old Advanced Booking tab. */}
+      {cancelBooking && (() => {
+        const b = cancelBooking;
+        const isCancelled = b.status === "cancelled";
+        const primary = b.players?.[0];
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
+              <div className="flex items-start justify-between mb-4">
+                <h2 className="text-xl font-bold">Booking Details</h2>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                  isCancelled ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"
+                }`}>
+                  {b.status || "confirmed"}
+                </span>
+              </div>
+
+              <div className="text-sm text-gray-600 space-y-1 mb-4">
+                <p className="flex items-center gap-2">
+                  <span className="font-medium text-gray-800">{new Date(b.booking_date).toDateString()}</span>
+                </p>
+                <p>{formatHour(parseInt(b.start_time.split(":")[0]))} – {formatHour(parseInt(b.end_time.split(":")[0]))}</p>
+                <p className="flex items-center gap-1 font-semibold text-purple-600">₹{b.total_price}</p>
+              </div>
+
+              {/* Player details */}
+              {primary ? (
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Player Details</p>
+                  <div className="space-y-2">
+                    {b.players!.map((player, i) => (
+                      <div key={i} className="flex items-center justify-between bg-purple-50 rounded-lg px-3 py-2 text-sm">
+                        <span className="font-medium">{player.name || "—"}</span>
+                        <span className="text-gray-600">{player.phone || "—"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 italic mb-4">No player details recorded</p>
+              )}
+
+              {/* Refund reminder — shown once the booking is cancelled */}
+              {isCancelled && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 text-sm text-amber-800 mb-4">
+                  <span>
+                    Remember to refund <span className="font-semibold">₹{b.total_price}</span> to{" "}
+                    <span className="font-semibold">{primary?.name || "the customer"}</span>
+                    {" "}({primary?.phone || "no phone on file"}) — refunds are handled manually
+                    outside the app in Phase 1.
+                  </span>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setCancelBooking(null)}>
+                  Close
+                </Button>
+                {!isCancelled && (
+                  <button
+                    onClick={() => handleCancelBooking(b)}
+                    disabled={cancellingId === b.id}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border-2 border-red-400 text-red-600 font-semibold text-sm hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {cancellingId === b.id ? "Cancelling…" : "Cancel Booking"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Session End Popup */}
       {endedSession && (
@@ -529,6 +716,44 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
           </Button>
         </div>
 
+        {/* 7-day date picker — pick which day's schedule the grids below show.
+            Badges count that day's confirmed bookings. */}
+        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-4">
+          <div className="flex items-center gap-0 overflow-x-auto">
+            {next7Days.map((date, index) => {
+              const dateStr = toLocalDateString(date);
+              const { day, dateNum, month } = formatDateShort(date);
+              const isSelected = dateStr === selectedDate;
+              const count = countForDate(dateStr);
+              return (
+                <button
+                  key={dateStr}
+                  onClick={() => selectDate(dateStr)}
+                  className={`flex-shrink-0 px-5 py-3 flex flex-col items-center justify-center min-w-[84px] transition-all ${
+                    isSelected ? "bg-purple-600 text-white" : "bg-white text-gray-700 hover:bg-gray-50"
+                  } ${index !== 0 ? "border-l border-gray-200" : ""}`}
+                >
+                  <div className="text-xs font-medium">{day}</div>
+                  <div className="text-2xl font-bold my-0.5">{dateNum}</div>
+                  <div className="text-[10px] font-medium">{month}</div>
+                  <span className={`mt-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    count === 0 ? "opacity-0" : isSelected ? "bg-white text-purple-700" : "bg-purple-100 text-purple-700"
+                  }`}>
+                    {count || 0}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {!isToday && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 mb-4 text-sm text-blue-700">
+            Viewing <span className="font-semibold">{selectedDayLabel}</span> — future days are view-only for now.
+            You can still cancel an online booking (tap a red slot). Starting walk-ins is only available on today's schedule.
+          </div>
+        )}
+
         {/* Add System Form */}
         {showForm && (
           <div className="bg-white rounded-xl shadow-md p-6 space-y-4 mb-6">
@@ -618,29 +843,37 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
                 {/* Full Day Slot Grid */}
                 <div className="mb-3">
                   <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
-                    Today's Schedule — tap a free slot to start walk-in
+                    {isToday
+                      ? "Today's Schedule — tap a free slot to start walk-in"
+                      : `${selectedDayLabel} — schedule (view only · tap a red slot to cancel)`}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {todaySlots.map((hour) => {
                       const slotStatus = getSlotStatus(system.id, hour);
                       const isSelected = isSelecting && selectedWalkInSlots.includes(hour);
-                      const isPast = hour < now.getHours();
+                      const isPast = isToday && hour < now.getHours();
+                      // A free slot can only start a walk-in on today (Stage 1). On future
+                      // days it's shown as Free but is not clickable.
+                      const freeActionable = isToday && !isPast;
 
                       return (
                         <button
                           key={hour}
                           onClick={() => {
-                            if (slotStatus === "booked" || slotStatus === "occupied" || slotStatus === "reserved") return;
+                            if (slotStatus === "booked") { openCancelModal(system.id, hour); return; }
+                            if (slotStatus === "occupied" || slotStatus === "reserved") return;
+                            if (slotStatus === "repair") { if (isToday) removeRepair(system.id, hour); return; }
+                            if (!freeActionable) return;
                             handleSlotClick(system.id, hour);
                           }}
-                          disabled={slotStatus === "booked" || slotStatus === "occupied" || slotStatus === "reserved"}
+                          disabled={slotStatus === "occupied" || slotStatus === "reserved"}
                           title={
-                            slotStatus === "booked" ? "Booked online" :
+                            slotStatus === "booked" ? "Booked online — tap to cancel / refund" :
                             slotStatus === "occupied" ? "Walk-in in progress" :
                             slotStatus === "reserved" ? "Reserved for walk-in" :
-                            slotStatus === "repair" ? "Under repair — tap to remove" :
+                            slotStatus === "repair" ? (isToday ? "Under repair — tap to remove" : "Under repair") :
                             isPast ? "Past slot" :
-                            "Tap to select for walk-in"
+                            freeActionable ? "Tap to select for walk-in" : "Free"
                           }
                           className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border-2 ${
                             isSelected
@@ -650,12 +883,14 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
                               : slotStatus === "reserved"
                               ? "bg-yellow-400 text-white border-yellow-400 cursor-not-allowed"
                               : slotStatus === "booked"
-                              ? "bg-red-500 text-white border-red-500 cursor-not-allowed"
+                              ? "bg-red-500 text-white border-red-500 cursor-pointer hover:bg-red-600"
                               : slotStatus === "repair"
-                              ? "bg-purple-500 text-white border-purple-500 cursor-pointer"
+                              ? `bg-purple-500 text-white border-purple-500 ${isToday ? "cursor-pointer" : "cursor-default"}`
                               : isPast
                               ? "bg-gray-100 text-gray-400 border-gray-200 cursor-default"
-                              : "bg-white text-green-700 border-green-500 hover:bg-green-50 cursor-pointer"
+                              : freeActionable
+                              ? "bg-white text-green-700 border-green-500 hover:bg-green-50 cursor-pointer"
+                              : "bg-white text-green-700 border-green-500 cursor-default"
                           }`}
                         >
                           {slotStatus === "booked" ? "BKD" :
