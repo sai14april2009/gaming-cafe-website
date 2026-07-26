@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Star } from "lucide-react";
+import { Star, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "../../supabase";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "./ui/button";
 
 interface Review {
   id: string;
+  user_id: string | null;
   user_name: string;
   rating: number;
   comment: string;
@@ -29,6 +30,14 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
+  // Inline edit / delete state for the viewer's own review.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editRating, setEditRating] = useState(5);
+  const [editHoveredRating, setEditHoveredRating] = useState(0);
+  const [editComment, setEditComment] = useState("");
+  const [editError, setEditError] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchReviews();
@@ -76,6 +85,72 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
       fetchReviews();
     }
     setSubmitting(false);
+  };
+
+  const startEdit = (review: Review) => {
+    setEditingId(review.id);
+    setEditRating(review.rating);
+    setEditComment(review.comment);
+    setEditHoveredRating(0);
+    setEditError("");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditError("");
+  };
+
+  const handleSaveEdit = async (review: Review) => {
+    if (!editComment.trim()) { setEditError("Please write a comment."); return; }
+    setEditError("");
+    setSavingEdit(true);
+    // .select() distinguishes a thrown error from an RLS block (0 rows changed).
+    // The "Users can update own review" policy means a non-author update returns 0 rows.
+    const { data, error } = await supabase
+      .from("reviews")
+      .update({ rating: editRating, comment: editComment.trim() })
+      .eq("id", review.id)
+      .select();
+    setSavingEdit(false);
+
+    if (error) {
+      setEditError(`Could not save your changes: ${error.message}`);
+      return;
+    }
+    if (!data || data.length === 0) {
+      setEditError(
+        "Could not save — the update was blocked (0 rows changed). You can only edit your own review."
+      );
+      return;
+    }
+    // Merge the authoritative row into local state; no refetch flash.
+    setReviews((prev) => prev.map((r) => (r.id === review.id ? { ...r, ...data[0] } : r)));
+    setEditingId(null);
+  };
+
+  const handleDelete = async (review: Review) => {
+    if (!window.confirm("Delete your review? This can't be undone.")) return;
+    setDeletingId(review.id);
+    const { data, error } = await supabase
+      .from("reviews")
+      .delete()
+      .eq("id", review.id)
+      .select();
+    setDeletingId(null);
+
+    if (error) {
+      alert(`Could not delete the review: ${error.message}`);
+      return;
+    }
+    if (!data || data.length === 0) {
+      alert(
+        "Could not delete the review — the delete was blocked (0 rows changed). You can only delete your own review."
+      );
+      return;
+    }
+    // Remove locally and re-open the "Write a Review" path.
+    setReviews((prev) => prev.filter((r) => r.id !== review.id));
+    setHasReviewed(false);
   };
 
   const averageRating = reviews.length
@@ -195,7 +270,10 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
         </div>
       ) : (
         <div className="space-y-5">
-          {reviews.map((review) => (
+          {reviews.map((review) => {
+            const isMine = !!user && review.user_id === user.id;
+            const isEditing = editingId === review.id;
+            return (
             <div key={review.id} className="border-b border-gray-100 pb-5 last:border-0 last:pb-0">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-3">
@@ -207,15 +285,83 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                     <p className="text-xs text-gray-400">{formatDate(review.created_at)}</p>
                   </div>
                 </div>
-                <div className="flex">
-                  {[1,2,3,4,5].map((s) => (
-                    <Star key={s} className={`w-4 h-4 ${review.rating >= s ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />
-                  ))}
-                </div>
+                {!isEditing && (
+                  <div className="flex">
+                    {[1,2,3,4,5].map((s) => (
+                      <Star key={s} className={`w-4 h-4 ${review.rating >= s ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />
+                    ))}
+                  </div>
+                )}
               </div>
-              <p className="text-gray-700 leading-relaxed pl-13 ml-13">{review.comment}</p>
+
+              {isEditing ? (
+                /* Inline edit form */
+                <div className="bg-gray-50 rounded-xl p-4 border-2 border-purple-200">
+                  <div className="mb-3">
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Rating</label>
+                    <div className="flex gap-1">
+                      {[1,2,3,4,5].map((s) => (
+                        <button
+                          key={s}
+                          onMouseEnter={() => setEditHoveredRating(s)}
+                          onMouseLeave={() => setEditHoveredRating(0)}
+                          onClick={() => setEditRating(s)}
+                          className="focus:outline-none"
+                        >
+                          <Star className={`w-7 h-7 transition-colors ${
+                            (editHoveredRating || editRating) >= s
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-gray-300"
+                          }`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <textarea
+                    value={editComment}
+                    onChange={(e) => setEditComment(e.target.value)}
+                    rows={3}
+                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 resize-none"
+                  />
+                  {editError && <p className="text-red-600 text-sm mt-2">{editError}</p>}
+                  <div className="flex gap-2 mt-3">
+                    <Button variant="outline" className="flex-1" onClick={cancelEdit} disabled={savingEdit}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => handleSaveEdit(review)}
+                      disabled={savingEdit}
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                    >
+                      {savingEdit ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className="text-gray-700 leading-relaxed">{review.comment}</p>
+                  {isMine && (
+                    <div className="flex gap-4 mt-3">
+                      <button
+                        onClick={() => startEdit(review)}
+                        className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-purple-600 transition-colors"
+                      >
+                        <Pencil className="w-4 h-4" /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(review)}
+                        disabled={deletingId === review.id}
+                        className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-red-600 transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 className="w-4 h-4" /> {deletingId === review.id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
