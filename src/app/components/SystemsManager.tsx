@@ -3,6 +3,7 @@ import { supabase } from "../../supabase";
 import { Button } from "./ui/button";
 import { Trash2, Plus } from "lucide-react";
 import { toLocalDateString } from "../utils/date";
+import { findSlotConflicts } from "../utils/slotConflicts";
 
 interface SystemsManagerProps {
   cafeId: string;
@@ -281,30 +282,6 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
     setResName(""); setResPhone(""); setResNote(""); setRepairReason("");
   };
 
-  // Re-verify a set of slots against ALL THREE conflict sources (walk-ins, online
-  // bookings, repairs) for a given system + date, immediately before an insert.
-  // Returns the first clashing hour, or null if clear. This is the Stage 2 upgrade
-  // of the walk-in re-check: adds repair_slots and is parameterized by date.
-  const findLiveClash = async (systemId: string, date: string, slots: number[]): Promise<number | null> => {
-    const [{ data: liveWalkIns }, { data: liveBookings }, { data: liveRepairs }] = await Promise.all([
-      supabase.from("walk_in_sessions").select("slots, status").eq("system_id", systemId).eq("session_date", date).in("status", ["scheduled", "active"]),
-      supabase.from("bookings").select("start_time, end_time").eq("system_id", systemId).eq("booking_date", date).eq("status", "confirmed"),
-      supabase.from("repair_slots").select("start_hour, end_hour").eq("system_id", systemId).eq("repair_date", date),
-    ]);
-    const taken = new Set<number>();
-    (liveWalkIns || []).forEach((w: any) => (w.slots || []).forEach((h: number) => taken.add(h)));
-    (liveBookings || []).forEach((b: any) => {
-      const s = parseInt(b.start_time.split(":")[0], 10);
-      const e = parseInt(b.end_time.split(":")[0], 10);
-      for (let h = s; h < e; h++) taken.add(h);
-    });
-    (liveRepairs || []).forEach((r: any) => {
-      for (let h = r.start_hour; h < r.end_hour; h++) taken.add(h);
-    });
-    const clash = [...slots].sort((a, b) => a - b).find((h) => taken.has(h));
-    return clash === undefined ? null : clash;
-  };
-
   // Reserve → walk_in_sessions row (NEVER bookings). status 'active' if the range
   // includes the current hour today, else 'scheduled'. In practice Reserve is only
   // offered on the "later" path so it's always 'scheduled'; the isNow branch is
@@ -316,9 +293,9 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
     setPanelSaving(true);
     setPanelError("");
 
-    const clash = await findLiveClash(systemId, selectedDate, sortedSlots);
-    if (clash !== null) {
-      setPanelError(`${formatHour(clash)} was just taken on this system. Pick another slot.`);
+    const conflicts = await findSlotConflicts(systemId, selectedDate, sortedSlots);
+    if (conflicts.length > 0) {
+      setPanelError(`${formatHour(conflicts[0].hour)} was just taken on this system. Pick another slot.`);
       setPanelSaving(false);
       fetchAll();
       return;
@@ -362,9 +339,9 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
     setPanelSaving(true);
     setPanelError("");
 
-    const clash = await findLiveClash(systemId, selectedDate, sortedSlots);
-    if (clash !== null) {
-      setPanelError(`${formatHour(clash)} was just taken on this system. Pick another slot.`);
+    const conflicts = await findSlotConflicts(systemId, selectedDate, sortedSlots);
+    if (conflicts.length > 0) {
+      setPanelError(`${formatHour(conflicts[0].hour)} was just taken on this system. Pick another slot.`);
       setPanelSaving(false);
       fetchAll();
       return;

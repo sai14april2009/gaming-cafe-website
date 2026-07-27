@@ -3,6 +3,7 @@ import { supabase } from "../../supabase";
 import { Wrench, Trash2, Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { toLocalDateString } from "../utils/date";
+import { findSlotConflicts } from "../utils/slotConflicts";
 
 interface RepairSlotsManagerProps {
   cafeId: string;
@@ -83,6 +84,32 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
     setSaving(true);
     setErrorMsg(null);
 
+    // Same three-source pre-insert re-check the Gaming Systems grid uses (shared
+    // helper): you can't block a slot already held by a walk-in, a confirmed
+    // booking, or another repair. repair_slots has no DB overlap constraint, so
+    // this check is the only guard for the form.
+    const slots: number[] = [];
+    for (let h = startHour; h < endHour; h++) slots.push(h);
+    const conflicts = await findSlotConflicts(selectedSystem, selectedDate, slots);
+    if (conflicts.length > 0) {
+      const label: Record<string, string> = {
+        "walk-in": "a walk-in",
+        booking: "a confirmed booking",
+        repair: "another repair",
+      };
+      const byType: Record<string, number[]> = {};
+      conflicts.forEach((c) => {
+        if (!byType[c.source]) byType[c.source] = [];
+        byType[c.source].push(c.hour);
+      });
+      const parts = Object.entries(byType).map(
+        ([src, hrs]) => `${hrs.map(formatHour).join(", ")} (${label[src]})`
+      );
+      setErrorMsg(`Can't block for repair — these hours are already taken: ${parts.join("; ")}. Pick another time.`);
+      setSaving(false);
+      return;
+    }
+
     const { error } = await supabase.from("repair_slots").insert({
       cafe_id: cafeId,
       system_id: selectedSystem,
@@ -93,15 +120,25 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
     });
 
     if (error) {
-      setErrorMsg("Failed to save repair slot. Try again.");
+      // 23P01 = an exclusion-constraint violation caught as a concurrency backstop,
+      // mirroring the grid. (repair_slots has no such constraint today, so this
+      // path won't fire on a repair insert — the pre-check above is the real guard —
+      // but the pattern matches and future-proofs it.)
+      setErrorMsg(
+        (error as any).code === "23P01"
+          ? "That time was just taken by another action. Pick another time."
+          : "Failed to save repair slot. Try again."
+      );
       console.error(error);
-    } else {
-      setSuccessMsg("✅ Repair slot added successfully!");
-      setTimeout(() => setSuccessMsg(null), 3000);
-      setShowForm(false);
-      setReason("");
-      fetchData();
+      setSaving(false);
+      return;
     }
+
+    setSuccessMsg("✅ Repair slot added successfully!");
+    setTimeout(() => setSuccessMsg(null), 3000);
+    setShowForm(false);
+    setReason("");
+    fetchData();
     setSaving(false);
   };
 

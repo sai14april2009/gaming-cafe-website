@@ -218,7 +218,22 @@ or a bug in the UI. Both need the `btree_gist` extension (already installed).
   Hours are parsed out of the `"HH:MM"` text columns with `split_part`. Note the scope: only `confirmed` rows are guarded, so ending or cancelling a booking releases its slot.
 - **`walk_in_no_overlap`** on `walk_in_sessions` — `EXCLUDE USING gist (system_id =, session_date =, int4range(start_time, end_time, '[)') &&) WHERE (status <> 'ended')`.
   `start_time`/`end_time` are already integers here. `ended` rows are excluded so historical overlaps (created before the UI guard existed) don't block the constraint.
-- **Not covered: walk-in vs online booking.** Exclusion constraints are single-table, so that direction is enforced only by app-level checks (now on every write path). See Section 9 for the Phase 2 trigger.
+- **`repair_slots` has NO exclusion constraint.** repair-vs-repair concurrency is guarded
+  **app-level only**, via `findSlotConflicts` (`src/app/utils/slotConflicts.ts`) called
+  pre-insert on *both* repair write paths — the Gaming Systems grid (`createRepairFromGrid`)
+  and the Repair Slots form (`RepairSlotsManager.handleAddRepair`). There is no DB backstop
+  for a repair overlap, so a true race between two repair inserts is not caught by Postgres.
+  **Fast-follow candidate:** a `repair_no_overlap` exclusion constraint on `repair_slots`
+  (`EXCLUDE gist (system_id =, repair_date =, int4range(start_hour, end_hour, '[)') &&)`) if
+  repair-insert concurrency ever becomes a real vector. The **23P01 catch already present in
+  both repair write paths is defensive/future-proof** — it will start actually firing the moment
+  such a constraint is added, no code change needed.
+- **Not covered by any single-table constraint: cross-table overlaps** — walk-in vs online
+  booking, repair vs booking, repair vs walk-in. Exclusion constraints are single-table, so all
+  cross-table directions are enforced **app-level only** — now uniformly through the shared
+  `findSlotConflicts` (three sources: non-ended walk-ins + confirmed bookings + repair_slots)
+  on every grid/form write path, plus `BookingConfirm`'s pre-insert re-check for online booking.
+  See Section 9 for the Phase 2 cross-table trigger.
 
 ### Security hardening — bookings table lockdown (LIVE, 2026-07-23)
 Before this, the `bookings` table had two `public` RLS policies (`Anyone can view
