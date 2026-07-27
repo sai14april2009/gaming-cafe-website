@@ -98,7 +98,7 @@ export function Dashboard() {
         )}
         {activeTab === "bookings" && (
           <>
-            <BookingsList cafeId={cafe.id} mode="history" />
+            <BookingsList cafeId={cafe.id} />
             <RepairSlotsManager cafeId={cafe.id} />
           </>
         )}

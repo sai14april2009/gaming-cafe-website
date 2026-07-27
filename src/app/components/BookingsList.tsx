@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabase";
-import { Calendar, Users, Clock, IndianRupee, Phone, User, ChevronDown, ChevronUp, Ban, AlertCircle } from "lucide-react";
+import { Calendar, Users, Clock, IndianRupee, Phone, User, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 import { toLocalDateString } from "../utils/date";
 
 interface BookingsListProps {
   cafeId: string;
-  mode: "advanced" | "history";
 }
 
 function toToday(): string {
@@ -16,158 +15,42 @@ function toToday(): string {
 // How many past bookings the History tab loads at once.
 const HISTORY_LIMIT = 200;
 
-function formatDateShort(date: Date) {
-  return {
-    day: date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
-    dateNum: date.getDate(),
-    month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
-  };
-}
-
-export function BookingsList({ cafeId, mode }: BookingsListProps) {
+// Booking History: a read-only archive of days already past. Future/today bookings
+// live in the date-aware Gaming Systems grid (the Advanced Booking tab was merged
+// there), so this component no longer has an "advanced" mode.
+export function BookingsList({ cafeId }: BookingsListProps) {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  // The Advanced tab is day-scoped: the owner picks which of the next 7 days to
-  // view. Without this, bookings for tomorrow onward were invisible everywhere in
-  // the dashboard (Booking History only shows slots that have already ended).
-  const [selectedDate, setSelectedDate] = useState<string>(toToday());
   // Accordion: one booking's detail view open at a time.
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  // Which booking is mid-cancel, to disable its button while the write is in flight.
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchBookings();
-  }, [cafeId, mode]);
+  }, [cafeId]);
 
   const fetchBookings = async () => {
     setLoading(true);
     const todayStr = toToday();
 
-    // Scope the query to what each tab actually renders. This previously pulled
-    // every booking the cafe had ever taken and filtered in the browser, which
-    // silently truncates at PostgREST's default 1000-row cap once a cafe gets busy.
-    let query = supabase
+    // Scope the query to what this tab renders — strictly past days, capped. This
+    // previously pulled every booking the cafe had ever taken and filtered in the
+    // browser, which silently truncates at PostgREST's default 1000-row cap.
+    const { data, error } = await supabase
       .from("bookings")
       .select(`
         *,
         gaming_systems (name, type)
       `)
-      .eq("cafe_id", cafeId);
+      .eq("cafe_id", cafeId)
+      .lt("booking_date", todayStr)
+      .order("booking_date", { ascending: false })
+      .order("start_time", { ascending: false })
+      .limit(HISTORY_LIMIT);
 
-    if (mode === "advanced") {
-      const lastDay = new Date();
-      lastDay.setDate(lastDay.getDate() + 6);
-      query = query
-        .gte("booking_date", todayStr)
-        .lte("booking_date", toLocalDateString(lastDay));
-    } else {
-      query = query
-        .lt("booking_date", todayStr)
-        .order("booking_date", { ascending: false })
-        .order("start_time", { ascending: false })
-        .limit(HISTORY_LIMIT);
-    }
-
-    const { data, error } = await query;
     if (error) console.error(error);
     setBookings(data || []);
     setLoading(false);
   };
-
-  const handleCancel = async (booking: any) => {
-    const name = booking.players?.[0]?.name || "the customer";
-    if (
-      !window.confirm(
-        `Cancel this booking for ${name}?\n\n` +
-          `${booking.start_time}–${booking.end_time} on ${new Date(booking.booking_date).toDateString()}\n` +
-          `₹${booking.total_price} will need to be refunded to the customer manually.`
-      )
-    )
-      return;
-
-    setCancellingId(booking.id);
-    // Same error-handling shape as SystemsManager's cancel flow: .select() lets us
-    // tell a real failure (thrown error) from an RLS block (0 rows changed) — never
-    // a silent failure. "cancelled" frees the slot (RPC + overlap constraint both
-    // filter status='confirmed'); cancellation_reason marks it owner-initiated.
-    const { data, error } = await supabase
-      .from("bookings")
-      .update({ status: "cancelled", cancellation_reason: "owner_cancelled" })
-      .eq("id", booking.id)
-      .select();
-    setCancellingId(null);
-
-    if (error) {
-      alert(`Could not cancel the booking: ${error.message}\n\nThe booking is unchanged.`);
-      return;
-    }
-    if (!data || data.length === 0) {
-      alert(
-        "Could not cancel the booking — the update was blocked (0 rows changed).\n\n" +
-          "This usually means the cafe owner lacks UPDATE permission on the bookings table (Row-Level Security).\n\n" +
-          "The booking is unchanged."
-      );
-      return;
-    }
-
-    // Merge the authoritative updated row into local state — no refetch, so no
-    // loading flash. data[0] carries the new status/reason; spreading it over the
-    // existing row preserves the joined gaming_systems (which .select() omits).
-    setBookings((prev) => prev.map((b) => (b.id === booking.id ? { ...b, ...data[0] } : b)));
-  };
-
-  const today = toToday();
-
-  // Today .. today+6, matching the customer-facing booking window.
-  const next7Days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    return d;
-  });
-
-  // Per-day count so the owner can spot which days have bookings without having
-  // to click through all 7 — that discoverability gap is what hid these before.
-  const countForDate = (dateStr: string) =>
-    (bookings || []).filter(
-      (b) => b.booking_date === dateStr && b.status !== "cancelled"
-    ).length;
-
-  const filtered = (bookings || []).filter((b) => {
-    if (mode === "advanced") {
-      return b.booking_date === selectedDate;
-    }
-    // history: strictly earlier days. Today is covered by the Advanced tab's day
-    // picker, so scoping history to past days stops a booking that finished today
-    // from being listed in both tabs at the same time.
-    return b.booking_date < today;
-  });
-
-  const sorted = [...filtered].sort((a, b) => {
-    if (mode === "advanced") {
-      return a.start_time.localeCompare(b.start_time);
-    }
-    // history: most recent date first, then start_time desc within same date
-    if (b.booking_date !== a.booking_date) {
-      return b.booking_date.localeCompare(a.booking_date);
-    }
-    return b.start_time.localeCompare(a.start_time);
-  });
-
-  const selectedDayLabel = (() => {
-    if (selectedDate === today) return "Today";
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    if (selectedDate === toLocalDateString(tomorrow)) return "Tomorrow";
-    // Parse as local midnight (not UTC) so the label shows the right day.
-    return new Date(`${selectedDate}T00:00:00`).toDateString();
-  })();
-
-  const heading = mode === "advanced" ? selectedDayLabel : "Booking History";
-  const emptyText =
-    mode === "advanced"
-      ? `No bookings for ${selectedDayLabel.toLowerCase()}`
-      : "No completed bookings yet";
 
   if (loading) {
     return <div className="text-center py-8 text-gray-500">Loading bookings...</div>;
@@ -175,69 +58,23 @@ export function BookingsList({ cafeId, mode }: BookingsListProps) {
 
   return (
     <div className="space-y-4">
-      {/* Day selector — Advanced tab only. Always rendered (even on empty days)
-          so the owner can always navigate to another day. */}
-      {mode === "advanced" && (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          <div className="flex items-center gap-0 overflow-x-auto">
-            {next7Days.map((date, index) => {
-              const dateStr = toLocalDateString(date);
-              const { day, dateNum, month } = formatDateShort(date);
-              const isSelected = dateStr === selectedDate;
-              const count = countForDate(dateStr);
-              return (
-                <button
-                  key={dateStr}
-                  onClick={() => setSelectedDate(dateStr)}
-                  className={`flex-shrink-0 px-5 py-3 flex flex-col items-center justify-center min-w-[84px] transition-all ${
-                    isSelected
-                      ? "bg-purple-600 text-white"
-                      : "bg-white text-gray-700 hover:bg-gray-50"
-                  } ${index !== 0 ? "border-l border-gray-200" : ""}`}
-                >
-                  <div className="text-xs font-medium">{day}</div>
-                  <div className="text-2xl font-bold my-0.5">{dateNum}</div>
-                  <div className="text-[10px] font-medium">{month}</div>
-                  <span
-                    className={`mt-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      count === 0
-                        ? "opacity-0"
-                        : isSelected
-                        ? "bg-white text-purple-700"
-                        : "bg-purple-100 text-purple-700"
-                    }`}
-                  >
-                    {count || 0}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <h2 className="text-xl font-bold">Booking History ({bookings.length})</h2>
 
-      <h2 className="text-xl font-bold">
-        {heading} ({sorted.length})
-      </h2>
-
-      {mode === "history" && sorted.length >= HISTORY_LIMIT && (
+      {bookings.length >= HISTORY_LIMIT && (
         <p className="-mt-2 text-xs text-gray-500">
           Showing the {HISTORY_LIMIT} most recent bookings.
         </p>
       )}
 
-      {sorted.length === 0 ? (
+      {bookings.length === 0 ? (
         <div className="bg-white rounded-xl shadow-md p-12 text-center">
           <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">{emptyText}</p>
+          <p className="text-gray-500">No completed bookings yet</p>
         </div>
       ) : (
-        sorted.map((booking) => {
+        bookings.map((booking) => {
           const isCancelled = booking.status === "cancelled";
           const isExpanded = expandedId === booking.id;
-          // Only a confirmed booking can be cancelled, and only from the Advanced
-          // tab (History is a read-only archive of days already past).
-          const canCancel = mode === "advanced" && booking.status === "confirmed";
           const primary = booking.players?.[0];
           return (
             <div
@@ -334,18 +171,6 @@ export function BookingsList({ cafeId, mode }: BookingsListProps) {
                         outside the app in Phase 1.
                       </span>
                     </div>
-                  )}
-
-                  {/* Cancel action — confirmed bookings only, Advanced tab only */}
-                  {canCancel && (
-                    <button
-                      onClick={() => handleCancel(booking)}
-                      disabled={cancellingId === booking.id}
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border-2 border-red-400 text-red-600 font-semibold text-sm hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Ban className="w-4 h-4" />
-                      {cancellingId === booking.id ? "Cancelling…" : "Cancel Booking"}
-                    </button>
                   )}
                 </div>
               )}
