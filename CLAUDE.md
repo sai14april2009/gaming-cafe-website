@@ -208,7 +208,7 @@ return 0 rows.
 - `reviews` — columns: `id, cafe_id, user_id, user_name, rating, comment, created_at, rating_systems, rating_internet, rating_cleanliness, rating_staff, rating_value` (the 5 nullable category sub-ratings added 2026-07-26; overall `rating` = rounded avg of the filled ones). INSERT gated to verified bookers via `has_visited_cafe()`; SELECT/UPDATE/DELETE author-scoped. See Section 10.
 - `review_replies` — columns: `id, review_id (FK→reviews ON DELETE CASCADE), user_id, user_name, comment, created_at`. Flat 2-level threading (review→replies). Added 2026-07-26. SELECT public; INSERT by verified booker of the review's cafe OR that cafe's owner; UPDATE/DELETE author-scoped. See Section 10.
 - `repair_slots` — columns: `id, system_id, cafe_id, repair_date, start_hour, end_hour, reason, created_at`
-- `walk_in_sessions` — columns: `id, system_id, cafe_id, status (scheduled/active/ended), slots (integer[]), session_date, start_time, end_time, started_at, ended_at, created_at`
+- `walk_in_sessions` — columns: `id, system_id, cafe_id, status (scheduled/active/ended), slots (integer[]), session_date, start_time, end_time, started_at, ended_at, created_at, customer_name, customer_phone, note` (the last three nullable, added 2026-07-27 for owner-created grid reservations — migration `walk_in_sessions_reservation_fields`)
 
 ### DB-level double-booking guards (LIVE — both applied 2026-07-22)
 Postgres exclusion constraints, so Product Rule #1 holds even under a race condition
@@ -332,6 +332,18 @@ booked/occupied/reserved. Bugs found and fixed:
 - ~~**Gaming Systems + Live Now tabs are today-only**~~ — **Gaming Systems now has the 7-day
   date picker as of Stage 1 (2026-07-27).** Live Now is still today-only (future-day management
   there is out of scope for now).
+- **Gaming Systems merge Stage 2 SHIPPED (2026-07-27):** clicking a FREE slot now opens
+  action-choice — **Reserve** (advance walk-in-style booking with optional name/phone/note) or
+  **Block for repair** — on any date in the window. Reservations write **only to
+  `walk_in_sessions`** (status `scheduled`, or `active` if the range includes the current hour
+  today), NEVER to `bookings` — deliberately sidesteps `bookings.user_id NOT NULL` and keeps
+  `bookings` = "a real customer booked online". Pre-insert re-check now covers **all three**
+  sources (walk-ins + bookings + repairs), date-scoped (the old walk-in re-check omitted repair).
+  Clicking a **yellow RES** slot opens a detail popover (name/phone/note + Cancel Reservation,
+  which sets `status='ended'` — the status CHECK already permits it — freeing the slot for both
+  the grid and `walk_in_no_overlap`). Repair removal now works on future dates too. The
+  current-hour walk-in-now flow (proportional pricing, 20-min cutoff, conflict popup) is
+  preserved unchanged as a separate path. Verified by role simulation (all rolled back).
 - **RevenueStats counts cancelled bookings** in Total Revenue, and `upcomingBookings` compares a UTC-parsed `booking_date` against `now`, so today's later bookings are not counted as upcoming.
 - **Exclusion constraint only covers `status = 'confirmed'`** — ending or cancelling a booking releases its slot from the DB-level guard. Low impact today (past hours are filtered from the grid), but relevant if booking editing is added.
 - Mock demo data still ships alongside real data — the homepage lists 7 sample cafés (`mockData.ts`) next to real DB cafés. Decide whether to drop them before real users.

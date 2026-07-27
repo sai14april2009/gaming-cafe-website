@@ -30,6 +30,9 @@ interface WalkInSession {
   start_time: number;
   end_time: number;
   started_at: string | null;
+  customer_name: string | null;
+  customer_phone: string | null;
+  note: string | null;
 }
 
 interface RepairSlot {
@@ -89,6 +92,20 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
   // old Advanced Booking tab's cancel flow (kept identical; BookingsList untouched).
   const [cancelBooking, setCancelBooking] = useState<OnlineBooking | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  // Stage 2 — action panel for a "later" free-slot selection (future hours today or
+  // any hour on a future day). null = showing the Reserve / Block-for-repair choice.
+  const [panelAction, setPanelAction] = useState<"reserve" | "repair" | null>(null);
+  const [resName, setResName] = useState("");
+  const [resPhone, setResPhone] = useState("");
+  const [resNote, setResNote] = useState("");
+  const [repairReason, setRepairReason] = useState("");
+  const [panelSaving, setPanelSaving] = useState(false);
+  const [panelError, setPanelError] = useState("");
+
+  // Stage 2 — reservation detail popover, opened by clicking a Reserved (yellow) slot.
+  const [reservationDetail, setReservationDetail] = useState<WalkInSession | null>(null);
+  const [cancellingReservation, setCancellingReservation] = useState(false);
 
   // Walk-in state per system
   const [walkInSystemId, setWalkInSystemId] = useState<string | null>(null);
@@ -249,6 +266,160 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
     setWalkInSystemId(null);
     setSelectedWalkInSlots([]);
     setConsecutiveWarning(null);
+    setPanelAction(null);
+    setPanelError("");
+    setResName(""); setResPhone(""); setResNote(""); setRepairReason("");
+  };
+
+  // Shared clearing of an in-progress selection + its action panel.
+  const clearSelection = () => {
+    setWalkInSystemId(null);
+    setSelectedWalkInSlots([]);
+    setConsecutiveWarning(null);
+    setPanelAction(null);
+    setPanelError("");
+    setResName(""); setResPhone(""); setResNote(""); setRepairReason("");
+  };
+
+  // Re-verify a set of slots against ALL THREE conflict sources (walk-ins, online
+  // bookings, repairs) for a given system + date, immediately before an insert.
+  // Returns the first clashing hour, or null if clear. This is the Stage 2 upgrade
+  // of the walk-in re-check: adds repair_slots and is parameterized by date.
+  const findLiveClash = async (systemId: string, date: string, slots: number[]): Promise<number | null> => {
+    const [{ data: liveWalkIns }, { data: liveBookings }, { data: liveRepairs }] = await Promise.all([
+      supabase.from("walk_in_sessions").select("slots, status").eq("system_id", systemId).eq("session_date", date).in("status", ["scheduled", "active"]),
+      supabase.from("bookings").select("start_time, end_time").eq("system_id", systemId).eq("booking_date", date).eq("status", "confirmed"),
+      supabase.from("repair_slots").select("start_hour, end_hour").eq("system_id", systemId).eq("repair_date", date),
+    ]);
+    const taken = new Set<number>();
+    (liveWalkIns || []).forEach((w: any) => (w.slots || []).forEach((h: number) => taken.add(h)));
+    (liveBookings || []).forEach((b: any) => {
+      const s = parseInt(b.start_time.split(":")[0], 10);
+      const e = parseInt(b.end_time.split(":")[0], 10);
+      for (let h = s; h < e; h++) taken.add(h);
+    });
+    (liveRepairs || []).forEach((r: any) => {
+      for (let h = r.start_hour; h < r.end_hour; h++) taken.add(h);
+    });
+    const clash = [...slots].sort((a, b) => a - b).find((h) => taken.has(h));
+    return clash === undefined ? null : clash;
+  };
+
+  // Reserve → walk_in_sessions row (NEVER bookings). status 'active' if the range
+  // includes the current hour today, else 'scheduled'. In practice Reserve is only
+  // offered on the "later" path so it's always 'scheduled'; the isNow branch is
+  // defensive and matches the spec's literal rule.
+  const createReservation = async (systemId: string, slots: number[]) => {
+    if (slots.length === 0) return;
+    const sortedSlots = [...slots].sort((a, b) => a - b);
+    const isNow = selectedDate === toToday() && sortedSlots.includes(now.getHours());
+    setPanelSaving(true);
+    setPanelError("");
+
+    const clash = await findLiveClash(systemId, selectedDate, sortedSlots);
+    if (clash !== null) {
+      setPanelError(`${formatHour(clash)} was just taken on this system. Pick another slot.`);
+      setPanelSaving(false);
+      fetchAll();
+      return;
+    }
+
+    const { error } = await supabase.from("walk_in_sessions").insert({
+      cafe_id: cafeId,
+      system_id: systemId,
+      status: isNow ? "active" : "scheduled",
+      slots: sortedSlots,
+      session_date: selectedDate,
+      start_time: sortedSlots[0],
+      end_time: sortedSlots[sortedSlots.length - 1] + 1,
+      started_at: isNow ? new Date().toISOString() : null,
+      customer_name: resName.trim() || null,
+      customer_phone: resPhone.trim() || null,
+      note: resNote.trim() || null,
+    });
+    setPanelSaving(false);
+
+    if (error) {
+      // 23P01 = walk_in_no_overlap exclusion violation (a concurrent overlapping insert).
+      setPanelError(
+        error.code === "23P01"
+          ? "That range was just reserved by another action. Pick another slot."
+          : `Could not create the reservation: ${error.message}`
+      );
+      fetchAll();
+      return;
+    }
+    clearSelection();
+    fetchAll();
+  };
+
+  // Block for repair → repair_slots row. Same three-source re-check (can't block an
+  // already-taken slot). repair_slots has no DB overlap constraint, so this check is
+  // the only guard.
+  const createRepairFromGrid = async (systemId: string, slots: number[]) => {
+    if (slots.length === 0) return;
+    const sortedSlots = [...slots].sort((a, b) => a - b);
+    setPanelSaving(true);
+    setPanelError("");
+
+    const clash = await findLiveClash(systemId, selectedDate, sortedSlots);
+    if (clash !== null) {
+      setPanelError(`${formatHour(clash)} was just taken on this system. Pick another slot.`);
+      setPanelSaving(false);
+      fetchAll();
+      return;
+    }
+
+    const { error } = await supabase.from("repair_slots").insert({
+      cafe_id: cafeId,
+      system_id: systemId,
+      repair_date: selectedDate,
+      start_hour: sortedSlots[0],
+      end_hour: sortedSlots[sortedSlots.length - 1] + 1,
+      reason: repairReason.trim() || null,
+    });
+    setPanelSaving(false);
+
+    if (error) {
+      setPanelError(`Could not block for repair: ${error.message}`);
+      fetchAll();
+      return;
+    }
+    clearSelection();
+    fetchAll();
+  };
+
+  // Clicking a Reserved (yellow) slot opens its detail popover.
+  const openReservationDetail = (systemId: string, hour: number) => {
+    const session = walkInSessions.find(
+      (s) => s.system_id === systemId && s.session_date === selectedDate && s.slots.includes(hour) && s.status === "scheduled"
+    );
+    if (session) setReservationDetail(session);
+  };
+
+  // Cancel a reservation by setting status='ended' — the grid ignores 'ended'
+  // (getSlotStatus filters status !== 'ended') and walk_in_no_overlap excludes it,
+  // so the slot frees. No new status value; the status CHECK already permits 'ended'.
+  const handleCancelReservation = async (session: WalkInSession) => {
+    if (!window.confirm(`Cancel this reservation${session.customer_name ? ` for ${session.customer_name}` : ""}?`)) return;
+    setCancellingReservation(true);
+    const { data, error } = await supabase
+      .from("walk_in_sessions")
+      .update({ status: "ended", ended_at: new Date().toISOString() })
+      .eq("id", session.id)
+      .select();
+    setCancellingReservation(false);
+    if (error) {
+      alert(`Could not cancel the reservation: ${error.message}\n\nThe reservation is unchanged.`);
+      return;
+    }
+    if (!data || data.length === 0) {
+      alert("Could not cancel — the update was blocked (0 rows changed), likely Row-Level Security.\n\nThe reservation is unchanged.");
+      return;
+    }
+    // Drop it locally so the slot frees (green); 'ended' rows aren't refetched anyway.
+    setWalkInSessions((prev) => prev.filter((s) => s.id !== session.id));
+    setReservationDetail(null);
   };
 
   const removeRepair = (systemId: string, hour: number) => {
@@ -318,6 +489,9 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
       setWalkInSystemId(systemId);
       setSelectedWalkInSlots([]);
       setConsecutiveWarning(null);
+      setPanelAction(null);
+      setPanelError("");
+      setResName(""); setResPhone(""); setResNote(""); setRepairReason("");
     }
 
     // Toggle selection with consecutive check
@@ -562,6 +736,43 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
         );
       })()}
 
+      {/* Reservation detail popover — opened from a Reserved (yellow) slot. Mirrors the
+          red-slot cancel flow; Cancel Reservation sets status='ended' to free the slot. */}
+      {reservationDetail && (() => {
+        const r = reservationDetail;
+        const sys = systems.find((s) => s.id === r.system_id);
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
+              <div className="flex items-start justify-between mb-4">
+                <h2 className="text-xl font-bold">Reservation</h2>
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">reserved</span>
+              </div>
+              <div className="text-sm text-gray-600 space-y-1 mb-4">
+                <p className="font-medium text-gray-800">{sys?.name || "System"}</p>
+                <p>{new Date(r.session_date).toDateString()}</p>
+                <p>{formatHour(r.start_time)} – {formatHour(r.end_time)}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 mb-4 text-sm space-y-1">
+                <p><span className="text-gray-500">Name:</span> <span className="font-medium">{r.customer_name || "—"}</span></p>
+                <p><span className="text-gray-500">Phone:</span> <span className="font-medium">{r.customer_phone || "—"}</span></p>
+                <p><span className="text-gray-500">Note:</span> <span className="font-medium">{r.note || "—"}</span></p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setReservationDetail(null)}>Close</Button>
+                <button
+                  onClick={() => handleCancelReservation(r)}
+                  disabled={cancellingReservation}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border-2 border-red-400 text-red-600 font-semibold text-sm hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {cancellingReservation ? "Cancelling…" : "Cancel Reservation"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Session End Popup */}
       {endedSession && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -749,8 +960,9 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
 
         {!isToday && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 mb-4 text-sm text-blue-700">
-            Viewing <span className="font-semibold">{selectedDayLabel}</span> — future days are view-only for now.
-            You can still cancel an online booking (tap a red slot). Starting walk-ins is only available on today's schedule.
+            Viewing <span className="font-semibold">{selectedDayLabel}</span>. Tap a free slot to reserve it or
+            block it for repair, a red slot to cancel a booking, or a yellow slot to manage a reservation.
+            Starting a live walk-in is only available on today's schedule.
           </div>
         )}
 
@@ -817,6 +1029,11 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
             const nextSlotFree = nextSlot !== null
               && getSlotStatus(system.id, nextSlot) === "available"
               && nextSlot < closeHour;
+            // "Now" selection = starts at the current hour today → the walk-in-now flow
+            // (live pricing / cutoff / conflict). Anything else is a "later" selection →
+            // Reserve / Block-for-repair.
+            const isNowSelection = isToday && selectedWalkInSlots.length > 0
+              && selectedWalkInSlots[0] === now.getHours();
 
             return (
               <div key={system.id} className="bg-white rounded-xl shadow-md p-5 border-2 border-gray-200">
@@ -844,36 +1061,37 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
                 <div className="mb-3">
                   <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
                     {isToday
-                      ? "Today's Schedule — tap a free slot to start walk-in"
-                      : `${selectedDayLabel} — schedule (view only · tap a red slot to cancel)`}
+                      ? "Today's Schedule — tap a free slot to start a walk-in, reserve, or block"
+                      : `${selectedDayLabel} — tap free to reserve / block · red = cancel · yellow = manage`}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {todaySlots.map((hour) => {
                       const slotStatus = getSlotStatus(system.id, hour);
                       const isSelected = isSelecting && selectedWalkInSlots.includes(hour);
                       const isPast = isToday && hour < now.getHours();
-                      // A free slot can only start a walk-in on today (Stage 1). On future
-                      // days it's shown as Free but is not clickable.
-                      const freeActionable = isToday && !isPast;
+                      // Free slots are actionable on today (walk-in/reserve/repair) and on
+                      // future days (reserve/repair). Only today's past hours are inert.
+                      const freeActionable = !isPast;
 
                       return (
                         <button
                           key={hour}
                           onClick={() => {
                             if (slotStatus === "booked") { openCancelModal(system.id, hour); return; }
-                            if (slotStatus === "occupied" || slotStatus === "reserved") return;
-                            if (slotStatus === "repair") { if (isToday) removeRepair(system.id, hour); return; }
+                            if (slotStatus === "reserved") { openReservationDetail(system.id, hour); return; }
+                            if (slotStatus === "occupied") return;
+                            if (slotStatus === "repair") { removeRepair(system.id, hour); return; }
                             if (!freeActionable) return;
                             handleSlotClick(system.id, hour);
                           }}
-                          disabled={slotStatus === "occupied" || slotStatus === "reserved"}
+                          disabled={slotStatus === "occupied"}
                           title={
                             slotStatus === "booked" ? "Booked online — tap to cancel / refund" :
                             slotStatus === "occupied" ? "Walk-in in progress" :
-                            slotStatus === "reserved" ? "Reserved for walk-in" :
-                            slotStatus === "repair" ? (isToday ? "Under repair — tap to remove" : "Under repair") :
+                            slotStatus === "reserved" ? "Reserved — tap to view / cancel" :
+                            slotStatus === "repair" ? "Under repair — tap to remove" :
                             isPast ? "Past slot" :
-                            freeActionable ? "Tap to select for walk-in" : "Free"
+                            "Tap to select"
                           }
                           className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border-2 ${
                             isSelected
@@ -881,16 +1099,14 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
                               : slotStatus === "occupied"
                               ? "bg-orange-400 text-white border-orange-400 cursor-not-allowed"
                               : slotStatus === "reserved"
-                              ? "bg-yellow-400 text-white border-yellow-400 cursor-not-allowed"
+                              ? "bg-yellow-400 text-white border-yellow-400 cursor-pointer hover:bg-yellow-500"
                               : slotStatus === "booked"
                               ? "bg-red-500 text-white border-red-500 cursor-pointer hover:bg-red-600"
                               : slotStatus === "repair"
-                              ? `bg-purple-500 text-white border-purple-500 ${isToday ? "cursor-pointer" : "cursor-default"}`
+                              ? "bg-purple-500 text-white border-purple-500 cursor-pointer hover:bg-purple-600"
                               : isPast
                               ? "bg-gray-100 text-gray-400 border-gray-200 cursor-default"
-                              : freeActionable
-                              ? "bg-white text-green-700 border-green-500 hover:bg-green-50 cursor-pointer"
-                              : "bg-white text-green-700 border-green-500 cursor-default"
+                              : "bg-white text-green-700 border-green-500 hover:bg-green-50 cursor-pointer"
                           }`}
                         >
                           {slotStatus === "booked" ? "BKD" :
@@ -914,7 +1130,9 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-gray-300 inline-block"></span>Past</span>
                 </div>
 
-                {/* Walk-in selection panel — appears inline when slots selected */}
+                {/* Selection action panel — appears inline when slots are selected.
+                    now-path (starts at current hour today) => walk-in flow; otherwise
+                    => Reserve / Block-for-repair. panelAction opens a sub-form either way. */}
                 {isSelecting && (
                   <div className="border-t pt-4 mt-2">
                     {consecutiveWarning && (
@@ -922,63 +1140,121 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
                         {consecutiveWarning}
                       </div>
                     )}
-
-                    {selectedWalkInSlots.length > 0 && (
-                      <>
-                        {/* Price breakdown */}
-                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-3">
-                          <p className="text-xs font-semibold text-orange-800 mb-1">Price Breakdown:</p>
-                          {breakdown.map((line, i) => (
-                            <p key={i} className="text-xs text-orange-700">{line}</p>
-                          ))}
-                          <p className="text-xs font-bold text-orange-900 mt-1 border-t border-orange-200 pt-1">
-                            Total to collect: ₹{total.toFixed(2)}
-                          </p>
-                        </div>
-
-                        {/* Hard block */}
-                        {!check.allowed && (
-                          <div className="bg-red-50 border-2 border-red-400 rounded-lg p-2 mb-3">
-                            <p className="text-xs font-semibold text-red-700">❌ Cannot start walk-in</p>
-                            <p className="text-xs text-red-600 mt-0.5">{check.reason}</p>
-                          </div>
-                        )}
-
-                        {/* Soft warning */}
-                        {check.allowed && isWarning && (
-                          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-2 mb-3">
-                            <p className="text-xs font-semibold text-yellow-700">⚠️ Short session</p>
-                            <p className="text-xs text-yellow-600">{warningMsg}</p>
-                          </div>
-                        )}
-
-                        {/* Next slot suggestion */}
-                        {check.allowed && nextSlotFree && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-3">
-                            <p className="text-xs text-blue-700">💡 {formatHour(nextSlot!)} is also free.</p>
-                            <button
-                              onClick={() => setSelectedWalkInSlots(prev => [...prev, nextSlot!].sort((a, b) => a - b))}
-                              className="text-xs text-blue-600 font-semibold underline">
-                              Add {formatHour(nextSlot!)} too →
-                            </button>
-                          </div>
-                        )}
-                      </>
+                    {panelError && (
+                      <div className="bg-red-50 border-2 border-red-400 rounded-lg p-2 mb-3 text-xs text-red-700 font-medium">
+                        {panelError}
+                      </div>
                     )}
 
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => { setWalkInSystemId(null); setSelectedWalkInSlots([]); setConsecutiveWarning(null); }}
-                        className="flex-1 text-xs py-2 border-2 border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
-                        Cancel
-                      </button>
-                      <button
-                        onClick={() => handleStartWalkIn(system.id)}
-                        disabled={selectedWalkInSlots.length === 0 || !check.allowed}
-                        className="flex-1 text-xs py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed font-semibold">
-                        Start Walk-in →
-                      </button>
-                    </div>
+                    {selectedWalkInSlots.length > 0 && (
+                      <p className="text-xs text-gray-600 mb-3">
+                        Selected{" "}
+                        <span className="font-semibold">
+                          {selectedWalkInSlots.map((h) => formatHour(h).replace(":00", "")).join(", ")}
+                        </span>{" "}
+                        on {selectedDayLabel}
+                      </p>
+                    )}
+
+                    {panelAction === "reserve" ? (
+                      /* Reserve sub-form — all fields optional */
+                      <div className="space-y-2">
+                        <input value={resName} onChange={(e) => setResName(e.target.value)}
+                          placeholder="Customer name (optional)"
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-purple-400" />
+                        <input value={resPhone} onChange={(e) => setResPhone(e.target.value)}
+                          placeholder="Phone (optional)"
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-purple-400" />
+                        <textarea value={resNote} onChange={(e) => setResNote(e.target.value)} rows={2}
+                          placeholder="Note (optional)"
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:border-purple-400" />
+                        <div className="flex gap-2">
+                          <button onClick={() => { setPanelAction(null); setPanelError(""); }}
+                            className="flex-1 text-xs py-2 border-2 border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Back</button>
+                          <button onClick={() => createReservation(system.id, selectedWalkInSlots)}
+                            disabled={panelSaving || selectedWalkInSlots.length === 0}
+                            className="flex-1 text-xs py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50 font-semibold">
+                            {panelSaving ? "Reserving…" : "Confirm Reservation"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : panelAction === "repair" ? (
+                      /* Block-for-repair sub-form — reason optional */
+                      <div className="space-y-2">
+                        <input value={repairReason} onChange={(e) => setRepairReason(e.target.value)}
+                          placeholder="Reason (optional) — e.g. GPU replacement"
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-purple-400" />
+                        <div className="flex gap-2">
+                          <button onClick={() => { setPanelAction(null); setPanelError(""); }}
+                            className="flex-1 text-xs py-2 border-2 border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Back</button>
+                          <button onClick={() => createRepairFromGrid(system.id, selectedWalkInSlots)}
+                            disabled={panelSaving || selectedWalkInSlots.length === 0}
+                            className="flex-1 text-xs py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 font-semibold">
+                            {panelSaving ? "Blocking…" : "Confirm Repair Block"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : isNowSelection ? (
+                      /* now-path: the existing walk-in-now flow (unchanged), + Block-for-repair */
+                      <>
+                        {selectedWalkInSlots.length > 0 && (
+                          <>
+                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-3">
+                              <p className="text-xs font-semibold text-orange-800 mb-1">Price Breakdown:</p>
+                              {breakdown.map((line, i) => (
+                                <p key={i} className="text-xs text-orange-700">{line}</p>
+                              ))}
+                              <p className="text-xs font-bold text-orange-900 mt-1 border-t border-orange-200 pt-1">
+                                Total to collect: ₹{total.toFixed(2)}
+                              </p>
+                            </div>
+                            {!check.allowed && (
+                              <div className="bg-red-50 border-2 border-red-400 rounded-lg p-2 mb-3">
+                                <p className="text-xs font-semibold text-red-700">❌ Cannot start walk-in</p>
+                                <p className="text-xs text-red-600 mt-0.5">{check.reason}</p>
+                              </div>
+                            )}
+                            {check.allowed && isWarning && (
+                              <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-2 mb-3">
+                                <p className="text-xs font-semibold text-yellow-700">⚠️ Short session</p>
+                                <p className="text-xs text-yellow-600">{warningMsg}</p>
+                              </div>
+                            )}
+                            {check.allowed && nextSlotFree && (
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-3">
+                                <p className="text-xs text-blue-700">💡 {formatHour(nextSlot!)} is also free.</p>
+                                <button
+                                  onClick={() => setSelectedWalkInSlots(prev => [...prev, nextSlot!].sort((a, b) => a - b))}
+                                  className="text-xs text-blue-600 font-semibold underline">
+                                  Add {formatHour(nextSlot!)} too →
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )}
+                        <div className="flex gap-2">
+                          <button onClick={clearSelection}
+                            className="flex-1 text-xs py-2 border-2 border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
+                          <button onClick={() => { setPanelAction("repair"); setPanelError(""); }}
+                            className="flex-1 text-xs py-2 border-2 border-purple-400 text-purple-600 rounded-lg hover:bg-purple-50 font-semibold">🔧 Block for repair</button>
+                          <button onClick={() => handleStartWalkIn(system.id)}
+                            disabled={selectedWalkInSlots.length === 0 || !check.allowed}
+                            className="flex-1 text-xs py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed font-semibold">Start Walk-in →</button>
+                        </div>
+                      </>
+                    ) : (
+                      /* later-path: Reserve / Block-for-repair choice */
+                      <div className="flex gap-2">
+                        <button onClick={clearSelection}
+                          className="flex-1 text-xs py-2 border-2 border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
+                        <button onClick={() => { setPanelAction("reserve"); setPanelError(""); }}
+                          disabled={selectedWalkInSlots.length === 0}
+                          className="flex-1 text-xs py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50 font-semibold">📅 Reserve</button>
+                        <button onClick={() => { setPanelAction("repair"); setPanelError(""); }}
+                          disabled={selectedWalkInSlots.length === 0}
+                          className="flex-1 text-xs py-2 border-2 border-purple-400 text-purple-600 rounded-lg hover:bg-purple-50 font-semibold">🔧 Block for repair</button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
