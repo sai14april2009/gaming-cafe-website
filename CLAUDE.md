@@ -163,7 +163,7 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - ✅ Slot grid respects café opening hours (reads opening_time/closing_time from DB)
 - ✅ DB-level double-booking prevention (`bookings_no_overlap` exclusion constraint)
 - ✅ Advanced Booking tab with 7-day date picker — owner sees future bookings
-- 🔲 Dashboard redesign — Gaming Systems tab shows full day slot grid per system (IN PROGRESS)
+- ✅ Dashboard redesign — Gaming Systems tab shows full day slot grid per system (shipped 2026-07-27, see Section 8)
 - ✅ Owner cancel booking + refund note (2026-07-23)
 - ✅ My Bookings page for customers (/my-bookings) (2026-07-24)
 - ✅ Edit/delete own review (customer) (2026-07-25)
@@ -335,8 +335,6 @@ booked/occupied/reserved. Bugs found and fixed:
 - Historical note: the 7 overlapping sessions on hour 9 (2026-07-15) predate the disabled-button guard and are all `ended`. They pollute analytics but are not a live fault.
 
 ### Known bugs / in progress
-- **IN PROGRESS: Dashboard Gaming Systems tab redesign** — see Section 8 for full spec
-- Walk-in sessions currently use a Live System Status grid in the Gaming Systems tab. This is being redesigned — see Section 8.
 - **KNOWN GAP (from the Gaming Systems merge, Stage 1 — 2026-07-27):** after merging the
   Advanced Booking tab into the date-aware Gaming Systems grid, **cancelled bookings no longer
   persist a browsable refund reminder** — the owner only sees it at cancel time (in the confirm
@@ -364,8 +362,7 @@ booked/occupied/reserved. Bugs found and fixed:
 - Mock demo data still ships alongside real data — the homepage lists 7 sample cafés (`mockData.ts`) next to real DB cafés. Decide whether to drop them before real users.
 
 ### Remaining backlog
-**Critical:**
-- Dashboard redesign (Section 8)
+**Critical:** none.
 
 **Done 2026-07-23 — Owner cancel booking + refund note (Advanced Booking tab):**
 Owner expands a booking row → "Cancel Booking" (shown for `confirmed` bookings only) →
@@ -381,11 +378,11 @@ Request Sent") — so all three write paths (owner-cancel, walk-in-conflict, res
 covered; the column is no longer half-populated.
 
 **Important:**
+- Buffer system (Smart Transition Buffer) — see Rule 8; now the most substantive open item
+- Date picker for Live Now tab (Gaming Systems already has one as of Stage 1; Live Now is still today-only)
 - ~~My Bookings page for customers~~ **DONE 2026-07-24** (commit `df6f807e` — see `MyBookings.tsx`)
 - ~~Edit/delete own review~~ **DONE 2026-07-25** (commit `5033ce8b` + migration `reviews_update_own_policy`)
 - ~~Review section overhaul (verified-booker + categories + threaded replies + owner badge)~~ **DONE 2026-07-26** — migrations `review_overhaul_schema` + `review_overhaul_policies`, `DbReviewsSection.tsx` rewrite. See Section 10.
-- Buffer system (Smart Transition Buffer)
-- Date picker for Gaming Systems / Live Now tabs (future-day visibility)
 
 **Nice to have:**
 - Photos in reviews (see Section 10 — deferred until Storage bucket added)
@@ -453,12 +450,60 @@ Customers see the difference and aren't misled
 
 ---
 
-## 8. DASHBOARD REDESIGN SPEC (in progress — next build target)
+## 8. DASHBOARD REDESIGN (SHIPPED — reconciliation audit 2026-07-28)
 
-### Current problem
+### 8a. Shipped state (as of 2026-07-28)
+
+**Section 8 is SHIPPED.** Reconciled 2026-07-28 against live code (`Dashboard.tsx`,
+`SystemsManager.tsx`, `LiveSessions.tsx`, `BookingsList.tsx`). Every requirement from
+the original spec below is live except the Phase 2 filter bar, which was always
+labeled "not now" and remains deferred (see below).
+
+**Delivered across these commits:**
+- `0d671981` — Gaming Systems merge **Stage 1**: date-aware grid + date picker + cancel/refund from grid (absorbed the Advanced Booking tab).
+- `a0ec3752` — Gaming Systems merge **Stage 2**: Reserve + Block-for-repair from any date, three-source re-check, reservation management popover.
+- `2e1f5d02` — Dead-code cleanup: deleted the obsolete advanced-mode branch from `BookingsList` after the merge (BookingsList is now strictly a past-days history).
+- `05799bd8` — Extracted `findSlotConflicts` to `src/app/utils/slotConflicts.ts` + ported the three-source conflict check to `RepairSlotsManager` so both repair write paths share it.
+- `f938e0d3` — Consecutive-slots warning wording aligned with the spec's literal phrasing ("Select only consecutive slots. X:XX is missing between your selections.").
+
+**Shipped scope expanded beyond the original spec.** The Gaming Systems tab now
+also supports (none of which were in §8 originally):
+- **Reserve** a future/current-day slot with optional customer name / phone / note (writes to `walk_in_sessions` as `scheduled`, never to `bookings`).
+- **Block for repair** on any date in the 7-day window from the grid directly.
+- **Cancel a booking from the grid** (click a red BKD slot → cancel/refund modal, same behavior as the old Advanced Booking tab).
+- **Cancel a reservation from the grid** (click a yellow RES slot → detail popover with Cancel Reservation).
+- **7-day date picker** with per-day booking-count badges — moved from the old Advanced Booking tab into Gaming Systems itself.
+
+**Tab layout — deliberately superseded.** The original spec listed **6 tabs**:
+`Overview | Cafe Details | Gaming Systems | Live Now | Advanced Booking | Booking History`.
+The current layout is **5 tabs** — Advanced Booking was **removed**, not lost. Its
+capabilities (7-day view, future bookings, cancel from grid) were absorbed into
+Gaming Systems during Stage 1 + 2 of the merge. **This is not a regression.** A
+future reader noticing "the spec has 6 tabs, the code has 5" should treat the code
+as authoritative.
+
+Current live tab order (`Dashboard.tsx:64–70`):
+`Overview | Cafe Details | Gaming Systems | 🔴 Live Now | Booking History`
+
+**DEFERRED — Phase 2 filter bar** (`[Free Now] [Occupied Now] [Free at time]` in
+Gaming Systems tab). Was already labeled "not now" in the original spec. Deferring
+deliberately because we're pre-launch with 2 systems on the test cafe; the filter
+has no way to be meaningfully verified at this scale. **Concrete unstuck trigger:**
+revisit when a live cafe has 10 or more systems, OR when an owner is actually
+observed needing to filter to find something. **Do not build speculatively.**
+
+---
+
+### 8b. Original spec (reference material — pre-reconciliation)
+
+> The remainder of this section is the original design spec as it stood before the
+> Gaming Systems merge. Kept verbatim for historical context. The **shipped state
+> above** is authoritative where the two disagree.
+
+#### Current problem
 The Gaming Systems tab shows a "Live System Status" grid + a separate "Manage Systems" section. The live status cards don't show the full day's slot picture, and the walk-in flow requires too many taps.
 
-### New design — Gaming Systems tab
+#### New design — Gaming Systems tab
 Each system card shows a **full day slot grid** directly:
 
 ```
@@ -474,7 +519,7 @@ Gaming System 1 (PS4)                              [Delete]
 - No "Start Walk-in Session" button needed — clicking a slot IS the action
 - Opening hours from DB determine which slots are shown (fixes hardcoded bug)
 
-### New "Live Now" tab (beside Gaming Systems)
+#### New "Live Now" tab (beside Gaming Systems)
 Shows only systems with active or upcoming sessions today:
 
 ```
@@ -492,23 +537,24 @@ Shows only systems with active or upcoming sessions today:
 - Gaming Systems tab is for seeing status + starting walk-ins
 - Live Now tab is for managing active sessions
 
-### Walk-in selection rules (in slot grid)
+#### Walk-in selection rules (in slot grid)
 1. **Consecutive slots only** — non-consecutive shows warning: "Select only consecutive slots. X:XX PM is missing between your selections."
 2. **20-minute cutoff** — hard block if <20 min left in current slot AND next slot is online-booked
 3. **Proportional pricing preview** — shown inline as slots are selected
 4. **Next slot suggestion** — if next slot after selection is free, suggest adding it
 5. **Opening hours respected** — only show slots within café's opening_time to closing_time
 
-### Dashboard tabs (final order)
+#### Dashboard tabs (final order)
 Overview | Cafe Details | Gaming Systems | Live Now | Advanced Booking | Booking History
 *(shipped 2026-07-19: "Bookings" was renamed "Booking History" and "Advanced Booking" added)*
+*(Later superseded — see 8a above. Advanced Booking was absorbed into Gaming Systems.)*
 
-### Files to create/modify
+#### Files to create/modify
 - `SystemsManager.tsx` — full rewrite with slot grid view
 - New `LiveSessions.tsx` — new "Live Now" tab component
 - `Dashboard.tsx` — add "Live Now" tab
 
-### Phase 2 addition (not now)
+#### Phase 2 addition (not now)
 Filter bar in Gaming Systems tab: [Free Now] [Occupied Now] [Free at specific time]
 For large cafés with 30-50 systems.
 
