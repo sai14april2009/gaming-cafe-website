@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { Search, Gamepad2, Cpu, User, LogOut, ShieldCheck, Ticket } from "lucide-react";
+import { Gamepad2, User, LogOut, ShieldCheck, Ticket } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const ADMIN_EMAILS = [
@@ -12,12 +12,6 @@ export function Root() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
-
-  const tabs = [
-    { path: "/", label: "Browse Cafes", icon: Search },
-    { path: "/games", label: "Search by Game", icon: Gamepad2 },
-    { path: "/hardware", label: "Filter by Hardware", icon: Cpu },
-  ];
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -43,26 +37,6 @@ export function Root() {
                 GameSpot
               </span>
             </Link>
-
-            <nav className="hidden md:flex items-center gap-1">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <Link
-                    key={tab.path}
-                    to={tab.path}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                      isActive(tab.path)
-                        ? "bg-purple-100 text-purple-700"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span>{tab.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
 
             <div className="flex items-center gap-2">
               {user ? (
@@ -112,39 +86,6 @@ export function Root() {
                 </>
               )}
             </div>
-          </div>
-
-          <div className="md:hidden flex gap-1 pb-3 overflow-x-auto">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <Link
-                  key={tab.path}
-                  to={tab.path}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors whitespace-nowrap ${
-                    isActive(tab.path)
-                      ? "bg-purple-100 text-purple-700"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="text-sm">{tab.label}</span>
-                </Link>
-              );
-            })}
-            {user && (
-              <Link
-                to="/my-bookings"
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors whitespace-nowrap ${
-                  isActive("/my-bookings")
-                    ? "bg-purple-100 text-purple-700"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                <Ticket className="w-4 h-4" />
-                <span className="text-sm">My Bookings</span>
-              </Link>
-            )}
           </div>
         </div>
       </header>

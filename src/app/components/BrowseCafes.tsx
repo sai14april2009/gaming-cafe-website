@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Search, SlidersHorizontal, Star, MapPin } from "lucide-react";
-import { gamingCafes } from "../data/mockData";
-import { CafeCard } from "./CafeCard";
 import { Input } from "./ui/input";
 import { supabase } from "../../supabase";
 
@@ -37,26 +35,7 @@ export function BrowseCafes() {
     fetchCafes();
   }, []);
 
-  const cities = [
-    "all",
-    ...Array.from(
-      new Set([
-        ...gamingCafes.map((cafe) => cafe.city),
-        ...dbCafes.map((cafe) => cafe.city),
-      ])
-    ),
-  ];
-
-  const filteredMockCafes = gamingCafes.filter((cafe) => {
-    const matchesSearch =
-      cafe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cafe.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cafe.city.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesCity = selectedCity === "all" || cafe.city === selectedCity;
-
-    return matchesSearch && matchesCity;
-  });
+  const cities = ["all", ...Array.from(new Set(dbCafes.map((cafe) => cafe.city)))];
 
   const filteredDbCafes = dbCafes.filter((cafe) => {
     const matchesSearch =
@@ -69,7 +48,7 @@ export function BrowseCafes() {
     return matchesSearch && matchesCity;
   });
 
-  const totalCount = filteredMockCafes.length + filteredDbCafes.length;
+  const totalCount = filteredDbCafes.length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -166,10 +145,6 @@ export function BrowseCafes() {
               </div>
             </div>
           </Link>
-        ))}
-
-        {filteredMockCafes.map((cafe) => (
-          <CafeCard key={cafe.id} cafe={cafe} />
         ))}
       </div>
 
