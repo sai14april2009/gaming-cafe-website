@@ -162,7 +162,7 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - ✅ Walk-in RESERVED status — scheduled walk-ins show amber RESERVED on customer page
 - ✅ Slot grid respects café opening hours (reads opening_time/closing_time from DB)
 - ✅ DB-level double-booking prevention (`bookings_no_overlap` exclusion constraint)
-- ✅ Advanced Booking tab with 7-day date picker — owner sees future bookings
+- ✅ 7-day date picker for future bookings — owner sees future bookings in Gaming Systems tab (formerly Advanced Booking, absorbed 2026-07-27)
 - ✅ Dashboard redesign — Gaming Systems tab shows full day slot grid per system (shipped 2026-07-27, see Section 8)
 - ✅ Owner cancel booking + refund note (2026-07-23)
 - ✅ My Bookings page for customers (/my-bookings) (2026-07-24)
@@ -344,7 +344,7 @@ booked/occupied/reserved. Bugs found and fixed:
   cancellation-fee-ledger work.
 - ~~**Gaming Systems + Live Now tabs are today-only**~~ — **Gaming Systems now has the 7-day
   date picker as of Stage 1 (2026-07-27).** Live Now is still today-only (future-day management
-  there is out of scope for now).
+  there is out of scope by design).
 - **Gaming Systems merge Stage 2 SHIPPED (2026-07-27):** clicking a FREE slot now opens
   action-choice — **Reserve** (advance walk-in-style booking with optional name/phone/note) or
   **Block for repair** — on any date in the window. Reservations write **only to
