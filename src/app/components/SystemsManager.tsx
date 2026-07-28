@@ -482,8 +482,13 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
       if (newSlots.length > 1) {
         for (let i = 1; i < newSlots.length; i++) {
           if (newSlots[i] - newSlots[i - 1] !== 1) {
+            const missing: string[] = [];
+            for (let h = newSlots[i - 1] + 1; h < newSlots[i]; h++) {
+              missing.push(formatHour(h));
+            }
+            const verb = missing.length === 1 ? "is missing" : "are missing";
             setConsecutiveWarning(
-              `⚠️ Please select only consecutive slots. ${formatHour(newSlots[i - 1])} and ${formatHour(newSlots[i])} are not consecutive.`
+              `⚠️ Select only consecutive slots. ${missing.join(", ")} ${verb} between your selections.`
             );
             return prev; // Don't update
           }
