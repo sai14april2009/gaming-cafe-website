@@ -379,7 +379,15 @@ covered; the column is no longer half-populated.
 
 **Important:**
 - Buffer system (Smart Transition Buffer) — see Rule 8; now the most substantive open item
-- Date picker for Live Now tab (Gaming Systems already has one as of Stage 1; Live Now is still today-only)
+- ~~Date picker for Live Now tab~~ **OBSOLETE (closed 2026-07-28).** Live Now is a
+  today-only *live-management* surface by design (Add Hour, End Session, Start Now on
+  RESERVED slots when a customer arrives) — not a scheduling browser. Future
+  reservations are visible in Gaming Systems, which got its 7-day date picker in the
+  merge — that is the correct surface for "see tomorrow's scheduled reservations
+  before tomorrow arrives." This item was carried forward from the pre-merge state
+  as a paired gap with Gaming Systems; the pair no longer applies because the two
+  tabs serve different purposes by design (availability/booking view vs
+  live-management view). Do not reopen without a concrete owner-side use case.
 - ~~My Bookings page for customers~~ **DONE 2026-07-24** (commit `df6f807e` — see `MyBookings.tsx`)
 - ~~Edit/delete own review~~ **DONE 2026-07-25** (commit `5033ce8b` + migration `reviews_update_own_policy`)
 - ~~Review section overhaul (verified-booker + categories + threaded replies + owner badge)~~ **DONE 2026-07-26** — migrations `review_overhaul_schema` + `review_overhaul_policies`, `DbReviewsSection.tsx` rewrite. See Section 10.
