@@ -89,8 +89,6 @@ export function Dashboard() {
           <SystemsManager
             cafeId={cafe.id}
             pricePerHour={cafe.price_per_hour}
-            openingTime={cafe.opening_time}
-            closingTime={cafe.closing_time}
           />
         )}
         {activeTab === "live" && (

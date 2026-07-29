@@ -4,12 +4,11 @@ import { Button } from "./ui/button";
 import { Trash2, Plus } from "lucide-react";
 import { toLocalDateString } from "../utils/date";
 import { findSlotConflicts } from "../utils/slotConflicts";
+import { hoursForUniformSchedule, CafeHoursSchedule } from "../utils/cafeHours";
 
 interface SystemsManagerProps {
   cafeId: string;
   pricePerHour: number;
-  openingTime: string;
-  closingTime: string;
 }
 
 interface GamingSystemRow {
@@ -75,8 +74,9 @@ function formatDateShort(date: Date) {
   };
 }
 
-export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime }: SystemsManagerProps) {
+export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
   const [systems, setSystems] = useState<GamingSystemRow[]>([]);
+  const [hoursRow, setHoursRow] = useState<CafeHoursSchedule | null>(null);
   const [walkInSessions, setWalkInSessions] = useState<WalkInSession[]>([]);
   const [repairSlots, setRepairSlots] = useState<RepairSlot[]>([]);
   const [onlineBookings, setOnlineBookings] = useState<OnlineBooking[]>([]);
@@ -136,17 +136,12 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
     return () => clearInterval(interval);
   }, []);
 
-  // Generate slots from café opening hours
-  const parseHour = (time: string) => parseInt(time?.split(":")[0] || "8", 10);
-  const parseMinute = (time: string) => parseInt(time?.split(":")[1] || "0", 10) || 0;
-  const openHour = parseHour(openingTime);
-  const closeHour = parseHour(closingTime);
-  // First slot starts at/after opening (round up if opening has minutes, e.g. 6:29 -> 7:00).
-  // Last slot ends by the closing hour, so slots run firstSlot .. closeHour-1.
-  const firstSlot = parseMinute(openingTime) > 0 ? openHour + 1 : openHour;
-  const todaySlots = Array.from(
-    { length: Math.max(0, closeHour - firstSlot) },
-    (_, i) => firstSlot + i
+  // Bookable full-hour slot starts, resolved from cafe_hours via the calendar-day model
+  // (handles midnight-crossing schedules). In the MVP every day shares one schedule, so this
+  // set is day-independent — the same grid renders for every date in the picker. Defaults to
+  // 08:00–22:00 until the cafe_hours row loads. See src/app/utils/cafeHours.ts.
+  const todaySlots = hoursForUniformSchedule(
+    hoursRow ?? { open_time: "08:00", close_time: "22:00" }
   );
 
   const fetchAll = useCallback(async () => {
@@ -157,17 +152,20 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
     const last = new Date();
     last.setDate(last.getDate() + 6);
     const lastStr = toLocalDateString(last);
-    const [{ data: systemsData }, { data: walkInData }, { data: repairData }, { data: bookingsData }] =
+    const [{ data: systemsData }, { data: walkInData }, { data: repairData }, { data: bookingsData }, { data: hoursData }] =
       await Promise.all([
         supabase.from("gaming_systems").select("*").eq("cafe_id", cafeId).order("created_at", { ascending: true }),
         supabase.from("walk_in_sessions").select("*").eq("cafe_id", cafeId).in("status", ["scheduled", "active"]).gte("session_date", todayStr).lte("session_date", lastStr),
         supabase.from("repair_slots").select("*").eq("cafe_id", cafeId).gte("repair_date", todayStr).lte("repair_date", lastStr),
         supabase.from("bookings").select("*").eq("cafe_id", cafeId).eq("status", "confirmed").gte("booking_date", todayStr).lte("booking_date", lastStr),
+        // MVP: all 7 day rows are identical, so any one row defines the schedule.
+        supabase.from("cafe_hours").select("open_time, close_time").eq("cafe_id", cafeId).limit(1).maybeSingle(),
       ]);
     setSystems(systemsData || []);
     setWalkInSessions(walkInData || []);
     setRepairSlots(repairData || []);
     setOnlineBookings(bookingsData || []);
+    setHoursRow((hoursData as CafeHoursSchedule) ?? null);
     setLoading(false);
   }, [cafeId]);
 
@@ -1010,7 +1008,7 @@ export function SystemsManager({ cafeId, pricePerHour, openingTime, closingTime 
               : null;
             const nextSlotFree = nextSlot !== null
               && getSlotStatus(system.id, nextSlot) === "available"
-              && nextSlot < closeHour;
+              && todaySlots.includes(nextSlot);
             // "Now" selection = starts at the current hour today → the walk-in-now flow
             // (live pricing / cutoff / conflict). Anything else is a "later" selection →
             // Reserve / Block-for-repair.

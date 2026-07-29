@@ -4,6 +4,7 @@ import { MapPin, Clock, Phone, Mail, ArrowLeft, Star, Coffee, Gamepad2 } from "l
 import { Button } from "./ui/button";
 import { supabase } from "../../supabase";
 import { gameImages } from "../data/mockData";
+import { hoursForUniformSchedule, CafeHoursSchedule } from "../utils/cafeHours";
 import { AdvancedBookingInterface } from "./AdvancedBookingInterface";
 import { useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
@@ -43,6 +44,7 @@ export function DbCafeDetails() {
   const bookingRef = useRef<HTMLDivElement>(null);
 
   const [cafe, setCafe] = useState<DbCafe | null>(null);
+  const [hoursRow, setHoursRow] = useState<CafeHoursSchedule | null>(null);
   const [systems, setSystems] = useState<DbGamingSystem[]>([]);
   const [loading, setLoading] = useState(true);
   const [partySize, setPartySize] = useState<"solo" | "group" | null>(null);
@@ -62,11 +64,21 @@ export function DbCafeDetails() {
 
       if (!error && data) {
         setCafe(data as DbCafe);
-        const { data: systemsData } = await supabase
-          .from("gaming_systems")
-          .select("id, cafe_id, name, type, gpu, cpu, ram, console")
-          .eq("cafe_id", id);
+        const [{ data: systemsData }, { data: hoursData }] = await Promise.all([
+          supabase
+            .from("gaming_systems")
+            .select("id, cafe_id, name, type, gpu, cpu, ram, console")
+            .eq("cafe_id", id),
+          // MVP: all 7 day rows are identical, so any one row defines the schedule.
+          supabase
+            .from("cafe_hours")
+            .select("open_time, close_time")
+            .eq("cafe_id", id)
+            .limit(1)
+            .maybeSingle(),
+        ]);
         if (systemsData) setSystems(systemsData as DbGamingSystem[]);
+        setHoursRow((hoursData as CafeHoursSchedule) ?? null);
       }
       setLoading(false);
     };
@@ -82,8 +94,6 @@ export function DbCafeDetails() {
     return `${displayHour}:${m} ${suffix}`;
   };
 
-  const parseHour = (time: string) => parseInt(time?.split(":")[0] || "8", 10);
-  const parseMinute = (time: string) => parseInt(time?.split(":")[1] || "0", 10) || 0;
 
   // Convert DB systems to the shape AdvancedBookingInterface expects.
   // Memoised: this array is a dependency of the availability fetch inside
@@ -102,23 +112,20 @@ export function DbCafeDetails() {
         monitor: undefined,
         storage: undefined,
         bookingStatus: { isBooked: false },
-        timeSlots: [], // AdvancedBookingInterface generates its own from operatingHours
+        timeSlots: [], // AdvancedBookingInterface generates its own from hoursOfDay
       })),
     [systems]
   );
 
-  // Full-hour slots only. First slot starts at/after opening (round up if opening has
-  // minutes, e.g. 6:29 -> first slot 7:00). Last slot must END by closing, so its start
-  // is one hour before the closing hour (e.g. close 21:32 -> last slot start 20:00, ends 21:00).
-  // `end` here is the last bookable slot START (AdvancedBookingInterface loops start..end inclusive).
-  const operatingHours = cafe
-    ? {
-        start: parseMinute(cafe.opening_time) > 0
-          ? parseHour(cafe.opening_time) + 1
-          : parseHour(cafe.opening_time),
-        end: parseHour(cafe.closing_time) - 1,
-      }
-    : { start: 8, end: 21 };
+  // Bookable full-hour slot starts, resolved from cafe_hours via the calendar-day model
+  // (handles midnight-crossing schedules). Falls back to the legacy cafes columns while the
+  // cafe_hours row loads, then to a sane default. See src/app/utils/cafeHours.ts.
+  const displaySchedule: CafeHoursSchedule =
+    hoursRow ??
+    (cafe?.opening_time && cafe?.closing_time
+      ? { open_time: cafe.opening_time, close_time: cafe.closing_time }
+      : { open_time: "08:00", close_time: "22:00" });
+  const hoursOfDay = hoursForUniformSchedule(displaySchedule);
 
   const handleBookNow = () => {
     if (!user) {
@@ -190,8 +197,8 @@ const handleBookingComplete = (bookings: any) => {
           <h1 className="text-3xl font-bold mb-2">{cafe.name}</h1>
           <div className="flex flex-wrap items-center gap-4 mb-4 text-gray-600">
             <div className="flex items-center gap-1"><MapPin className="w-5 h-5" /><span>{cafe.address}, {cafe.city}</span></div>
-            {cafe.opening_time && cafe.closing_time && (
-              <div className="flex items-center gap-1"><Clock className="w-5 h-5" /><span>{formatTime(cafe.opening_time)} - {formatTime(cafe.closing_time)}</span></div>
+            {displaySchedule.open_time && displaySchedule.close_time && (
+              <div className="flex items-center gap-1"><Clock className="w-5 h-5" /><span>{formatTime(displaySchedule.open_time)} - {formatTime(displaySchedule.close_time)}</span></div>
             )}
           </div>
 
@@ -210,7 +217,7 @@ const handleBookingComplete = (bookings: any) => {
               </div>
               <div className="flex items-center gap-3 text-gray-700">
                 <Clock className="w-5 h-5 text-purple-600" />
-                <div><p className="text-sm text-gray-500">Hours</p><p className="font-medium">{formatTime(cafe.opening_time)} - {formatTime(cafe.closing_time)}</p></div>
+                <div><p className="text-sm text-gray-500">Hours</p><p className="font-medium">{formatTime(displaySchedule.open_time)} - {formatTime(displaySchedule.close_time)}</p></div>
               </div>
               <div className="flex items-center">
                 <Button onClick={handleBookNow} className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 h-12 text-lg font-semibold">
@@ -259,7 +266,7 @@ const handleBookingComplete = (bookings: any) => {
           ) : showAdvancedBooking ? (
             <AdvancedBookingInterface
               systems={convertedSystems}
-              cafeOperatingHours={operatingHours}
+              hoursOfDay={hoursOfDay}
               onBookingComplete={handleBookingComplete}
               pricePerHour={cafe.price_per_hour}
               partySize={partySize!}

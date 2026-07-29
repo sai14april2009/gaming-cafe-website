@@ -7,7 +7,10 @@ import { toLocalDateString } from "../utils/date";
 
 interface AdvancedBookingInterfaceProps {
   systems: GamingSystem[];
-  cafeOperatingHours: { start: number; end: number };
+  // Bookable full-hour slot starts for the shown day, already resolved from the cafe's
+  // cafe_hours (handles midnight-crossing schedules via the calendar-day model). In the
+  // MVP every calendar day has the same set, so a single array is applied to all 7 days.
+  hoursOfDay: number[];
   onBookingComplete: (bookings: { systemId: string; date: Date; timeSlots: number[] }[]) => void;
   pricePerHour: number;
   partySize: "solo" | "group";
@@ -30,7 +33,7 @@ interface SystemBookingState {
 
 export function AdvancedBookingInterface({
   systems,
-  cafeOperatingHours,
+  hoursOfDay,
   onBookingComplete,
   pricePerHour,
   partySize,
@@ -51,7 +54,7 @@ export function AdvancedBookingInterface({
   const generateTimeSlots = (): number[] => {
     const slots: number[] = [];
     const now = new Date();
-    for (let hour = cafeOperatingHours.start; hour <= cafeOperatingHours.end; hour++) {
+    for (const hour of [...hoursOfDay].sort((a, b) => a - b)) {
       // Compare the slot's actual start instant rather than just its hour number.
       // Besides hiding today's past hours, this also covers the case where the tab
       // has been left open past midnight: `selectedDate` is then a *past* day, and
