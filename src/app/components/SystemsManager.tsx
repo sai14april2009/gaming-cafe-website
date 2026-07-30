@@ -146,7 +146,6 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
   );
   const slotGaps = findHourGaps(todaySlots);
   const gapAfterHour = new Map(slotGaps.map(g => [g.afterHour, g]));
-  console.log("[SystemsManager] hoursRow=", hoursRow, "todaySlots=", todaySlots, "slotGaps=", slotGaps);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
