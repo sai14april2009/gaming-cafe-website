@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { Monitor, Cpu, MemoryStick } from "lucide-react";
 import { GamingSystem } from "../data/mockData";
 import { Button } from "./ui/button";
 import { supabase } from "../../supabase";
 import { toLocalDateString } from "../utils/date";
+import { findHourGaps } from "../utils/cafeHours";
+import { ClosedSlotMarker } from "./ClosedSlotMarker";
 
 interface AdvancedBookingInterfaceProps {
   systems: GamingSystem[];
@@ -68,6 +70,8 @@ export function AdvancedBookingInterface({
   };
 
   const timeSlots = generateTimeSlots();
+  const slotGaps = findHourGaps(timeSlots);
+  const gapAfterHour = new Map(slotGaps.map(g => [g.afterHour, g]));
 
   useEffect(() => {
     // Guards against out-of-order responses: switching days quickly fires several
@@ -374,9 +378,11 @@ export function AdvancedBookingInterface({
                   </div>
                 )}
                 <div className="flex flex-wrap gap-3">
-                  {bookingState.slots.map((slot) => (
+                  {bookingState.slots.map((slot) => {
+                    const gap = gapAfterHour.get(slot.hour);
+                    return (
+                    <Fragment key={slot.hour}>
                     <button
-                      key={slot.hour}
                       onClick={() =>
                         (slot.status === "available" || slot.status === "selected") &&
                         handleSlotClick(bookingState.systemId, slot.hour)
@@ -398,7 +404,10 @@ export function AdvancedBookingInterface({
                     >
                       {slot.status === "booked" ? "BOOKED" : slot.status === "repair" ? "REPAIR" : slot.status === "walkin" ? "OCCUPIED" : slot.status === "reserved" ? "RESERVED" : formatTime(slot.hour)}
                     </button>
-                  ))}
+                    {gap && <ClosedSlotMarker from={gap.from} to={gap.to} size="lg" />}
+                    </Fragment>
+                    );
+                  })}
                 </div>
               </div>
             );

@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { supabase } from "../../supabase";
 import { Button } from "./ui/button";
 import { Trash2, Plus } from "lucide-react";
 import { toLocalDateString } from "../utils/date";
 import { findSlotConflicts } from "../utils/slotConflicts";
-import { hoursForUniformSchedule, CafeHoursSchedule } from "../utils/cafeHours";
+import { hoursForUniformSchedule, findHourGaps, CafeHoursSchedule } from "../utils/cafeHours";
+import { ClosedSlotMarker } from "./ClosedSlotMarker";
 
 interface SystemsManagerProps {
   cafeId: string;
@@ -143,6 +144,8 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
   const todaySlots = hoursForUniformSchedule(
     hoursRow ?? { open_time: "08:00", close_time: "22:00" }
   );
+  const slotGaps = findHourGaps(todaySlots);
+  const gapAfterHour = new Map(slotGaps.map(g => [g.afterHour, g]));
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -1052,10 +1055,11 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                       // Free slots are actionable on today (walk-in/reserve/repair) and on
                       // future days (reserve/repair). Only today's past hours are inert.
                       const freeActionable = !isPast;
+                      const gap = gapAfterHour.get(hour);
 
                       return (
+                        <Fragment key={hour}>
                         <button
-                          key={hour}
                           onClick={() => {
                             if (slotStatus === "booked") { openCancelModal(system.id, hour); return; }
                             if (slotStatus === "reserved") { openReservationDetail(system.id, hour); return; }
@@ -1095,6 +1099,8 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                            slotStatus === "repair" ? "REP" :
                            formatHour(hour).replace(":00", "")}
                         </button>
+                        {gap && <ClosedSlotMarker from={gap.from} to={gap.to} size="sm" />}
+                        </Fragment>
                       );
                     })}
                   </div>

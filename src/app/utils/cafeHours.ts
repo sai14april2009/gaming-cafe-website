@@ -76,3 +76,25 @@ export function hoursForCalendarDay(
 export function hoursForUniformSchedule(schedule: CafeHoursSchedule | null): number[] {
   return hoursForCalendarDay(schedule, schedule);
 }
+
+export interface HourGap {
+  afterHour: number;
+  from: number;
+  to: number;
+}
+
+/**
+ * Detect gaps (closed periods) in a sorted hour array. A gap exists wherever two
+ * consecutive entries differ by more than 1.
+ */
+export function findHourGaps(hours: number[]): HourGap[] {
+  if (hours.length < 2) return [];
+  const sorted = [...hours].sort((a, b) => a - b);
+  const gaps: HourGap[] = [];
+  for (let i = 0; i < sorted.length - 1; i++) {
+    if (sorted[i + 1] - sorted[i] > 1) {
+      gaps.push({ afterHour: sorted[i], from: sorted[i] + 1, to: sorted[i + 1] });
+    }
+  }
+  return gaps;
+}
