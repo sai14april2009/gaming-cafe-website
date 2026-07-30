@@ -72,6 +72,7 @@ export function AdvancedBookingInterface({
   const timeSlots = generateTimeSlots();
   const slotGaps = findHourGaps(timeSlots);
   const gapAfterHour = new Map(slotGaps.map(g => [g.afterHour, g]));
+  console.log("[AABI] hoursOfDay=", hoursOfDay, "timeSlots=", timeSlots, "slotGaps=", slotGaps);
 
   useEffect(() => {
     // Guards against out-of-order responses: switching days quickly fires several
