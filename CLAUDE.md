@@ -31,22 +31,21 @@ There is no `.env.example` in the repo — check with the user for local credent
 - `Root.tsx` also hardcodes an `ADMIN_EMAILS` allowlist that gates the `/admin` (`AdminApprovals`) link/route — there's no `role: "admin"` in the DB, admin-ness is purely this email list.
 - `vercel.json` rewrites all non-`/api` paths to `index.html` (SPA hosting on Vercel), and `api/*.ts` are Vercel serverless/edge functions (e.g. `api/steam-search.ts` proxies the Steam store search API to dodge CORS; `api/ping.ts` is a health check).
 
-### Two parallel data models: mock vs Supabase-backed
+### Data model: Supabase-backed (mock path removed 2026-07-29)
 
-This is the most important thing to understand before touching booking/cafe-detail code. The codebase has **two parallel implementations** of the same features, and they are not interchangeable:
+The codebase used to have two parallel implementations of cafe browsing/booking — a static mock path and a Supabase-backed path. **The mock path was removed 2026-07-29** (commit `a263e907`, "Delete demo-only mock pages"): `CafeCard.tsx`, `CafeDetails.tsx`, `FilterByHardware.tsx`, `GamingSystemSelector.tsx`, `ReviewsSection.tsx`, `SearchByGame.tsx` were deleted, along with the `/games`, `/hardware`, and `/cafe/:id` routes and the tab nav strip in `Root.tsx` that linked to them. A catch-all `NotFound.tsx` route was added.
 
-- **Mock/local data path**: `src/app/data/mockData.ts` defines the `GamingCafe`/`GamingSystem`/`TimeSlot` types and static sample data. Consumed by `BrowseCafes`, `CafeDetails`, `SearchByGame`, `FilterByHardware`, `CafeCard`, `GamingSystemSelector`, `ReviewsSection`, `BookingConfirm`/`BookingsList` (the non-`Db`-prefixed components). This path does not hit Supabase for cafe/system data.
-- **Supabase-backed path**: components prefixed `Db*` (`DbCafeDetails`, `DbReviewsSection`) plus the owner-dashboard components (`Dashboard`, `CafeEditor`, `SystemsManager`, `LiveSessions`, `RepairSlotsManager`, `RevenueStats`, `RegisterCafe`, `AdminApprovals`) query Supabase tables directly with `supabase.from(...)`.
-- Routing exposes both: `/cafe/:id` → mock `CafeDetails`, `/cafe/db/:id` → real `DbCafeDetails`. `BrowseCafes` (the actual homepage) links into the mock flow; the DB flow is reached via cafe cards backed by real data fetched separately, or directly by ID.
-- `AdvancedBookingInterface` is shared by both paths — it's fed a converted list of systems (mock `GamingSystem[]` shape) regardless of where the data originated, and always queries `bookings`/`repair_slots`/`walk_in_sessions` live from Supabase to compute slot availability, not from the mock `timeSlots` field.
-- When changing booking/cafe logic, check whether you're editing the mock demo path, the DB path, or (for slot availability/booking submission) the shared `AdvancedBookingInterface` — a fix in one does not apply to the other.
+- **Current (only) path**: `BrowseCafes` (the homepage) and `Db*`-prefixed components (`DbCafeDetails`, `DbReviewsSection`) plus the owner-dashboard components (`Dashboard`, `CafeEditor`, `SystemsManager`, `LiveSessions`, `RepairSlotsManager`, `RevenueStats`, `RegisterCafe`, `AdminApprovals`) all query Supabase tables directly with `supabase.from(...)`. Cafe detail lives at `/cafe/db/:id` → `DbCafeDetails`.
+- `src/app/data/mockData.ts` **still exists** but is no longer a parallel data source — it only exports shared types (`GamingSystem`, etc.) and `gameImages`, both consumed by the DB path. Dropping the file entirely (a further cleanup stage) is deferred; see the backlog note in Section 3.
+- `AdvancedBookingInterface` is fed a converted list of systems (using the `GamingSystem` shape from `mockData.ts` for typing only, not as a data source) and always queries `bookings`/`repair_slots`/`walk_in_sessions` live from Supabase to compute slot availability.
 
 ### Supabase schema (inferred — no migrations/SQL in repo)
 
 There are no `.sql` files or a `supabase/` migrations directory checked in; the schema only exists as inferred from `supabase.from(...)` calls scattered across components. Known tables and key columns (grep for `.from("<table>")` to find all usages before changing shape):
 
 - `profiles` — `id` (= auth user id), `email`, `full_name`, `role` (`"owner"` gates `/dashboard`; anything else is a regular customer)
-- `cafes` — `owner_id`, `name`, `description`, `city`, `address`, `phone`, `email`, `price_per_hour`, `opening_time`/`closing_time` (`"HH:MM"` strings), `image_url`, `is_approved`, `amenities` (array), `games` (array)
+- `cafes` — `owner_id`, `name`, `description`, `city`, `address`, `phone`, `email`, `price_per_hour`, `image_url`, `is_approved`, `amenities` (array), `games` (array)
+- `cafe_hours` — `cafe_id`, `day_of_week` (0-6), `open_time`/`close_time` (`"HH:MM"` strings) — the hours source of truth (see the midnight-crossing fix entry in Section 4). Replaces the legacy `cafes.opening_time`/`closing_time` columns, dropped 2026-08-01.
 - `gaming_systems` — `cafe_id`, `name`, `type` (`"PC" | "Console"`), `gpu`, `cpu`, `ram`, `console`
 - `bookings` — `cafe_id`, `system_id`, `booking_date`, `start_time`/`end_time` (`"HH:MM"`), `status` (`"confirmed"` is the only status filtered on), `players` (JSON array of `{name, phone}`)
 - `walk_in_sessions` — `cafe_id`, `system_id`, `session_date`, `slots` (int[] of hours), `start_time`/`end_time` (**integer hour**, not a string — different convention from `bookings`), `status` (`"scheduled" | "active" | "ended"`), `started_at`/`ended_at`
@@ -160,7 +159,7 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - ✅ Walk-in 20-minute cutoff restriction — hard block when <20 min left and next slot booked
 - ✅ "Live Now" tab — active/upcoming walk-ins AND online bookings, with timer controls
 - ✅ Walk-in RESERVED status — scheduled walk-ins show amber RESERVED on customer page
-- ✅ Slot grid respects café opening hours (reads opening_time/closing_time from DB)
+- ✅ Slot grid respects café opening hours (reads from `cafe_hours`, the per-day schedule table — see the midnight-crossing fix entry in Section 4)
 - ✅ DB-level double-booking prevention (`bookings_no_overlap` exclusion constraint)
 - ✅ 7-day date picker for future bookings — owner sees future bookings in Gaming Systems tab (formerly Advanced Booking, absorbed 2026-07-27)
 - ✅ Dashboard redesign — Gaming Systems tab shows full day slot grid per system (shipped 2026-07-27, see Section 8)
@@ -203,6 +202,7 @@ return 0 rows.
 ### DB tables (RLS enabled on all)
 - `profiles`
 - `cafes`
+- `cafe_hours` — columns: `id, cafe_id, day_of_week (0-6), open_time, close_time`. Added 2026-07-29 in the midnight-crossing fix (migration `cafe_hours_schema_and_migration`); is now the sole hours source — the legacy `cafes.opening_time`/`closing_time` columns were dropped 2026-08-01 (migration `drop_legacy_cafes_hours_columns`).
 - `gaming_systems`
 - `bookings` — columns: `id, user_id (NOT NULL as of 2026-07-24), cafe_id, system_id, booking_date, start_time, end_time, num_people, total_price, status, players, cancellation_reason, created_at`
 - `reviews` — columns: `id, cafe_id, user_id, user_name, rating, comment, created_at, rating_systems, rating_internet, rating_cleanliness, rating_staff, rating_value` (the 5 nullable category sub-ratings added 2026-07-26; overall `rating` = rounded avg of the filled ones). INSERT gated to verified bookers via `has_visited_cafe()`; SELECT/UPDATE/DELETE author-scoped. See Section 10.
@@ -334,6 +334,38 @@ booked/occupied/reserved. Bugs found and fixed:
 - **`walk_in_no_overlap` DB constraint applied** (see above), and functionally verified: a deliberate overlapping insert is rejected with `exclusion_violation`.
 - Historical note: the 7 overlapping sessions on hour 9 (2026-07-15) predate the disabled-button guard and are all `ended`. They pollute analytics but are not a live fault.
 
+### Midnight-crossing schedule fix — FIXED (2026-07-29 → 2026-08-01)
+
+Cafés whose closing time is earlier in the day than opening time (e.g. open 18:00, close
+02:00) previously broke slot generation — the whole schedule could vanish (all slots empty)
+depending on the exact minutes involved. Fixed across three stages, all live:
+
+- **Stage 1** (`94b62578`) — new `cafe_hours` table (`cafe_id`, `day_of_week` 0-6, `open_time`,
+  `close_time`), migration backfilling all existing cafes from the legacy columns, and a shared
+  slot-generation helper (`src/app/utils/cafeHours.ts`) implementing the **Option 2 calendar-day
+  model**: a midnight-crossing schedule's post-midnight hours "carry" into the *next* calendar
+  day's bookable slots, so every hour stays 0-23 on some single calendar date and
+  `bookings.booking_date` needed no shape change. `SystemsManager` and `AdvancedBookingInterface`
+  both switched from `{start, end}` hour-range props to a resolved `hoursOfDay: number[]` array.
+- **Stage 1.5** (`16b66e87`, cleanup `eacf9da6`) — the closed (non-bookable) hours between a
+  midnight-crossing schedule's carry block and its own-day block rendered as an invisible gap in
+  the slot-chip grid. Added a shared `ClosedSlotMarker` component + `findHourGaps()` helper so a
+  muted, dashed, lock-icon "Closed 3 AM – 7 AM"-style marker now renders in the gap, identically
+  in both the owner grid (`SystemsManager`) and the customer grid (`AdvancedBookingInterface`).
+  Display-only — verified it doesn't interfere with the consecutive-slot-selection warning.
+- **Stage 2** (`44e139a4`, banner-fix `eb0114dd`) — `CafeEditor`/`RegisterCafe` previously only
+  wrote the legacy `cafes` columns, so any hours edit through the form desynced from
+  `cafe_hours` (the actual incident that surfaced this whole bug). Both forms now load hours
+  from `cafe_hours` (matching what the grid shows) and dual-write both sources on save/register,
+  with a reactive "Closes at X the next day" hint when the times cross midnight. Along the way,
+  found and fixed an unrelated bug where `CafeEditor`'s success banner was invisible because
+  saving triggered `Dashboard`'s full-page loading state, unmounting the component mid-save.
+- **Stage 3** (`e896c5db` + migration `drop_legacy_cafes_hours_columns`) — cleanup. Removed
+  every remaining code reference to the legacy columns (dual-write retired, `CafeEditor`/
+  `RegisterCafe` local form fields renamed to match `cafe_hours`' own column names), then
+  dropped `cafes.opening_time`/`closing_time` from the DB. `cafe_hours` is now the sole hours
+  source, no dual-write anywhere.
+
 ### Known bugs / in progress
 - **KNOWN GAP (from the Gaming Systems merge, Stage 1 — 2026-07-27):** after merging the
   Advanced Booking tab into the date-aware Gaming Systems grid, **cancelled bookings no longer
@@ -359,7 +391,11 @@ booked/occupied/reserved. Bugs found and fixed:
   preserved unchanged as a separate path. Verified by role simulation (all rolled back).
 - **RevenueStats counts cancelled bookings** in Total Revenue, and `upcomingBookings` compares a UTC-parsed `booking_date` against `now`, so today's later bookings are not counted as upcoming.
 - **Exclusion constraint only covers `status = 'confirmed'`** — ending or cancelling a booking releases its slot from the DB-level guard. Low impact today (past hours are filtered from the grid), but relevant if booking editing is added.
-- Mock demo data still ships alongside real data — the homepage lists 7 sample cafés (`mockData.ts`) next to real DB cafés. Decide whether to drop them before real users.
+- ~~Mock demo data ships alongside real data~~ **Stage 1 DONE (2026-07-29, commit `a263e907`).**
+  The homepage (`BrowseCafes`) no longer shows any mock cafés — it's purely Supabase-backed
+  (currently 1 real café, TESTUSER7). `mockData.ts` itself was **not** deleted — it still
+  exports shared types (`GamingSystem`, etc.) and `gameImages` consumed by the DB path.
+  Dropping the file (a further cleanup stage) remains a deferred nice-to-have; see below.
 
 ### Remaining backlog
 **Critical:** none.
@@ -378,7 +414,10 @@ Request Sent") — so all three write paths (owner-cancel, walk-in-conflict, res
 covered; the column is no longer half-populated.
 
 **Important:**
-- Buffer system (Smart Transition Buffer) — see Rule 8; now the most substantive open item
+- Buffer system (Smart Transition Buffer) — see Rule 8; now the most substantive open item.
+  **Before starting: revisit the Option 1 vs Option 2 schedule-display decision — see Section 9,
+  "Schedule model follow-ups."** Switching the day-model after the buffer is built is a costly
+  re-architecture.
 - ~~Date picker for Live Now tab~~ **OBSOLETE (closed 2026-07-28).** Live Now is a
   today-only *live-management* surface by design (Add Hour, End Session, Start Now on
   RESERVED slots when a customer arrives) — not a scheduling browser. Future
@@ -398,7 +437,9 @@ covered; the column is no longer half-populated.
 - Image upload for cafe cover
 - Custom SMTP
 - Mobile responsiveness
-- Remove mock café data path
+- ~~Remove mock café data path~~ **Stage 1 DONE (2026-07-29, `a263e907`)** — mock components/
+  routes deleted, homepage purely Supabase-backed. Stage 2 (drop `mockData.ts` entirely,
+  extract its shared types elsewhere) still deferred.
 
 ---
 
@@ -601,6 +642,28 @@ To close it properly in Phase 2, add `BEFORE INSERT OR UPDATE` triggers on **bot
 that reject a row overlapping the other table on the same `system_id` + date. Do it when
 booking editing/rescheduling lands, since that multiplies the write paths that must stay
 correct. Revisit sooner if any collision is ever observed in production.
+
+### Schedule model follow-ups (from the midnight-crossing fix, 2026-08-01)
+
+**Deferred: Per-day operating hours.** CafeEditor/RegisterCafe currently write one identical
+schedule to all 7 `cafe_hours` day-of-week rows (MVP uniform-schedule assumption).
+`hoursForCalendarDay(dayRow, prevDayRow)` in `cafeHours.ts` already supports true per-day
+schedules — only the form UI (a day-of-week hours picker) and the write path are missing.
+**Trigger:** revisit when a real café owner needs different hours on different days (e.g.
+closed Mondays, shorter weekend hours).
+
+**Deferred: Option 1 (business-day display) revisit.** Option 1 must be revisited **before**
+starting the Smart Transition Buffer (Rule 8) — the buffer's day-model depends on this choice,
+and switching after the buffer exists is a costly re-architecture. The shipped model (Option 2)
+displays a midnight-crossing session split across two calendar dates — e.g. a 6pm–2am session
+shows as hours 18-23 on Monday and hours 0-1 on Tuesday. The rejected alternative, Option 1,
+would instead display the whole session as one unbroken block under a single "business day"
+(Monday night), regardless of the calendar-date boundary. Option 2 shipped for MVP because the
+future buffer computes against a chronologically-ordered per-calendar-date hour array — a
+business-day model would need to re-derive that ordering across a virtual, non-calendar day
+boundary, adding real complexity for a display preference with no confirmed owner demand yet.
+**Trigger:** the start of Buffer work itself — revisit this choice as step one, even without
+owner/customer feedback flagging the calendar-date split as confusing.
 
 ### Security follow-ups from the 2026-07-23 bookings lockdown
 Not blocking, but do before the features that touch them:
