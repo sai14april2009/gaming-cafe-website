@@ -3,6 +3,17 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../supabase";
 import { Button } from "./ui/button";
 import { Store } from "lucide-react";
+import { crossesMidnight } from "../utils/cafeHours";
+
+// "HH:MM" -> "H:MM AM/PM" (leading zero stripped)
+const formatTimeHint = (t: string) => {
+  const [hStr, m] = t.split(":");
+  const h = parseInt(hStr, 10);
+  if (h === 0) return `12:${m} AM`;
+  if (h < 12) return `${h}:${m} AM`;
+  if (h === 12) return `12:${m} PM`;
+  return `${h - 12}:${m} PM`;
+};
 
 interface RegisterCafeProps {
   onRegistered: () => void;
@@ -39,25 +50,45 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
     }
 
     setLoading(true);
-    const { error: insertError } = await supabase.from("cafes").insert({
-      owner_id: user?.id,
-      name: form.name,
-      description: form.description,
-      city: form.city,
-      address: form.address,
-      phone: form.phone,
-      email: form.email,
-      price_per_hour: parseFloat(form.price_per_hour),
-      opening_time: form.opening_time,
-      closing_time: form.closing_time,
-      image_url: form.image_url,
-      is_approved: false,
-    });
+    const { data: newCafe, error: insertError } = await supabase
+      .from("cafes")
+      .insert({
+        owner_id: user?.id,
+        name: form.name,
+        description: form.description,
+        city: form.city,
+        address: form.address,
+        phone: form.phone,
+        email: form.email,
+        price_per_hour: parseFloat(form.price_per_hour),
+        opening_time: form.opening_time,
+        closing_time: form.closing_time,
+        image_url: form.image_url,
+        is_approved: false,
+      })
+      .select("id")
+      .single();
 
     if (insertError) {
       setError(insertError.message);
       setLoading(false);
       return;
+    }
+
+    // Seed cafe_hours with 7 uniform rows so the grid reads the same schedule
+    // the owner just entered. If this fails the cafe still exists and reads
+    // fall back to the legacy columns; the next CafeEditor save will backfill.
+    if (newCafe?.id && form.opening_time && form.closing_time) {
+      const rows = Array.from({ length: 7 }, (_, i) => ({
+        cafe_id: newCafe.id,
+        day_of_week: i,
+        open_time: form.opening_time,
+        close_time: form.closing_time,
+      }));
+      const { error: hoursError } = await supabase.from("cafe_hours").insert(rows);
+      if (hoursError) {
+        console.warn("cafe_hours seed failed on register:", hoursError.message);
+      }
     }
 
     onRegistered();
@@ -177,6 +208,9 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
                 onChange={(e) => handleChange("closing_time", e.target.value)}
                 className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
               />
+              {form.opening_time && form.closing_time && crossesMidnight(form.opening_time, form.closing_time) && (
+                <p className="text-xs text-gray-500 mt-1">Closes at {formatTimeHint(form.closing_time)} the next day</p>
+              )}
             </div>
           </div>
 
