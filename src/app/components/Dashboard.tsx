@@ -32,6 +32,18 @@ export function Dashboard() {
     setLoading(false);
   };
 
+  // Same fetch, but without the full-page loading state — used to refresh cafe
+  // data after an in-place edit (e.g. CafeEditor save) so the editing component
+  // doesn't get unmounted mid-save and lose its own local state (success banner).
+  const refreshCafe = async () => {
+    const { data } = await supabase
+      .from("cafes")
+      .select("*")
+      .eq("owner_id", user?.id)
+      .maybeSingle();
+    setCafe(data);
+  };
+
   if (authLoading || loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
@@ -84,7 +96,7 @@ export function Dashboard() {
         </div>
 
         {activeTab === "overview" && <RevenueStats cafeId={cafe.id} />}
-        {activeTab === "details" && <CafeEditor cafe={cafe} onUpdated={fetchCafe} />}
+        {activeTab === "details" && <CafeEditor cafe={cafe} onUpdated={refreshCafe} />}
         {activeTab === "systems" && (
           <SystemsManager
             cafeId={cafe.id}
