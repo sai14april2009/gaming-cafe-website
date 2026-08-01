@@ -19,8 +19,6 @@ interface DbCafe {
   phone: string;
   email: string;
   price_per_hour: number;
-  opening_time: string;
-  closing_time: string;
   image_url: string | null;
   is_approved: boolean;
   amenities: string[];
@@ -118,13 +116,10 @@ export function DbCafeDetails() {
   );
 
   // Bookable full-hour slot starts, resolved from cafe_hours via the calendar-day model
-  // (handles midnight-crossing schedules). Falls back to the legacy cafes columns while the
-  // cafe_hours row loads, then to a sane default. See src/app/utils/cafeHours.ts.
+  // (handles midnight-crossing schedules). Falls back to a sane default while the
+  // cafe_hours row loads (or if none exists yet). See src/app/utils/cafeHours.ts.
   const displaySchedule: CafeHoursSchedule =
-    hoursRow ??
-    (cafe?.opening_time && cafe?.closing_time
-      ? { open_time: cafe.opening_time, close_time: cafe.closing_time }
-      : { open_time: "08:00", close_time: "22:00" });
+    hoursRow ?? { open_time: "08:00", close_time: "22:00" };
   const hoursOfDay = hoursForUniformSchedule(displaySchedule);
 
   const handleBookNow = () => {

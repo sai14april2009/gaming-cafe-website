@@ -41,8 +41,8 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
     phone: cafe.phone || "",
     email: cafe.email || "",
     price_per_hour: cafe.price_per_hour?.toString() || "",
-    opening_time: cafe.opening_time || "",
-    closing_time: cafe.closing_time || "",
+    open_time: "",
+    close_time: "",
     image_url: cafe.image_url || "",
   });
   const [amenities, setAmenities] = useState<string[]>(cafe.amenities || []);
@@ -83,8 +83,8 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
           const trim = (t: string) => (t.length > 5 ? t.slice(0, 5) : t);
           setForm((prev) => ({
             ...prev,
-            opening_time: trim(data.open_time),
-            closing_time: trim(data.close_time),
+            open_time: trim(data.open_time),
+            close_time: trim(data.close_time),
           }));
         }
       });
@@ -169,8 +169,6 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
         phone: form.phone,
         email: form.email,
         price_per_hour: parseFloat(form.price_per_hour),
-        opening_time: form.opening_time,
-        closing_time: form.closing_time,
         image_url: form.image_url,
         amenities,
         games,
@@ -182,16 +180,17 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
       return;
     }
 
-    // Keep cafe_hours in sync with the legacy columns. MVP writes 7 identical
-    // rows (uniform schedule). Upsert is idempotent, so retrying after a failure
-    // is safe. Skipped when either time is blank — cafe_hours has NOT NULL on
-    // both, and the grid falls back to legacy/defaults.
-    if (form.opening_time && form.closing_time) {
+    // cafe_hours is the sole source of truth for schedule data (the legacy
+    // per-cafe time columns were retired in Stage 3 of the midnight-crossing
+    // fix). MVP writes 7 identical rows (uniform schedule). Upsert is
+    // idempotent, so retrying after a failure is safe. Skipped when either
+    // time is blank — cafe_hours has NOT NULL on both.
+    if (form.open_time && form.close_time) {
       const rows = Array.from({ length: 7 }, (_, i) => ({
         cafe_id: cafe.id,
         day_of_week: i,
-        open_time: form.opening_time,
-        close_time: form.closing_time,
+        open_time: form.open_time,
+        close_time: form.close_time,
       }));
       const { error: hoursError } = await supabase
         .from("cafe_hours")
@@ -262,15 +261,15 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium text-gray-700 mb-1 block">Opening Time</label>
-          <input type="time" value={form.opening_time} onChange={(e) => handleChange("opening_time", e.target.value)}
+          <input type="time" value={form.open_time} onChange={(e) => handleChange("open_time", e.target.value)}
             className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" />
         </div>
         <div>
           <label className="text-sm font-medium text-gray-700 mb-1 block">Closing Time</label>
-          <input type="time" value={form.closing_time} onChange={(e) => handleChange("closing_time", e.target.value)}
+          <input type="time" value={form.close_time} onChange={(e) => handleChange("close_time", e.target.value)}
             className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" />
-          {form.opening_time && form.closing_time && crossesMidnight(form.opening_time, form.closing_time) && (
-            <p className="text-xs text-gray-500 mt-1">Closes at {formatTimeHint(form.closing_time)} the next day</p>
+          {form.open_time && form.close_time && crossesMidnight(form.open_time, form.close_time) && (
+            <p className="text-xs text-gray-500 mt-1">Closes at {formatTimeHint(form.close_time)} the next day</p>
           )}
         </div>
       </div>

@@ -20,8 +20,6 @@ interface AdminCafe {
   phone: string;
   email: string;
   price_per_hour: number;
-  opening_time: string;
-  closing_time: string;
   image_url: string | null;
   is_approved: boolean;
   owner_id: string;

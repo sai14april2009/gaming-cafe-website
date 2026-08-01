@@ -29,8 +29,8 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
     phone: "",
     email: profile?.email || "",
     price_per_hour: "",
-    opening_time: "",
-    closing_time: "",
+    open_time: "",
+    close_time: "",
     image_url: "",
   });
   const [loading, setLoading] = useState(false);
@@ -61,8 +61,6 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
         phone: form.phone,
         email: form.email,
         price_per_hour: parseFloat(form.price_per_hour),
-        opening_time: form.opening_time,
-        closing_time: form.closing_time,
         image_url: form.image_url,
         is_approved: false,
       })
@@ -76,14 +74,14 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
     }
 
     // Seed cafe_hours with 7 uniform rows so the grid reads the same schedule
-    // the owner just entered. If this fails the cafe still exists and reads
-    // fall back to the legacy columns; the next CafeEditor save will backfill.
-    if (newCafe?.id && form.opening_time && form.closing_time) {
+    // the owner just entered. If this fails the cafe still exists but has no
+    // schedule; the next CafeEditor save will backfill it.
+    if (newCafe?.id && form.open_time && form.close_time) {
       const rows = Array.from({ length: 7 }, (_, i) => ({
         cafe_id: newCafe.id,
         day_of_week: i,
-        open_time: form.opening_time,
-        close_time: form.closing_time,
+        open_time: form.open_time,
+        close_time: form.close_time,
       }));
       const { error: hoursError } = await supabase.from("cafe_hours").insert(rows);
       if (hoursError) {
@@ -195,8 +193,8 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
               <label className="text-sm font-medium text-gray-700 mb-1 block">Opening Time</label>
               <input
                 type="time"
-                value={form.opening_time}
-                onChange={(e) => handleChange("opening_time", e.target.value)}
+                value={form.open_time}
+                onChange={(e) => handleChange("open_time", e.target.value)}
                 className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
               />
             </div>
@@ -204,12 +202,12 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
               <label className="text-sm font-medium text-gray-700 mb-1 block">Closing Time</label>
               <input
                 type="time"
-                value={form.closing_time}
-                onChange={(e) => handleChange("closing_time", e.target.value)}
+                value={form.close_time}
+                onChange={(e) => handleChange("close_time", e.target.value)}
                 className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
               />
-              {form.opening_time && form.closing_time && crossesMidnight(form.opening_time, form.closing_time) && (
-                <p className="text-xs text-gray-500 mt-1">Closes at {formatTimeHint(form.closing_time)} the next day</p>
+              {form.open_time && form.close_time && crossesMidnight(form.open_time, form.close_time) && (
+                <p className="text-xs text-gray-500 mt-1">Closes at {formatTimeHint(form.close_time)} the next day</p>
               )}
             </div>
           </div>
