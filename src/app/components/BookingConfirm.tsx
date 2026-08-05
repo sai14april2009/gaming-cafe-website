@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { GamingSystem } from "../data/mockData";
+import { GamingSystem } from "../types";
 import { supabase } from "../../supabase";
 import { useAuth } from "../context/AuthContext";
 import { CheckCircle, User, Phone, Monitor, Clock, Calendar } from "lucide-react";

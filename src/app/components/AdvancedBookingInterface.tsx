@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from "react";
 import { Monitor, Cpu, MemoryStick } from "lucide-react";
-import { GamingSystem } from "../data/mockData";
+import { GamingSystem } from "../types";
 import { Button } from "./ui/button";
 import { supabase } from "../../supabase";
 import { toLocalDateString } from "../utils/date";

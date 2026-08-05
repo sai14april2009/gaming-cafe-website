@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router";
 import { MapPin, Clock, Phone, Mail, ArrowLeft, Star, Coffee, Gamepad2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { supabase } from "../../supabase";
-import { gameImages } from "../data/mockData";
+import { gameImages } from "../data/gameImages";
 import { hoursForUniformSchedule, CafeHoursSchedule } from "../utils/cafeHours";
 import { AdvancedBookingInterface } from "./AdvancedBookingInterface";
 import { useNavigate } from "react-router";
