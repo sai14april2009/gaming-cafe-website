@@ -393,9 +393,14 @@ depending on the exact minutes involved. Fixed across three stages, all live:
 - **Exclusion constraint only covers `status = 'confirmed'`** — ending or cancelling a booking releases its slot from the DB-level guard. Low impact today (past hours are filtered from the grid), but relevant if booking editing is added.
 - ~~Mock demo data ships alongside real data~~ **Stage 1 DONE (2026-07-29, commit `a263e907`).**
   The homepage (`BrowseCafes`) no longer shows any mock cafés — it's purely Supabase-backed
-  (currently 1 real café, TESTUSER7). `mockData.ts` itself was **not** deleted — it still
-  exports shared types (`GamingSystem`, etc.) and `gameImages` consumed by the DB path.
-  Dropping the file (a further cleanup stage) remains a deferred nice-to-have; see below.
+  (currently 1 real café, TESTUSER7). `mockData.ts` itself was **not** deleted in Stage 1 — it
+  still exported shared types (`GamingSystem`, etc.) and `gameImages` consumed by the DB path.
+  **Stage 2 (2026-08-06, commit `60e3ebdd`) finished the job:** `GamingSystem`/`BookingStatus`/
+  `TimeSlot` moved verbatim into `src/app/types.ts`, `gameImages` moved verbatim into
+  `src/app/data/gameImages.ts`, all 3 importing files repointed, and `mockData.ts` deleted
+  entirely (486 lines, including the dead `allGames`/`hardwareOptions` exports and the demo
+  `gamingCafes`/`generateGamingSystems` scaffolding). No mock data path remains anywhere in
+  the codebase.
 
 ### Remaining backlog
 **Critical:** none.
@@ -414,7 +419,13 @@ Request Sent") — so all three write paths (owner-cancel, walk-in-conflict, res
 covered; the column is no longer half-populated.
 
 **Important:**
-- **Mock-removal Stage 2 (type extraction) — not started.** Next session: extract `GamingSystem` type + `gameImages` lookup out of `mockData.ts` into proper homes (`src/app/types.ts` + `src/app/data/gameData.ts` or similar), update all imports, then delete `mockData.ts`. The dead exports (`allGames`, `hardwareOptions`) get deleted alongside — their only consumers were the Search/Filter pages removed in mock-removal Stage 1 (`a263e907`).
+- ~~Mock-removal Stage 2 (type extraction)~~ **DONE 2026-08-06** (commit `60e3ebdd`) —
+  `GamingSystem`/`BookingStatus`/`TimeSlot` extracted verbatim into `src/app/types.ts`,
+  `gameImages` extracted verbatim into `src/app/data/gameImages.ts`, all 3 consumer imports
+  (`AdvancedBookingInterface.tsx`, `BookingConfirm.tsx`, `DbCafeDetails.tsx`) repointed,
+  `mockData.ts` deleted entirely (486 lines, including dead `allGames`/`hardwareOptions`
+  and the demo `gamingCafes`/`generateGamingSystems` scaffolding). Verified with `npm run
+  build` before commit.
 - Buffer system (Smart Transition Buffer) — see Rule 8; now the most substantive open item.
   **Before starting: revisit the Option 1 vs Option 2 schedule-display decision — see Section 9,
   "Schedule model follow-ups."** Switching the day-model after the buffer is built is a costly
@@ -439,8 +450,18 @@ covered; the column is no longer half-populated.
 - Image upload for cafe cover
 - Custom SMTP
 - Mobile responsiveness
-- ~~Remove mock café data path~~ **Stage 1 DONE (2026-07-29, `a263e907`)** — mock components/
-  routes deleted, homepage purely Supabase-backed. **Stage 2** (type extraction + `mockData.ts` deletion) promoted to **Important** backlog above.
+- ~~Remove mock café data path~~ **DONE — Stage 1 (2026-07-29, `a263e907`)** — mock components/
+  routes deleted, homepage purely Supabase-backed. **Stage 2 (2026-08-06, `60e3ebdd`)** —
+  `mockData.ts` deleted entirely; see the Important backlog entry above.
+- **Trim unused `GamingSystem` fields** — `bookingStatus`/`timeSlots` on `src/app/types.ts`'s
+  `GamingSystem` are dead weight carried over verbatim from the mock-removal Stage 2 move
+  (neither `AdvancedBookingInterface` nor `BookingConfirm` reads them). Deliberately left
+  untrimmed to keep that pass a pure move, not a refactor. Small 5-min commit whenever.
+- **Replace hardcoded `gameImages` map with live cover art** — `src/app/data/gameImages.ts`
+  is a static game-name → Unsplash-stock-photo lookup; could instead query the existing
+  Steam search proxy (`api/steam-search.ts`) for real cover art per game. **Trigger:** a real
+  café complains thumbnails don't match the actual games, OR the Steam proxy is being
+  touched for another reason anyway.
 
 ---
 
