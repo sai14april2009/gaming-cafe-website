@@ -421,9 +421,6 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
     if (booking) setCancelBooking(booking);
   };
 
-  // Identical behavior to BookingsList.handleCancel (Advanced Booking tab): same
-  // confirm text, same write, same error/0-rows-RLS handling. Kept as a replica so
-  // the History path in BookingsList stays provably untouched.
   const handleCancelBooking = async (booking: OnlineBooking) => {
     const name = booking.players?.[0]?.name || "the customer";
     if (
