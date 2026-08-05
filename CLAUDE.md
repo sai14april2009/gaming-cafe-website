@@ -414,6 +414,7 @@ Request Sent") — so all three write paths (owner-cancel, walk-in-conflict, res
 covered; the column is no longer half-populated.
 
 **Important:**
+- **Mock-removal Stage 2 (type extraction) — not started.** Next session: extract `GamingSystem` type + `gameImages` lookup out of `mockData.ts` into proper homes (`src/app/types.ts` + `src/app/data/gameData.ts` or similar), update all imports, then delete `mockData.ts`. The dead exports (`allGames`, `hardwareOptions`) get deleted alongside — their only consumers were the Search/Filter pages removed in mock-removal Stage 1 (`a263e907`).
 - Buffer system (Smart Transition Buffer) — see Rule 8; now the most substantive open item.
   **Before starting: revisit the Option 1 vs Option 2 schedule-display decision — see Section 9,
   "Schedule model follow-ups."** Switching the day-model after the buffer is built is a costly
@@ -427,6 +428,7 @@ covered; the column is no longer half-populated.
   as a paired gap with Gaming Systems; the pair no longer applies because the two
   tabs serve different purposes by design (availability/booking view vs
   live-management view). Do not reopen without a concrete owner-side use case.
+- ~~handleCancel duplication (cancel-logic replica across BookingsList + SystemsManager)~~ **OBSOLETE (resolved 2026-08-05, commits `2e1f5d02` + `ffdccc0e`).** When the Gaming Systems merge absorbed the Advanced Booking tab's cancel flow into `SystemsManager.handleCancelBooking`, the old `BookingsList.handleCancel` was kept as a deliberate replica so the history tab stayed untouched. `2e1f5d02` later deleted the replica entirely (the whole advanced-mode branch from `BookingsList`), collapsing back to the single copy in `SystemsManager`. A stale comment in `SystemsManager.tsx` that still referenced the deleted replica was cleaned up in `ffdccc0e` (2026-08-05). No duplicate exists; no action needed.
 - ~~My Bookings page for customers~~ **DONE 2026-07-24** (commit `df6f807e` — see `MyBookings.tsx`)
 - ~~Edit/delete own review~~ **DONE 2026-07-25** (commit `5033ce8b` + migration `reviews_update_own_policy`)
 - ~~Review section overhaul (verified-booker + categories + threaded replies + owner badge)~~ **DONE 2026-07-26** — migrations `review_overhaul_schema` + `review_overhaul_policies`, `DbReviewsSection.tsx` rewrite. See Section 10.
@@ -438,8 +440,7 @@ covered; the column is no longer half-populated.
 - Custom SMTP
 - Mobile responsiveness
 - ~~Remove mock café data path~~ **Stage 1 DONE (2026-07-29, `a263e907`)** — mock components/
-  routes deleted, homepage purely Supabase-backed. Stage 2 (drop `mockData.ts` entirely,
-  extract its shared types elsewhere) still deferred.
+  routes deleted, homepage purely Supabase-backed. **Stage 2** (type extraction + `mockData.ts` deletion) promoted to **Important** backlog above.
 
 ---
 
