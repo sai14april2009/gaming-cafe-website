@@ -427,9 +427,9 @@ covered; the column is no longer half-populated.
   and the demo `gamingCafes`/`generateGamingSystems` scaffolding). Verified with `npm run
   build` before commit.
 - Buffer system (Smart Transition Buffer) — see Rule 8; now the most substantive open item.
-  **Before starting: revisit the Option 1 vs Option 2 schedule-display decision — see Section 9,
-  "Schedule model follow-ups."** Switching the day-model after the buffer is built is a costly
-  re-architecture.
+  **UNBLOCKED (2026-08-06)** — the Option 1 vs Option 2 schedule-display gate is resolved
+  (Option 3 / session-first adopted, see Section 9 "Schedule model follow-ups"). No day-model
+  decision is needed before starting Buffer work.
 - ~~Date picker for Live Now tab~~ **OBSOLETE (closed 2026-07-28).** Live Now is a
   today-only *live-management* surface by design (Add Hour, End Session, Start Now on
   RESERVED slots when a customer arrives) — not a scheduling browser. Future
@@ -453,6 +453,18 @@ covered; the column is no longer half-populated.
 - ~~Remove mock café data path~~ **DONE — Stage 1 (2026-07-29, `a263e907`)** — mock components/
   routes deleted, homepage purely Supabase-backed. **Stage 2 (2026-08-06, `60e3ebdd`)** —
   `mockData.ts` deleted entirely; see the Important backlog entry above.
+- **Per-cafe configurable revenue-day boundary** (Oracle Simphony pattern) — when owner
+  revenue-by-day reports are built, expose the day boundary as an owner setting during cafe
+  onboarding. Default to calendar-day (12 AM–12 AM); let owners of late-night cafes shift it
+  (e.g. 6 AM–6 AM so a Friday-night session that runs past midnight counts as Friday revenue).
+  Companion to the Option 3 day-model decision — see Section 9, "Schedule model follow-ups."
+  **Trigger:** when owner revenue-by-day reports are being designed/built.
+- **Migrate split date/time columns into unified timestamps** — `bookings.booking_date` +
+  `start_time`/`end_time` (and the equivalents on `walk_in_sessions`/`repair_slots`) into
+  combined `start_at`/`end_at` timestamp columns. Companion to the Option 3 day-model
+  decision — see Section 9, "Schedule model follow-ups." **Trigger:** when a feature (likely
+  the Buffer system or cross-midnight analytics) hits a real query-complexity wall from the
+  split representation. Not speculative — wait for the actual pain point.
 - **Trim unused `GamingSystem` fields** — `bookingStatus`/`timeSlots` on `src/app/types.ts`'s
   `GamingSystem` are dead weight carried over verbatim from the mock-removal Stage 2 move
   (neither `AdvancedBookingInterface` nor `BookingConfirm` reads them). Deliberately left
@@ -674,18 +686,64 @@ schedules — only the form UI (a day-of-week hours picker) and the write path a
 **Trigger:** revisit when a real café owner needs different hours on different days (e.g.
 closed Mondays, shorter weekend hours).
 
-**Deferred: Option 1 (business-day display) revisit.** Option 1 must be revisited **before**
-starting the Smart Transition Buffer (Rule 8) — the buffer's day-model depends on this choice,
-and switching after the buffer exists is a costly re-architecture. The shipped model (Option 2)
-displays a midnight-crossing session split across two calendar dates — e.g. a 6pm–2am session
-shows as hours 18-23 on Monday and hours 0-1 on Tuesday. The rejected alternative, Option 1,
-would instead display the whole session as one unbroken block under a single "business day"
-(Monday night), regardless of the calendar-date boundary. Option 2 shipped for MVP because the
-future buffer computes against a chronologically-ordered per-calendar-date hour array — a
-business-day model would need to re-derive that ordering across a virtual, non-calendar day
-boundary, adding real complexity for a display preference with no confirmed owner demand yet.
-**Trigger:** the start of Buffer work itself — revisit this choice as step one, even without
-owner/customer feedback flagging the calendar-date split as confusing.
+~~**Deferred: Option 1 (business-day display) revisit.**~~ **RESOLVED 2026-08-06 — Option 3
+adopted.** The original gate required revisiting Option 1 vs Option 2 **before** starting the
+Smart Transition Buffer (Rule 8), on the theory that the buffer's day-model depended on the
+choice and switching after the buffer existed would be a costly re-architecture. Research below
+overturned that premise: neither option is actually the right frame. **The Buffer is now
+unblocked — no day decision is needed for it.**
+
+**Research findings from Aug 6 session** (external systems surveyed to inform the Option 1
+vs Option 2 decision):
+
+1. **Oracle Simphony** (enterprise hospitality POS) implements Option 1 as a **per-venue
+   operator toggle** ("Act. Date is Book Date"), not a global choice. Also supports multiple
+   book periods within one day for venues with day/night dual operation (e.g. a cafe running
+   6:30 AM–10 PM plus a discotheque 11 PM–3 AM on the same premises).
+2. **iCafeCloud** (Korean PC bang management software — the closest product analog to
+   GameOrbit) uses **neither** Option 1 nor Option 2. Its model is **session-first**: no
+   business-day concept at all. Sessions carry their own start/end timestamps and rate cards
+   (e.g. an overnight rate window), and reports aggregate sessions by whatever window the
+   operator queries — the day boundary is never a first-class concept.
+3. **Korean PC bangs** (customer-facing) mirror this — there's no "day" in the UX at all.
+   Customers buy time or show up, sessions run continuously, and overnight rates are just a
+   time-of-day rate variation. Consistent with the 24/7 operating norm in that market.
+4. **Nightclub platforms** (RealTime Reservation, Clubtech, SevenRooms, TablelistPro)
+   sidestep the problem entirely by anchoring bookings to **events**, not dates — day is
+   derived metadata, not the UX primitive.
+5. **Restaurant platforms** (OpenTable/Resy/SevenRooms restaurant flow) are calendar-day,
+   but they don't face the midnight-crossing problem in the first place — **not real
+   evidence for Option 2**, just a superficially similar shipped choice.
+
+**DECISION (Aug 6 2026): Adopted Option 3 — session-first, day-agnostic.**
+
+Rationale:
+- Bookings are `(system, start_time, end_time)` on a continuous timeline. "Day" is not a data
+  primitive.
+- Data model is *conceptually* continuous-timeline already (bookings have a date + start/end
+  times that uniquely identify a moment). No refactor is required for Option 3 — Option 3 is a
+  semantic choice about how features interpret those timestamps, not a storage choice. If a
+  future feature genuinely needs single-column timestamp math (e.g. easier cross-midnight range
+  queries for the Buffer system), migrating `booking_date` + `start_time` into a combined
+  `start_at` timestamp column is a straightforward additive migration — flagged for revisit
+  if/when that need surfaces, not required now.
+- "Day" only enters at specific feature layers, not the core model:
+  * **Booking picker UI** — the current 7-day picker is a display convention, not a data-model
+    choice. Keep as-is.
+  * **Owner revenue reports** — the only place a day boundary genuinely matters. Deferred until
+    owner-facing revenue-by-day reports are built. When built, make the boundary a **per-cafe
+    operator setting** (the Oracle Simphony pattern) rather than a platform-wide policy — see
+    the new backlog item below.
+  * **Buffer system, min-hours-before-booking, session adjacency** — pure timestamp math, no
+    day concept needed.
+- Handles 24-hour cafes for free — critical for the Korea/China expansion (Section 1), where
+  24/7 is the operating norm.
+- Matches the closest product analog (iCafeCloud and actual PC bang billing engines) — proven
+  in production for gaming cafes specifically, not just adjacent industries.
+
+**Open follow-up (not blocking):** a deeper look at how iCafeCloud specifically handles
+**reservations/pre-bookings**, not just walk-in sessions — that's the closest real-world
+match to GameOrbit's actual shape (online booking + walk-in, not walk-in-only).
 
 ### Security follow-ups from the 2026-07-23 bookings lockdown
 Not blocking, but do before the features that touch them:
@@ -888,5 +946,15 @@ persisted afterward.
 - **Helpful votes, sort/filter, keyword chips** — rejected for now. All require
   review volume (>20/cafe) to earn their keep. Revisit post-launch.
 - **Report/flag abuse** — needed before real scale, not before.
+
+---
+
+## 11. KEY LEARNINGS & PRINCIPLES
+
+- **Day is not a data primitive** — bookings are timestamps on a continuous timeline.
+  Per-feature layers add day semantics only where genuinely needed (owner reports).
+  Decision recorded Aug 6 2026 after researching Oracle Simphony, iCafeCloud, Korean PC
+  bang billing, and nightclub reservation platforms. See Section 9, "Schedule model
+  follow-ups" for the full research and the Option 3 (session-first) decision.
 
 
