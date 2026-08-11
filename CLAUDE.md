@@ -112,7 +112,7 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 ## 2. HARD PRODUCT RULES (from café owner validation — never compromise on these)
 
 1. **Zero tolerance for double-booking.** Two people must never be able to book the same system at the same time.
-2. **Buffer time between sessions.** See Rule 8 for full Smart Transition Buffer design.
+2. ~~**Buffer time between sessions.**~~ **CANCELLED (2026-08-11) — see Rule 8.** Operational problem, not a software problem. Investigation findings preserved in chat history.
 3. **Booking conflicts must be visually impossible to create** — booked slots show as unavailable in real time.
 4. **Group booking constraint algorithm** (implemented in AdvancedBookingInterface.tsx):
    - Party size X, each wanting Y hours → must select exactly X × Y total slots
@@ -121,20 +121,16 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 5. **Owners need full visibility into bookings**: name, phone, system, time — so they can call the customer if needed.
 6. **Owners need manual control over system availability** — mark under repair, start walk-in sessions, end sessions.
 7. **All time slots are 1-hour boundaries. No exceptions.** Whether online booking or walk-in, the system always works in full hour slots. A walk-in starting at 9:18 AM on the 9:00 AM slot plays until 10:00 AM (end of slot), not until 10:18 AM.
-8. **Smart Transition Buffer ("Slot Compression") — finalized design:**
-   - Buffer is NEVER carved from the current customer's session
-   - Buffer only activates when the NEXT consecutive slot is already booked in advance
-   - If next slot is empty, buffer is irrelevant — owner has natural gap
-   - Last-minute bookings are BLOCKED within (buffer + 5 minutes) of an ongoing session
-   - Current customer gets advance notification if next slot is booked
-   - Flexible buffer with minimum booking restrictions:
-     * 10 min buffer → minimum 1 hour booking
-     * 15 min buffer → minimum 2 hour booking
-     * 20 min buffer → minimum 3 hour booking
-     * 25 min buffer → minimum 4 hour booking
-     * Maximum buffer = 25 minutes
-   - Owner sets buffer via timer UI in dashboard (steps of 5 min, min 10, max 25)
-   - Status: DESIGNED, NOT YET BUILT
+8. ~~**Smart Transition Buffer ("Slot Compression")**~~ **OBSOLETE — CANCELLED (2026-08-11).**
+   After full investigation (booking creation flow, slot availability logic, schema, edge cases),
+   concluded the buffer solves a narrow edge case (last-second bookings leaving zero staff prep
+   time) with disproportionate complexity. On fully-packed days the buffer doesn't create actual
+   cleanup gaps — staff turnover happens regardless, same as restaurants clearing tables between
+   customers. Physical turnover is an operational problem, not a software problem. Investigation
+   findings (6-section report covering schema, flow, edge cases, schema impact) preserved in chat
+   history for reference if ever revisited. The design spec below is kept for reference only.
+   *(Original design: buffer carved AFTER session, activates only when next slot is pre-booked,
+   10–25 min flexible duration tied to session length, owner-configurable via dashboard timer.)*
 9. **Walk-in cutoff rule:** If current time is within 20 minutes of a slot's end AND the next slot is already booked online — owner CANNOT start a walk-in on that slot. Hard block with clear error message. If next slot is free, show a soft warning only (owner can proceed).
 10. **Walk-in consecutive slots only:** Owner can only select consecutive time slots for a walk-in. Non-consecutive selection shows warning: "Please select only consecutive slots."
 11. **Proportional walk-in pricing:** Walk-in customers are charged only for the time they actually play within their slots. Formula: minutes_played = (end_of_slot_in_minutes) - (actual_start_minute). Price = (minutes_played / 60) × hourly_rate. First slot is proportional, subsequent slots are full price.
@@ -170,7 +166,7 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - 🔲 Photos in reviews (deferred — needs Supabase Storage)
 - ✅ RevenueStats — excludes cancelled from revenue totals; fixed UTC upcoming-count bug; shows cancelled in recent list (2026-07-24)
 - 🔲 Image upload for cafe cover (currently URL paste only)
-- 🔲 Buffer system implementation (Smart Transition Buffer)
+- ~~🔲 Buffer system implementation (Smart Transition Buffer)~~ **CANCELLED (2026-08-11) — see Rule 8**
 - 🔲 Filter in booking interface (PC/Console, GPU) — Phase 2
 - 🔲 Filter in Gaming Systems tab (Free now / Occupied now / Free at X time) — Phase 2
 - 🔲 Hardware autocomplete + case-insensitive FilterByHardware
@@ -426,10 +422,11 @@ covered; the column is no longer half-populated.
   `mockData.ts` deleted entirely (486 lines, including dead `allGames`/`hardwareOptions`
   and the demo `gamingCafes`/`generateGamingSystems` scaffolding). Verified with `npm run
   build` before commit.
-- Buffer system (Smart Transition Buffer) — see Rule 8; now the most substantive open item.
-  **UNBLOCKED (2026-08-06)** — the Option 1 vs Option 2 schedule-display gate is resolved
-  (Option 3 / session-first adopted, see Section 9 "Schedule model follow-ups"). No day-model
-  decision is needed before starting Buffer work.
+- ~~Buffer system (Smart Transition Buffer)~~ **CANCELLED (2026-08-11).** After full
+  investigation concluded the problem is operational, not software. Cafes handle physical
+  station turnover the same way restaurants clear tables — booking software cannot solve it.
+  Investigation findings (schema, booking flow, edge cases, schema impact assessment) preserved
+  in chat history. See Rule 8 for full cancellation note.
 - ~~Date picker for Live Now tab~~ **OBSOLETE (closed 2026-07-28).** Live Now is a
   today-only *live-management* surface by design (Add Hour, End Session, Start Now on
   RESERVED slots when a customer arrives) — not a scheduling browser. Future
@@ -660,8 +657,8 @@ For large cafés with 30-50 systems.
 ### Pre-set walk-in only slots
 Based on SevenRooms pattern: café owners can designate specific systems as "walk-in only" during peak hours. Online customers cannot book those systems during those times. Protects walk-in revenue during busy periods.
 
-### Per-system buffer override
-Currently buffer is one setting for the whole café. Phase 2: each system can have its own buffer time (e.g. VR stations need 30 min, regular PCs need 10 min).
+### ~~Per-system buffer override~~ OBSOLETE
+~~Currently buffer is one setting for the whole café. Phase 2: each system can have its own buffer time (e.g. VR stations need 30 min, regular PCs need 10 min).~~ Buffer system cancelled 2026-08-11 — see Rule 8.
 
 ### DB hardening: cross-table walk-in ↔ booking trigger
 **Decision 2026-07-22: deferred to Phase 2 — app-level checks are sufficient for Phase 1.**
@@ -690,8 +687,8 @@ closed Mondays, shorter weekend hours).
 adopted.** The original gate required revisiting Option 1 vs Option 2 **before** starting the
 Smart Transition Buffer (Rule 8), on the theory that the buffer's day-model depended on the
 choice and switching after the buffer existed would be a costly re-architecture. Research below
-overturned that premise: neither option is actually the right frame. **The Buffer is now
-unblocked — no day decision is needed for it.**
+overturned that premise: neither option is actually the right frame. *(The Buffer was
+subsequently investigated fully and cancelled 2026-08-11 — see Rule 8.)*
 
 **Research findings from Aug 6 session** (external systems surveyed to inform the Option 1
 vs Option 2 decision):
@@ -724,7 +721,7 @@ Rationale:
   times that uniquely identify a moment). No refactor is required for Option 3 — Option 3 is a
   semantic choice about how features interpret those timestamps, not a storage choice. If a
   future feature genuinely needs single-column timestamp math (e.g. easier cross-midnight range
-  queries for the Buffer system), migrating `booking_date` + `start_time` into a combined
+  queries for cross-midnight analytics), migrating `booking_date` + `start_time` into a combined
   `start_at` timestamp column is a straightforward additive migration — flagged for revisit
   if/when that need surfaces, not required now.
 - "Day" only enters at specific feature layers, not the core model:
@@ -734,8 +731,7 @@ Rationale:
     owner-facing revenue-by-day reports are built. When built, make the boundary a **per-cafe
     operator setting** (the Oracle Simphony pattern) rather than a platform-wide policy — see
     the new backlog item below.
-  * **Buffer system, min-hours-before-booking, session adjacency** — pure timestamp math, no
-    day concept needed.
+  * **Session adjacency, min-hours-before-booking** — pure timestamp math, no day concept needed.
 - Handles 24-hour cafes for free — critical for the Korea/China expansion (Section 1), where
   24/7 is the operating norm.
 - Matches the closest product analog (iCafeCloud and actual PC bang billing engines) — proven
