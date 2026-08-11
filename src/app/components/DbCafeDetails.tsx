@@ -109,8 +109,6 @@ export function DbCafeDetails() {
         console: s.console || undefined,
         monitor: undefined,
         storage: undefined,
-        bookingStatus: { isBooked: false },
-        timeSlots: [], // AdvancedBookingInterface generates its own from hoursOfDay
       })),
     [systems]
   );
