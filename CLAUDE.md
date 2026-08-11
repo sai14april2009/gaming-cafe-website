@@ -465,10 +465,10 @@ covered; the column is no longer half-populated.
   decision — see Section 9, "Schedule model follow-ups." **Trigger:** when a feature (likely
   the Buffer system or cross-midnight analytics) hits a real query-complexity wall from the
   split representation. Not speculative — wait for the actual pain point.
-- **Trim unused `GamingSystem` fields** — `bookingStatus`/`timeSlots` on `src/app/types.ts`'s
-  `GamingSystem` are dead weight carried over verbatim from the mock-removal Stage 2 move
-  (neither `AdvancedBookingInterface` nor `BookingConfirm` reads them). Deliberately left
-  untrimmed to keep that pass a pure move, not a refactor. Small 5-min commit whenever.
+- ~~**Trim unused `GamingSystem` fields**~~ **DONE (e4497652)** — removed `bookingStatus`/`timeSlots`
+  from `GamingSystem` in `src/app/types.ts`, deleted the supporting `BookingStatus` and `TimeSlot`
+  types, and removed the two placeholder lines from `DbCafeDetails.tsx`'s `convertedSystems` useMemo.
+  15 lines deleted, 0 added.
 - **Replace hardcoded `gameImages` map with live cover art** — `src/app/data/gameImages.ts`
   is a static game-name → Unsplash-stock-photo lookup; could instead query the existing
   Steam search proxy (`api/steam-search.ts`) for real cover art per game. **Trigger:** a real
