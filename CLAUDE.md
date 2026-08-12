@@ -36,8 +36,8 @@ There is no `.env.example` in the repo — check with the user for local credent
 The codebase used to have two parallel implementations of cafe browsing/booking — a static mock path and a Supabase-backed path. **The mock path was removed 2026-07-29** (commit `a263e907`, "Delete demo-only mock pages"): `CafeCard.tsx`, `CafeDetails.tsx`, `FilterByHardware.tsx`, `GamingSystemSelector.tsx`, `ReviewsSection.tsx`, `SearchByGame.tsx` were deleted, along with the `/games`, `/hardware`, and `/cafe/:id` routes and the tab nav strip in `Root.tsx` that linked to them. A catch-all `NotFound.tsx` route was added.
 
 - **Current (only) path**: `BrowseCafes` (the homepage) and `Db*`-prefixed components (`DbCafeDetails`, `DbReviewsSection`) plus the owner-dashboard components (`Dashboard`, `CafeEditor`, `SystemsManager`, `LiveSessions`, `RepairSlotsManager`, `RevenueStats`, `RegisterCafe`, `AdminApprovals`) all query Supabase tables directly with `supabase.from(...)`. Cafe detail lives at `/cafe/db/:id` → `DbCafeDetails`.
-- `src/app/data/mockData.ts` **still exists** but is no longer a parallel data source — it only exports shared types (`GamingSystem`, etc.) and `gameImages`, both consumed by the DB path. Dropping the file entirely (a further cleanup stage) is deferred; see the backlog note in Section 3.
-- `AdvancedBookingInterface` is fed a converted list of systems (using the `GamingSystem` shape from `mockData.ts` for typing only, not as a data source) and always queries `bookings`/`repair_slots`/`walk_in_sessions` live from Supabase to compute slot availability.
+- `mockData.ts` was deleted entirely in Stage 2 (commit `60e3ebdd`). Shared types (`GamingSystem`) now live in `src/app/types.ts`; the `gameImages` lookup moved to `src/app/data/gameImages.ts`.
+- `AdvancedBookingInterface` is fed a converted list of systems (using the `GamingSystem` shape from `src/app/types.ts`) and always queries `bookings`/`repair_slots`/`walk_in_sessions` live from Supabase to compute slot availability.
 
 ### Supabase schema (inferred — no migrations/SQL in repo)
 
@@ -47,8 +47,8 @@ There are no `.sql` files or a `supabase/` migrations directory checked in; the 
 - `cafes` — `owner_id`, `name`, `description`, `city`, `address`, `phone`, `email`, `price_per_hour`, `image_url`, `is_approved`, `amenities` (array), `games` (array)
 - `cafe_hours` — `cafe_id`, `day_of_week` (0-6), `open_time`/`close_time` (`"HH:MM"` strings) — the hours source of truth (see the midnight-crossing fix entry in Section 4). Replaces the legacy `cafes.opening_time`/`closing_time` columns, dropped 2026-08-01.
 - `gaming_systems` — `cafe_id`, `name`, `type` (`"PC" | "Console"`), `gpu`, `cpu`, `ram`, `console`
-- `bookings` — `cafe_id`, `system_id`, `booking_date`, `start_time`/`end_time` (`"HH:MM"`), `status` (`"confirmed"` is the only status filtered on), `players` (JSON array of `{name, phone}`)
-- `walk_in_sessions` — `cafe_id`, `system_id`, `session_date`, `slots` (int[] of hours), `start_time`/`end_time` (**integer hour**, not a string — different convention from `bookings`), `status` (`"scheduled" | "active" | "ended"`), `started_at`/`ended_at`
+- `bookings` — `id`, `user_id` (NOT NULL), `cafe_id`, `system_id`, `booking_date`, `start_time`/`end_time` (`"HH:MM"`), `num_people`, `total_price`, `status` (`"confirmed"` is the only status filtered on), `players` (JSON array of `{name, phone}`), `cancellation_reason` (nullable)
+- `walk_in_sessions` — `id`, `cafe_id`, `system_id`, `session_date`, `slots` (int[] of hours), `start_time`/`end_time` (**integer hour**, not a string — different convention from `bookings`), `status` (`"scheduled" | "active" | "ended"`), `started_at`/`ended_at`, `customer_name`/`customer_phone`/`note` (nullable, for owner-created reservations)
 - `repair_slots` — `cafe_id`, `system_id`, `repair_date`, `start_hour`/`end_hour` (int), `reason`
 
 Note the two different time representations in play: `bookings` uses `"HH:MM"` strings, while `walk_in_sessions`/`repair_slots` use integer hours. Slot-availability code (`AdvancedBookingInterface`) has to normalize between them — watch for this when editing availability logic.
