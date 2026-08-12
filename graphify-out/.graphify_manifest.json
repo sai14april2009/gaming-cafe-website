@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-08-11T10:00:14.438917",
+  "root": "D:/PROJECT - PROTOTYPE OF ADVANCED INTERNET CAFE BOOKING",
+  "files_scanned": 97,
+  "nodes": 663,
+  "edges": 1314,
+  "communities": 97,
+  "outputs": {
+    "report": "graphify-out/GRAPH_REPORT.md",
+    "html": "graphify-out/graph.html",
+    "json": "graphify-out/graph.json"
+  },
+  "labels_file": "graphify-out/.graphify_labels.json"
+}

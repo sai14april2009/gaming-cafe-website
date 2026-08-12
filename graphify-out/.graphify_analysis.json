@@ -1,0 +1,1106 @@
+{
+  "communities": {
+    "0": [
+      "src_app_components_ui_avatar",
+      "src_app_components_ui_avatar_avatar",
+      "src_app_components_ui_avatar_avatarfallback",
+      "src_app_components_ui_avatar_avatarimage",
+      "src_app_components_ui_breadcrumb",
+      "src_app_components_ui_breadcrumb_breadcrumb",
+      "src_app_components_ui_breadcrumb_breadcrumbellipsis",
+      "src_app_components_ui_breadcrumb_breadcrumbitem",
+      "src_app_components_ui_breadcrumb_breadcrumblink",
+      "src_app_components_ui_breadcrumb_breadcrumblist",
+      "src_app_components_ui_breadcrumb_breadcrumbpage",
+      "src_app_components_ui_breadcrumb_breadcrumbseparator",
+      "src_app_components_ui_card",
+      "src_app_components_ui_card_card",
+      "src_app_components_ui_card_cardaction",
+      "src_app_components_ui_card_cardcontent",
+      "src_app_components_ui_card_carddescription",
+      "src_app_components_ui_card_cardfooter",
+      "src_app_components_ui_card_cardheader",
+      "src_app_components_ui_card_cardtitle",
+      "src_app_components_ui_radio_group",
+      "src_app_components_ui_radio_group_radiogroup",
+      "src_app_components_ui_radio_group_radiogroupitem",
+      "src_app_components_ui_scroll_area",
+      "src_app_components_ui_scroll_area_scrollarea",
+      "src_app_components_ui_scroll_area_scrollbar",
+      "src_app_components_ui_table",
+      "src_app_components_ui_table_table",
+      "src_app_components_ui_table_tablebody",
+      "src_app_components_ui_table_tablecaption",
+      "src_app_components_ui_table_tablecell",
+      "src_app_components_ui_table_tablefooter",
+      "src_app_components_ui_table_tablehead",
+      "src_app_components_ui_table_tableheader",
+      "src_app_components_ui_table_tablerow",
+      "src_app_components_ui_tabs",
+      "src_app_components_ui_tabs_tabs",
+      "src_app_components_ui_tabs_tabscontent",
+      "src_app_components_ui_tabs_tabslist",
+      "src_app_components_ui_tabs_tabstrigger",
+      "src_app_components_ui_utils_cn"
+    ],
+    "1": [
+      "src_app_components_ui_input",
+      "src_app_components_ui_input_input",
+      "src_app_components_ui_separator",
+      "src_app_components_ui_separator_separator",
+      "src_app_components_ui_sidebar",
+      "src_app_components_ui_sidebar_sidebar",
+      "src_app_components_ui_sidebar_sidebarcontent",
+      "src_app_components_ui_sidebar_sidebarcontext",
+      "src_app_components_ui_sidebar_sidebarcontextprops",
+      "src_app_components_ui_sidebar_sidebarfooter",
+      "src_app_components_ui_sidebar_sidebargroup",
+      "src_app_components_ui_sidebar_sidebargroupaction",
+      "src_app_components_ui_sidebar_sidebargroupcontent",
+      "src_app_components_ui_sidebar_sidebargrouplabel",
+      "src_app_components_ui_sidebar_sidebarheader",
+      "src_app_components_ui_sidebar_sidebarinput",
+      "src_app_components_ui_sidebar_sidebarinset",
+      "src_app_components_ui_sidebar_sidebarmenu",
+      "src_app_components_ui_sidebar_sidebarmenuaction",
+      "src_app_components_ui_sidebar_sidebarmenubadge",
+      "src_app_components_ui_sidebar_sidebarmenubutton",
+      "src_app_components_ui_sidebar_sidebarmenubuttonvariants",
+      "src_app_components_ui_sidebar_sidebarmenuitem",
+      "src_app_components_ui_sidebar_sidebarmenuskeleton",
+      "src_app_components_ui_sidebar_sidebarmenusub",
+      "src_app_components_ui_sidebar_sidebarmenusubbutton",
+      "src_app_components_ui_sidebar_sidebarmenusubitem",
+      "src_app_components_ui_sidebar_sidebarprovider",
+      "src_app_components_ui_sidebar_sidebarrail",
+      "src_app_components_ui_sidebar_sidebarseparator",
+      "src_app_components_ui_sidebar_sidebartrigger",
+      "src_app_components_ui_sidebar_usesidebar",
+      "src_app_components_ui_skeleton",
+      "src_app_components_ui_skeleton_skeleton",
+      "src_app_components_ui_tooltip",
+      "src_app_components_ui_tooltip_tooltip",
+      "src_app_components_ui_tooltip_tooltipcontent",
+      "src_app_components_ui_tooltip_tooltipprovider",
+      "src_app_components_ui_tooltip_tooltiptrigger",
+      "src_app_components_ui_use_mobile",
+      "src_app_components_ui_use_mobile_useismobile"
+    ],
+    "2": [
+      "src_app_app",
+      "src_app_app_app",
+      "src_app_components_adminapprovals",
+      "src_app_components_adminapprovals_admin_emails",
+      "src_app_components_adminapprovals_adminapprovals",
+      "src_app_components_adminapprovals_admincafe",
+      "src_app_components_bookingconfirm",
+      "src_app_components_bookingconfirm_bookingconfirm",
+      "src_app_components_bookingconfirm_bookingdata",
+      "src_app_components_bookingconfirm_playerinfo",
+      "src_app_components_bookingconfirm_slotassignment",
+      "src_app_components_browsecafes",
+      "src_app_components_browsecafes_browsecafes",
+      "src_app_components_browsecafes_dbcafe",
+      "src_app_components_dashboard_dashboard",
+      "src_app_components_login",
+      "src_app_components_login_login",
+      "src_app_components_notfound",
+      "src_app_components_notfound_notfound",
+      "src_app_components_root",
+      "src_app_components_root_admin_emails",
+      "src_app_components_root_root",
+      "src_app_components_signup",
+      "src_app_components_signup_signup",
+      "src_app_context_authcontext",
+      "src_app_context_authcontext_authcontext",
+      "src_app_context_authcontext_authprovider",
+      "src_app_context_authcontext_useauth",
+      "src_app_routes",
+      "src_app_routes_router",
+      "src_main"
+    ],
+    "3": [
+      "package",
+      "package_devdependencies",
+      "package_devdependencies_tailwindcss",
+      "package_devdependencies_tailwindcss_vite",
+      "package_devdependencies_vite",
+      "package_devdependencies_vitejs_plugin_react",
+      "package_name",
+      "package_overrides_vite",
+      "package_peerdependencies",
+      "package_peerdependencies_react",
+      "package_peerdependencies_react_dom",
+      "package_peerdependenciesmeta",
+      "package_peerdependenciesmeta_react",
+      "package_peerdependenciesmeta_react_dom",
+      "package_pnpm",
+      "package_pnpm_overrides",
+      "package_private",
+      "package_react_dom_optional",
+      "package_react_optional",
+      "package_scripts",
+      "package_scripts_build",
+      "package_scripts_dev",
+      "package_type",
+      "package_version",
+      "react",
+      "react_dom",
+      "tailwindcss",
+      "tailwindcss_vite",
+      "vite",
+      "vitejs_plugin_react"
+    ],
+    "4": [
+      "src_app_components_advancedbookinginterface",
+      "src_app_components_advancedbookinginterface_advancedbookinginterface",
+      "src_app_components_advancedbookinginterface_advancedbookinginterfaceprops",
+      "src_app_components_advancedbookinginterface_systembookingstate",
+      "src_app_components_advancedbookinginterface_timeslotstate",
+      "src_app_components_closedslotmarker",
+      "src_app_components_closedslotmarker_closedslotmarker",
+      "src_app_components_closedslotmarker_closedslotmarkerprops",
+      "src_app_components_closedslotmarker_formathour",
+      "src_app_components_systemsmanager",
+      "src_app_components_systemsmanager_conflictinfo",
+      "src_app_components_systemsmanager_formatdateshort",
+      "src_app_components_systemsmanager_gamingsystemrow",
+      "src_app_components_systemsmanager_onlinebooking",
+      "src_app_components_systemsmanager_repairslot",
+      "src_app_components_systemsmanager_systemsmanager",
+      "src_app_components_systemsmanager_systemsmanagerprops",
+      "src_app_components_systemsmanager_totoday",
+      "src_app_components_systemsmanager_walkinsession",
+      "src_app_types",
+      "src_app_types_gamingsystem",
+      "src_app_utils_cafehours_findhourgaps",
+      "src_app_utils_date",
+      "src_app_utils_date_tolocaldatestring"
+    ],
+    "5": [
+      "src_app_components_ui_alert_dialog",
+      "src_app_components_ui_alert_dialog_alertdialog",
+      "src_app_components_ui_alert_dialog_alertdialogaction",
+      "src_app_components_ui_alert_dialog_alertdialogcancel",
+      "src_app_components_ui_alert_dialog_alertdialogcontent",
+      "src_app_components_ui_alert_dialog_alertdialogdescription",
+      "src_app_components_ui_alert_dialog_alertdialogfooter",
+      "src_app_components_ui_alert_dialog_alertdialogheader",
+      "src_app_components_ui_alert_dialog_alertdialogoverlay",
+      "src_app_components_ui_alert_dialog_alertdialogportal",
+      "src_app_components_ui_alert_dialog_alertdialogtitle",
+      "src_app_components_ui_alert_dialog_alertdialogtrigger",
+      "src_app_components_ui_button_buttonvariants",
+      "src_app_components_ui_calendar",
+      "src_app_components_ui_calendar_calendar",
+      "src_app_components_ui_pagination",
+      "src_app_components_ui_pagination_pagination",
+      "src_app_components_ui_pagination_paginationcontent",
+      "src_app_components_ui_pagination_paginationellipsis",
+      "src_app_components_ui_pagination_paginationitem",
+      "src_app_components_ui_pagination_paginationlink",
+      "src_app_components_ui_pagination_paginationlinkprops",
+      "src_app_components_ui_pagination_paginationnext",
+      "src_app_components_ui_pagination_paginationprevious"
+    ],
+    "6": [
+      "src_app_components_ui_badge",
+      "src_app_components_ui_badge_badge",
+      "src_app_components_ui_badge_badgevariants",
+      "src_app_components_ui_checkbox",
+      "src_app_components_ui_checkbox_checkbox",
+      "src_app_components_ui_hover_card",
+      "src_app_components_ui_hover_card_hovercard",
+      "src_app_components_ui_hover_card_hovercardcontent",
+      "src_app_components_ui_hover_card_hovercardtrigger",
+      "src_app_components_ui_progress",
+      "src_app_components_ui_progress_progress",
+      "src_app_components_ui_resizable",
+      "src_app_components_ui_resizable_resizablehandle",
+      "src_app_components_ui_resizable_resizablepanel",
+      "src_app_components_ui_resizable_resizablepanelgroup",
+      "src_app_components_ui_slider",
+      "src_app_components_ui_slider_slider",
+      "src_app_components_ui_switch",
+      "src_app_components_ui_switch_switch",
+      "src_app_components_ui_textarea",
+      "src_app_components_ui_textarea_textarea",
+      "src_app_components_ui_utils"
+    ],
+    "7": [
+      "src_app_components_ui_command",
+      "src_app_components_ui_command_command",
+      "src_app_components_ui_command_commanddialog",
+      "src_app_components_ui_command_commandempty",
+      "src_app_components_ui_command_commandgroup",
+      "src_app_components_ui_command_commandinput",
+      "src_app_components_ui_command_commanditem",
+      "src_app_components_ui_command_commandlist",
+      "src_app_components_ui_command_commandseparator",
+      "src_app_components_ui_command_commandshortcut",
+      "src_app_components_ui_dialog",
+      "src_app_components_ui_dialog_dialog",
+      "src_app_components_ui_dialog_dialogclose",
+      "src_app_components_ui_dialog_dialogcontent",
+      "src_app_components_ui_dialog_dialogdescription",
+      "src_app_components_ui_dialog_dialogfooter",
+      "src_app_components_ui_dialog_dialogheader",
+      "src_app_components_ui_dialog_dialogoverlay",
+      "src_app_components_ui_dialog_dialogportal",
+      "src_app_components_ui_dialog_dialogtitle",
+      "src_app_components_ui_dialog_dialogtrigger"
+    ],
+    "8": [
+      "src_app_components_bookingslist",
+      "src_app_components_bookingslist_bookingslist",
+      "src_app_components_bookingslist_bookingslistprops",
+      "src_app_components_bookingslist_totoday",
+      "src_app_components_dashboard",
+      "src_app_components_repairslotsmanager",
+      "src_app_components_repairslotsmanager_gamingsystem",
+      "src_app_components_repairslotsmanager_repairslot",
+      "src_app_components_repairslotsmanager_repairslotsmanager",
+      "src_app_components_repairslotsmanager_repairslotsmanagerprops",
+      "src_app_components_revenuestats",
+      "src_app_components_revenuestats_revenuestats",
+      "src_app_components_revenuestats_revenuestatsprops",
+      "src_app_utils_slotconflicts",
+      "src_app_utils_slotconflicts_findslotconflicts",
+      "src_app_utils_slotconflicts_slotconflict",
+      "src_app_utils_slotconflicts_slotconflictsource",
+      "src_supabase",
+      "src_supabase_supabase"
+    ],
+    "9": [
+      "src_app_components_dbcafedetails",
+      "src_app_components_dbcafedetails_dbcafe",
+      "src_app_components_dbcafedetails_dbcafedetails",
+      "src_app_components_dbcafedetails_dbgamingsystem",
+      "src_app_components_registercafe",
+      "src_app_components_registercafe_formattimehint",
+      "src_app_components_registercafe_registercafe",
+      "src_app_components_registercafe_registercafeprops",
+      "src_app_data_gameimages",
+      "src_app_data_gameimages_gameimages",
+      "src_app_utils_cafehours",
+      "src_app_utils_cafehours_cafehoursschedule",
+      "src_app_utils_cafehours_crossesmidnight",
+      "src_app_utils_cafehours_hourgap",
+      "src_app_utils_cafehours_hoursforcalendarday",
+      "src_app_utils_cafehours_hoursforuniformschedule",
+      "src_app_utils_cafehours_parsehour",
+      "src_app_utils_cafehours_parseminute"
+    ],
+    "10": [
+      "src_app_components_ui_menubar",
+      "src_app_components_ui_menubar_menubar",
+      "src_app_components_ui_menubar_menubarcheckboxitem",
+      "src_app_components_ui_menubar_menubarcontent",
+      "src_app_components_ui_menubar_menubargroup",
+      "src_app_components_ui_menubar_menubaritem",
+      "src_app_components_ui_menubar_menubarlabel",
+      "src_app_components_ui_menubar_menubarmenu",
+      "src_app_components_ui_menubar_menubarportal",
+      "src_app_components_ui_menubar_menubarradiogroup",
+      "src_app_components_ui_menubar_menubarradioitem",
+      "src_app_components_ui_menubar_menubarseparator",
+      "src_app_components_ui_menubar_menubarshortcut",
+      "src_app_components_ui_menubar_menubarsub",
+      "src_app_components_ui_menubar_menubarsubcontent",
+      "src_app_components_ui_menubar_menubarsubtrigger",
+      "src_app_components_ui_menubar_menubartrigger"
+    ],
+    "11": [
+      "src_app_components_cafeeditor",
+      "src_app_components_cafeeditor_amenity_suggestions",
+      "src_app_components_cafeeditor_cafeeditor",
+      "src_app_components_cafeeditor_cafeeditorprops",
+      "src_app_components_cafeeditor_formattimehint",
+      "src_app_components_cafeeditor_steamgame",
+      "src_app_components_livesessions",
+      "src_app_components_livesessions_gamingsystem",
+      "src_app_components_livesessions_liveitem",
+      "src_app_components_livesessions_livesessions",
+      "src_app_components_livesessions_livesessionsprops",
+      "src_app_components_livesessions_onlinebooking",
+      "src_app_components_livesessions_ownernotice",
+      "src_app_components_livesessions_walkinsession",
+      "src_app_components_ui_button",
+      "src_app_components_ui_button_button"
+    ],
+    "12": [
+      "src_app_components_ui_context_menu",
+      "src_app_components_ui_context_menu_contextmenu",
+      "src_app_components_ui_context_menu_contextmenucheckboxitem",
+      "src_app_components_ui_context_menu_contextmenucontent",
+      "src_app_components_ui_context_menu_contextmenugroup",
+      "src_app_components_ui_context_menu_contextmenuitem",
+      "src_app_components_ui_context_menu_contextmenulabel",
+      "src_app_components_ui_context_menu_contextmenuportal",
+      "src_app_components_ui_context_menu_contextmenuradiogroup",
+      "src_app_components_ui_context_menu_contextmenuradioitem",
+      "src_app_components_ui_context_menu_contextmenuseparator",
+      "src_app_components_ui_context_menu_contextmenushortcut",
+      "src_app_components_ui_context_menu_contextmenusub",
+      "src_app_components_ui_context_menu_contextmenusubcontent",
+      "src_app_components_ui_context_menu_contextmenusubtrigger",
+      "src_app_components_ui_context_menu_contextmenutrigger"
+    ],
+    "13": [
+      "src_app_components_ui_dropdown_menu",
+      "src_app_components_ui_dropdown_menu_dropdownmenu",
+      "src_app_components_ui_dropdown_menu_dropdownmenucheckboxitem",
+      "src_app_components_ui_dropdown_menu_dropdownmenucontent",
+      "src_app_components_ui_dropdown_menu_dropdownmenugroup",
+      "src_app_components_ui_dropdown_menu_dropdownmenuitem",
+      "src_app_components_ui_dropdown_menu_dropdownmenulabel",
+      "src_app_components_ui_dropdown_menu_dropdownmenuportal",
+      "src_app_components_ui_dropdown_menu_dropdownmenuradiogroup",
+      "src_app_components_ui_dropdown_menu_dropdownmenuradioitem",
+      "src_app_components_ui_dropdown_menu_dropdownmenuseparator",
+      "src_app_components_ui_dropdown_menu_dropdownmenushortcut",
+      "src_app_components_ui_dropdown_menu_dropdownmenusub",
+      "src_app_components_ui_dropdown_menu_dropdownmenusubcontent",
+      "src_app_components_ui_dropdown_menu_dropdownmenusubtrigger",
+      "src_app_components_ui_dropdown_menu_dropdownmenutrigger"
+    ],
+    "14": [
+      "class_variance_authority",
+      "next_themes",
+      "package_dependencies",
+      "package_dependencies_class_variance_authority",
+      "package_dependencies_next_themes",
+      "package_dependencies_radix_ui_react_dropdown_menu",
+      "package_dependencies_radix_ui_react_slider",
+      "package_dependencies_radix_ui_react_switch",
+      "package_dependencies_radix_ui_react_tooltip",
+      "package_dependencies_react_dnd",
+      "radix_ui_react_dropdown_menu",
+      "radix_ui_react_slider",
+      "radix_ui_react_switch",
+      "radix_ui_react_tooltip",
+      "react_dnd"
+    ],
+    "15": [
+      "src_app_components_dbreviewssection",
+      "src_app_components_dbreviewssection_avatar",
+      "src_app_components_dbreviewssection_categories",
+      "src_app_components_dbreviewssection_categoryinputs",
+      "src_app_components_dbreviewssection_categorykey",
+      "src_app_components_dbreviewssection_computeoverall",
+      "src_app_components_dbreviewssection_dbreviewssection",
+      "src_app_components_dbreviewssection_dbreviewssectionprops",
+      "src_app_components_dbreviewssection_formatdate",
+      "src_app_components_dbreviewssection_ratingstocolumns",
+      "src_app_components_dbreviewssection_reply",
+      "src_app_components_dbreviewssection_review",
+      "src_app_components_dbreviewssection_reviewtoratings",
+      "src_app_components_dbreviewssection_stardisplay",
+      "src_app_components_dbreviewssection_starinput"
+    ],
+    "16": [
+      "src_app_components_ui_carousel",
+      "src_app_components_ui_carousel_carousel",
+      "src_app_components_ui_carousel_carouselapi",
+      "src_app_components_ui_carousel_carouselcontent",
+      "src_app_components_ui_carousel_carouselcontext",
+      "src_app_components_ui_carousel_carouselcontextprops",
+      "src_app_components_ui_carousel_carouselitem",
+      "src_app_components_ui_carousel_carouselnext",
+      "src_app_components_ui_carousel_carouseloptions",
+      "src_app_components_ui_carousel_carouselplugin",
+      "src_app_components_ui_carousel_carouselprevious",
+      "src_app_components_ui_carousel_carouselprops",
+      "src_app_components_ui_carousel_usecarousel",
+      "src_app_components_ui_carousel_usecarouselparameters"
+    ],
+    "17": [
+      "src_app_components_ui_form",
+      "src_app_components_ui_form_formcontrol",
+      "src_app_components_ui_form_formdescription",
+      "src_app_components_ui_form_formfield",
+      "src_app_components_ui_form_formfieldcontext",
+      "src_app_components_ui_form_formfieldcontextvalue",
+      "src_app_components_ui_form_formitem",
+      "src_app_components_ui_form_formitemcontext",
+      "src_app_components_ui_form_formitemcontextvalue",
+      "src_app_components_ui_form_formlabel",
+      "src_app_components_ui_form_formmessage",
+      "src_app_components_ui_form_useformfield",
+      "src_app_components_ui_label",
+      "src_app_components_ui_label_label"
+    ],
+    "18": [
+      "claude_md_eligibility_tradeoff",
+      "claude_md_has_visited_cafe",
+      "claude_md_midnight_crossing_fix",
+      "claude_md_review_overhaul",
+      "claude_md_supabase_backend",
+      "claude_md_table_cafe_hours",
+      "claude_md_table_cafes",
+      "claude_md_table_gaming_systems",
+      "claude_md_table_profiles",
+      "claude_md_table_repair_slots",
+      "claude_md_table_review_replies",
+      "claude_md_table_reviews",
+      "package_json_supabase_js"
+    ],
+    "19": [
+      "claude_md_admin_email_allowlist",
+      "claude_md_figma_make_scaffold",
+      "claude_md_gamespot_project",
+      "claude_md_steam_search_proxy",
+      "claude_md_tailwind_shadcn",
+      "claude_md_vercel_hosting",
+      "claude_md_vite_react_typescript",
+      "package_json_project",
+      "package_json_radix_ui",
+      "readme_md_project",
+      "vercel_json_config",
+      "vite_config_ts_figmaassetresolver"
+    ],
+    "20": [
+      "src_app_components_mybookings",
+      "src_app_components_mybookings_bookingcard",
+      "src_app_components_mybookings_cancellationtext",
+      "src_app_components_mybookings_emptystate",
+      "src_app_components_mybookings_formatdate",
+      "src_app_components_mybookings_hasended",
+      "src_app_components_mybookings_mybookings",
+      "src_app_components_mybookings_nowhhmm",
+      "src_app_components_mybookings_skeletoncard",
+      "src_app_components_mybookings_statusbadge",
+      "src_app_components_mybookings_tab",
+      "src_app_components_mybookings_to12h"
+    ],
+    "21": [
+      "claude_md_bookings_no_overlap",
+      "claude_md_cross_table_trigger",
+      "claude_md_double_booking_prevention",
+      "claude_md_get_booked_slots_rpc",
+      "claude_md_proportional_walkin_pricing",
+      "claude_md_rls_lockdown",
+      "claude_md_table_bookings",
+      "claude_md_table_walk_in_sessions",
+      "claude_md_walk_in_no_overlap",
+      "claude_md_walkin_cutoff_rule",
+      "claude_md_walkin_online_sync"
+    ],
+    "22": [
+      "src_app_components_ui_chart",
+      "src_app_components_ui_chart_chartconfig",
+      "src_app_components_ui_chart_chartcontainer",
+      "src_app_components_ui_chart_chartcontext",
+      "src_app_components_ui_chart_chartcontextprops",
+      "src_app_components_ui_chart_chartlegendcontent",
+      "src_app_components_ui_chart_chartstyle",
+      "src_app_components_ui_chart_charttooltipcontent",
+      "src_app_components_ui_chart_getpayloadconfigfrompayload",
+      "src_app_components_ui_chart_themes",
+      "src_app_components_ui_chart_usechart"
+    ],
+    "23": [
+      "src_app_components_ui_drawer",
+      "src_app_components_ui_drawer_drawer",
+      "src_app_components_ui_drawer_drawerclose",
+      "src_app_components_ui_drawer_drawercontent",
+      "src_app_components_ui_drawer_drawerdescription",
+      "src_app_components_ui_drawer_drawerfooter",
+      "src_app_components_ui_drawer_drawerheader",
+      "src_app_components_ui_drawer_draweroverlay",
+      "src_app_components_ui_drawer_drawerportal",
+      "src_app_components_ui_drawer_drawertitle",
+      "src_app_components_ui_drawer_drawertrigger"
+    ],
+    "24": [
+      "src_app_components_ui_select",
+      "src_app_components_ui_select_select",
+      "src_app_components_ui_select_selectcontent",
+      "src_app_components_ui_select_selectgroup",
+      "src_app_components_ui_select_selectitem",
+      "src_app_components_ui_select_selectlabel",
+      "src_app_components_ui_select_selectscrolldownbutton",
+      "src_app_components_ui_select_selectscrollupbutton",
+      "src_app_components_ui_select_selectseparator",
+      "src_app_components_ui_select_selecttrigger",
+      "src_app_components_ui_select_selectvalue"
+    ],
+    "25": [
+      "src_app_components_ui_sheet",
+      "src_app_components_ui_sheet_sheet",
+      "src_app_components_ui_sheet_sheetclose",
+      "src_app_components_ui_sheet_sheetcontent",
+      "src_app_components_ui_sheet_sheetdescription",
+      "src_app_components_ui_sheet_sheetfooter",
+      "src_app_components_ui_sheet_sheetheader",
+      "src_app_components_ui_sheet_sheetoverlay",
+      "src_app_components_ui_sheet_sheetportal",
+      "src_app_components_ui_sheet_sheettitle",
+      "src_app_components_ui_sheet_sheettrigger"
+    ],
+    "26": [
+      "src_app_components_ui_navigation_menu",
+      "src_app_components_ui_navigation_menu_navigationmenu",
+      "src_app_components_ui_navigation_menu_navigationmenucontent",
+      "src_app_components_ui_navigation_menu_navigationmenuindicator",
+      "src_app_components_ui_navigation_menu_navigationmenuitem",
+      "src_app_components_ui_navigation_menu_navigationmenulink",
+      "src_app_components_ui_navigation_menu_navigationmenulist",
+      "src_app_components_ui_navigation_menu_navigationmenutrigger",
+      "src_app_components_ui_navigation_menu_navigationmenutriggerstyle",
+      "src_app_components_ui_navigation_menu_navigationmenuviewport"
+    ],
+    "27": [
+      "claude_md_business_model",
+      "claude_md_founder",
+      "claude_md_gameorbit_vision",
+      "claude_md_group_booking_algorithm",
+      "claude_md_market_phase1_india",
+      "claude_md_market_phase2_korea",
+      "claude_md_market_phase3_china",
+      "claude_md_marketing_campaigns",
+      "claude_md_precision_booking"
+    ],
+    "28": [
+      "src_app_components_ui_toggle",
+      "src_app_components_ui_toggle_group",
+      "src_app_components_ui_toggle_group_togglegroup",
+      "src_app_components_ui_toggle_group_togglegroupcontext",
+      "src_app_components_ui_toggle_group_togglegroupitem",
+      "src_app_components_ui_toggle_toggle",
+      "src_app_components_ui_toggle_togglevariants"
+    ],
+    "29": [
+      "claude_md_day_not_primitive_principle",
+      "claude_md_icafecloud",
+      "claude_md_option3_session_first",
+      "claude_md_oracle_simphony",
+      "claude_md_smart_transition_buffer"
+    ],
+    "30": [
+      "src_app_components_ui_accordion",
+      "src_app_components_ui_accordion_accordion",
+      "src_app_components_ui_accordion_accordioncontent",
+      "src_app_components_ui_accordion_accordionitem",
+      "src_app_components_ui_accordion_accordiontrigger"
+    ],
+    "31": [
+      "src_app_components_ui_alert",
+      "src_app_components_ui_alert_alert",
+      "src_app_components_ui_alert_alertdescription",
+      "src_app_components_ui_alert_alerttitle",
+      "src_app_components_ui_alert_alertvariants"
+    ],
+    "32": [
+      "src_app_components_ui_input_otp",
+      "src_app_components_ui_input_otp_inputotp",
+      "src_app_components_ui_input_otp_inputotpgroup",
+      "src_app_components_ui_input_otp_inputotpseparator",
+      "src_app_components_ui_input_otp_inputotpslot"
+    ],
+    "33": [
+      "src_app_components_ui_popover",
+      "src_app_components_ui_popover_popover",
+      "src_app_components_ui_popover_popoveranchor",
+      "src_app_components_ui_popover_popovercontent",
+      "src_app_components_ui_popover_popovertrigger"
+    ],
+    "34": [
+      "src_app_components_dbbookingflow",
+      "src_app_components_dbbookingflow_dbbookingflow",
+      "src_app_components_dbbookingflow_dbbookingflowprops",
+      "src_app_components_dbbookingflow_dbgamingsystem"
+    ],
+    "35": [
+      "src_app_components_ui_collapsible",
+      "src_app_components_ui_collapsible_collapsible",
+      "src_app_components_ui_collapsible_collapsiblecontent",
+      "src_app_components_ui_collapsible_collapsibletrigger"
+    ],
+    "36": [
+      "api_steam_search",
+      "api_steam_search_config",
+      "api_steam_search_handler"
+    ],
+    "37": [
+      "api_ping",
+      "api_ping_handler"
+    ],
+    "38": [
+      "claude_md_dashboard_redesign",
+      "claude_md_slot_status_colors"
+    ],
+    "39": [
+      "clsx",
+      "package_dependencies_clsx"
+    ],
+    "40": [
+      "cmdk",
+      "package_dependencies_cmdk"
+    ],
+    "41": [
+      "date_fns",
+      "package_dependencies_date_fns"
+    ],
+    "42": [
+      "embla_carousel_react",
+      "package_dependencies_embla_carousel_react"
+    ],
+    "43": [
+      "emotion_react",
+      "package_dependencies_emotion_react"
+    ],
+    "44": [
+      "emotion_styled",
+      "package_dependencies_emotion_styled"
+    ],
+    "45": [
+      "input_otp",
+      "package_dependencies_input_otp"
+    ],
+    "46": [
+      "lucide_react",
+      "package_dependencies_lucide_react"
+    ],
+    "47": [
+      "motion",
+      "package_dependencies_motion"
+    ],
+    "48": [
+      "mui_icons_material",
+      "package_dependencies_mui_icons_material"
+    ],
+    "49": [
+      "mui_material",
+      "package_dependencies_mui_material"
+    ],
+    "50": [
+      "package_dependencies_popperjs_core",
+      "popperjs_core"
+    ],
+    "51": [
+      "package_dependencies_radix_ui_react_accordion",
+      "radix_ui_react_accordion"
+    ],
+    "52": [
+      "package_dependencies_radix_ui_react_alert_dialog",
+      "radix_ui_react_alert_dialog"
+    ],
+    "53": [
+      "package_dependencies_radix_ui_react_aspect_ratio",
+      "radix_ui_react_aspect_ratio"
+    ],
+    "54": [
+      "package_dependencies_radix_ui_react_avatar",
+      "radix_ui_react_avatar"
+    ],
+    "55": [
+      "package_dependencies_radix_ui_react_checkbox",
+      "radix_ui_react_checkbox"
+    ],
+    "56": [
+      "package_dependencies_radix_ui_react_collapsible",
+      "radix_ui_react_collapsible"
+    ],
+    "57": [
+      "package_dependencies_radix_ui_react_context_menu",
+      "radix_ui_react_context_menu"
+    ],
+    "58": [
+      "package_dependencies_radix_ui_react_dialog",
+      "radix_ui_react_dialog"
+    ],
+    "59": [
+      "package_dependencies_radix_ui_react_hover_card",
+      "radix_ui_react_hover_card"
+    ],
+    "60": [
+      "package_dependencies_radix_ui_react_label",
+      "radix_ui_react_label"
+    ],
+    "61": [
+      "package_dependencies_radix_ui_react_menubar",
+      "radix_ui_react_menubar"
+    ],
+    "62": [
+      "package_dependencies_radix_ui_react_navigation_menu",
+      "radix_ui_react_navigation_menu"
+    ],
+    "63": [
+      "package_dependencies_radix_ui_react_popover",
+      "radix_ui_react_popover"
+    ],
+    "64": [
+      "package_dependencies_radix_ui_react_progress",
+      "radix_ui_react_progress"
+    ],
+    "65": [
+      "package_dependencies_radix_ui_react_radio_group",
+      "radix_ui_react_radio_group"
+    ],
+    "66": [
+      "package_dependencies_radix_ui_react_scroll_area",
+      "radix_ui_react_scroll_area"
+    ],
+    "67": [
+      "package_dependencies_radix_ui_react_select",
+      "radix_ui_react_select"
+    ],
+    "68": [
+      "package_dependencies_radix_ui_react_separator",
+      "radix_ui_react_separator"
+    ],
+    "69": [
+      "package_dependencies_radix_ui_react_slot",
+      "radix_ui_react_slot"
+    ],
+    "70": [
+      "package_dependencies_radix_ui_react_tabs",
+      "radix_ui_react_tabs"
+    ],
+    "71": [
+      "package_dependencies_radix_ui_react_toggle",
+      "radix_ui_react_toggle"
+    ],
+    "72": [
+      "package_dependencies_radix_ui_react_toggle_group",
+      "radix_ui_react_toggle_group"
+    ],
+    "73": [
+      "package_dependencies_react_day_picker",
+      "react_day_picker"
+    ],
+    "74": [
+      "package_dependencies_react_dnd_html5_backend",
+      "react_dnd_html5_backend"
+    ],
+    "75": [
+      "package_dependencies_react_hook_form",
+      "react_hook_form"
+    ],
+    "76": [
+      "package_dependencies_react_popper",
+      "react_popper"
+    ],
+    "77": [
+      "package_dependencies_react_resizable_panels",
+      "react_resizable_panels"
+    ],
+    "78": [
+      "package_dependencies_react_responsive_masonry",
+      "react_responsive_masonry"
+    ],
+    "79": [
+      "package_dependencies_react_router",
+      "react_router"
+    ],
+    "80": [
+      "package_dependencies_react_slick",
+      "react_slick"
+    ],
+    "81": [
+      "package_dependencies_recharts",
+      "recharts"
+    ],
+    "82": [
+      "package_dependencies_sonner",
+      "sonner"
+    ],
+    "83": [
+      "package_dependencies_supabase_supabase_js",
+      "supabase_supabase_js"
+    ],
+    "84": [
+      "package_dependencies_tailwind_merge",
+      "tailwind_merge"
+    ],
+    "85": [
+      "package_dependencies_tw_animate_css",
+      "tw_animate_css"
+    ],
+    "86": [
+      "package_dependencies_vaul",
+      "vaul"
+    ],
+    "87": [
+      "src_app_components_figma_imagewithfallback",
+      "src_app_components_figma_imagewithfallback_imagewithfallback"
+    ],
+    "88": [
+      "src_app_components_ui_aspect_ratio",
+      "src_app_components_ui_aspect_ratio_aspectratio"
+    ],
+    "89": [
+      "src_app_components_ui_sonner",
+      "src_app_components_ui_sonner_toaster"
+    ],
+    "90": [
+      "vercel",
+      "vercel_rewrites"
+    ],
+    "91": [
+      "vite_config",
+      "vite_config_figmaassetresolver"
+    ],
+    "92": [
+      "package_json_lucide_react"
+    ],
+    "93": [
+      "package_json_react_router"
+    ],
+    "94": [
+      "package_json_recharts"
+    ],
+    "95": [
+      "postcss_config"
+    ],
+    "96": [
+      "vite_config_ts_config"
+    ]
+  },
+  "cohesion": {
+    "0": 0.08780487804878048,
+    "1": 0.06585365853658537,
+    "2": 0.10752688172043011,
+    "3": 0.06666666666666667,
+    "4": 0.14492753623188406,
+    "5": 0.09782608695652174,
+    "6": 0.09523809523809523,
+    "7": 0.11904761904761904,
+    "8": 0.19298245614035087,
+    "9": 0.19607843137254902,
+    "10": 0.11764705882352941,
+    "11": 0.15,
+    "12": 0.125,
+    "13": 0.125,
+    "14": 0.13333333333333333,
+    "15": 0.17142857142857143,
+    "16": 0.18681318681318682,
+    "17": 0.1978021978021978,
+    "18": 0.21794871794871795,
+    "19": 0.18181818181818182,
+    "20": 0.24242424242424243,
+    "21": 0.2,
+    "22": 0.2545454545454545,
+    "23": 0.18181818181818182,
+    "24": 0.18181818181818182,
+    "25": 0.18181818181818182,
+    "26": 0.2222222222222222,
+    "27": 0.2222222222222222,
+    "28": 0.42857142857142855,
+    "29": 0.4,
+    "30": 0.4,
+    "31": 0.5,
+    "32": 0.4,
+    "33": 0.4,
+    "34": 0.5,
+    "35": 0.5,
+    "36": 0.6666666666666666,
+    "37": 1.0,
+    "38": 1.0,
+    "39": 1.0,
+    "40": 1.0,
+    "41": 1.0,
+    "42": 1.0,
+    "43": 1.0,
+    "44": 1.0,
+    "45": 1.0,
+    "46": 1.0,
+    "47": 1.0,
+    "48": 1.0,
+    "49": 1.0,
+    "50": 1.0,
+    "51": 1.0,
+    "52": 1.0,
+    "53": 1.0,
+    "54": 1.0,
+    "55": 1.0,
+    "56": 1.0,
+    "57": 1.0,
+    "58": 1.0,
+    "59": 1.0,
+    "60": 1.0,
+    "61": 1.0,
+    "62": 1.0,
+    "63": 1.0,
+    "64": 1.0,
+    "65": 1.0,
+    "66": 1.0,
+    "67": 1.0,
+    "68": 1.0,
+    "69": 1.0,
+    "70": 1.0,
+    "71": 1.0,
+    "72": 1.0,
+    "73": 1.0,
+    "74": 1.0,
+    "75": 1.0,
+    "76": 1.0,
+    "77": 1.0,
+    "78": 1.0,
+    "79": 1.0,
+    "80": 1.0,
+    "81": 1.0,
+    "82": 1.0,
+    "83": 1.0,
+    "84": 1.0,
+    "85": 1.0,
+    "86": 1.0,
+    "87": 1.0,
+    "88": 1.0,
+    "89": 1.0,
+    "90": 1.0,
+    "91": 1.0,
+    "92": 1.0,
+    "93": 1.0,
+    "94": 1.0,
+    "95": 1.0,
+    "96": 1.0
+  },
+  "gods": [
+    {
+      "id": "src_app_components_ui_utils_cn",
+      "label": "cn()",
+      "degree": 223
+    },
+    {
+      "id": "src_supabase_supabase",
+      "label": "supabase",
+      "degree": 20
+    },
+    {
+      "id": "src_app_utils_date_tolocaldatestring",
+      "label": "toLocalDateString()",
+      "degree": 18
+    },
+    {
+      "id": "src_app_components_ui_button_button",
+      "label": "Button()",
+      "degree": 17
+    },
+    {
+      "id": "src_app_context_authcontext_useauth",
+      "label": "useAuth()",
+      "degree": 17
+    },
+    {
+      "id": "claude_md_supabase_backend",
+      "label": "Supabase Backend (Postgres + Auth)",
+      "degree": 11
+    },
+    {
+      "id": "src_app_components_systemsmanager_systemsmanager",
+      "label": "SystemsManager()",
+      "degree": 9
+    },
+    {
+      "id": "src_app_components_ui_button_buttonvariants",
+      "label": "buttonVariants",
+      "degree": 9
+    },
+    {
+      "id": "claude_md_gamespot_project",
+      "label": "GameSpot (Gaming Cafe Booking Website)",
+      "degree": 9
+    },
+    {
+      "id": "src_app_utils_cafehours_crossesmidnight",
+      "label": "crossesMidnight()",
+      "degree": 8
+    }
+  ],
+  "surprises": [
+    {
+      "source": "@supabase/supabase-js Dependency",
+      "target": "Supabase Backend (Postgres + Auth)",
+      "source_files": [
+        "package.json",
+        "CLAUDE.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "implements",
+      "why": "inferred connection - not explicitly stated in source; crosses file types (doc ↔ code); connects across different repos/directories; peripheral node `@supabase/supabase-js Dependency` unexpectedly reaches hub `Supabase Backend (Postgres + Auth)`"
+    },
+    {
+      "source": "Vercel SPA Rewrite Configuration",
+      "target": "Vercel Hosting (gaming-cafe-website.vercel.app)",
+      "source_files": [
+        "vercel.json",
+        "CLAUDE.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "implements",
+      "why": "inferred connection - not explicitly stated in source; crosses file types (doc ↔ code); connects across different repos/directories"
+    },
+    {
+      "source": "Radix UI Component Library",
+      "target": "Tailwind v4 + shadcn/ui Styling",
+      "source_files": [
+        "package.json",
+        "CLAUDE.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "implements",
+      "why": "inferred connection - not explicitly stated in source; crosses file types (doc ↔ code); connects across different repos/directories"
+    },
+    {
+      "source": "README - Gaming Cafe Booking Website",
+      "target": "GameSpot (Gaming Cafe Booking Website)",
+      "source_files": [
+        "README.md",
+        "CLAUDE.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `README - Gaming Cafe Booking Website` unexpectedly reaches hub `GameSpot (Gaming Cafe Booking Website)`"
+    },
+    {
+      "source": "package.json (@figma/my-make-file)",
+      "target": "Figma Make Scaffold Origin",
+      "source_files": [
+        "package.json",
+        "CLAUDE.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "crosses file types (doc ↔ code); connects across different repos/directories"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `cn()` connect `Community 0` to `Community 1`, `Community 5`, `Community 6`, `Community 7`, `Community 10`, `Community 11`, `Community 12`, `Community 13`, `Community 16`, `Community 17`, `Community 22`, `Community 23`, `Community 24`, `Community 25`, `Community 26`, `Community 28`, `Community 30`, `Community 31`, `Community 32`, `Community 33`?",
+      "why": "High betweenness centrality (0.325) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `Button()` connect `Community 11` to `Community 0`, `Community 1`, `Community 2`, `Community 34`, `Community 4`, `Community 5`, `Community 8`, `Community 9`, `Community 15`, `Community 16`?",
+      "why": "High betweenness centrality (0.083) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `dependencies` connect `Community 14` to `Community 3`, `Community 39`, `Community 40`, `Community 41`, `Community 42`, `Community 43`, `Community 44`, `Community 45`, `Community 46`, `Community 47`, `Community 48`, `Community 49`, `Community 50`, `Community 51`, `Community 52`, `Community 53`, `Community 54`, `Community 55`, `Community 56`, `Community 57`, `Community 58`, `Community 59`, `Community 60`, `Community 61`, `Community 62`, `Community 63`, `Community 64`, `Community 65`, `Community 66`, `Community 67`, `Community 68`, `Community 69`, `Community 70`, `Community 71`, `Community 72`, `Community 73`, `Community 74`, `Community 75`, `Community 76`, `Community 77`, `Community 78`, `Community 79`, `Community 80`, `Community 81`, `Community 82`, `Community 83`, `Community 84`, `Community 85`, `Community 86`?",
+      "why": "High betweenness centrality (0.042) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `config`, `name`, `private` to the rest of the system?",
+      "why": "159 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 0` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.08780487804878048 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 1` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.06585365853658537 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 2` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.10752688172043011 - nodes in this community are weakly interconnected."
+    }
+  ]
+}
