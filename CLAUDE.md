@@ -247,16 +247,20 @@ insert bookings while logged out.** Closed in two halves:
   three scoped policies (RLS confirmed enabled):
   - `Owners view their cafe bookings` — SELECT, `authenticated`, `EXISTS cafe where owner_id = auth.uid()`
   - `Customers view their own bookings` — SELECT, `authenticated`, `user_id = auth.uid()`
-  - `Customers insert their own bookings` — INSERT, `authenticated`, `user_id = auth.uid() AND NOT (owner of that cafe)`
+  - `Authenticated users insert their own bookings` — INSERT, `authenticated`, `user_id = auth.uid()`
   - The pre-existing `Cafe owners can update their cafe's bookings` (UPDATE) was left intact —
     the dashboard's status writes (cancel, complete, add-hour) depend on it.
+  - **Fixed 2026-08-12:** original policy (`Customers insert their own bookings`) deliberately
+    blocked owner inserts (`user_id = auth.uid() AND NOT (owner of that cafe)`) to keep
+    `bookings` as "real customers only". Removed the restriction — owners are legitimate
+    customers of their own cafe. Migration: `fix_owner_booking_rls_insert_policy`.
 
 **Verified against real data (role simulation + live anon fetch):**
 
 | Actor | Direct read of `bookings` | Availability via RPC | Insert |
 |-------|---------------------------|----------------------|--------|
 | anon (logged out) | **0 rows** (was 15 w/ PII) | ✅ works | ❌ blocked (42501) |
-| owner | all their cafe's rows (15) | ✅ | ❌ own-cafe blocked (42501) |
+| owner | all their cafe's rows (15) | ✅ | ✅ (user_id = auth.uid() — owners can book at own cafe) |
 | customer | **only their own** (2 of 15) | ✅ | ✅ their own allowed |
 
 Where it lives: **code half = commit `0892dbf6`** (the two RPC call-site swaps); **DB half =
