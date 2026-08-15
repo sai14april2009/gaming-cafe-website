@@ -32,8 +32,8 @@ export function Root() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center gap-2">
-              <Gamepad2 className="w-8 h-8 text-purple-600" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <Gamepad2 className="w-8 h-8 text-blue-600" />
+              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent">
                 GameSpot
               </span>
             </Link>
@@ -41,7 +41,7 @@ export function Root() {
             <div className="flex items-center gap-2">
               {user ? (
                 <>
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-50 text-purple-700">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-700">
                     <User className="w-4 h-4" />
                     <span className="text-sm font-medium">{profile?.full_name || user.email}</span>
                   </div>
@@ -49,7 +49,7 @@ export function Root() {
                     to="/my-bookings"
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive("/my-bookings")
-                        ? "bg-purple-100 text-purple-700"
+                        ? "bg-blue-100 text-blue-700"
                         : "text-gray-600 hover:bg-gray-100"
                     }`}
                   >
@@ -57,7 +57,7 @@ export function Root() {
                     <span className="hidden lg:inline">My Bookings</span>
                   </Link>
                   {profile?.role === "owner" && (
-                    <Link to="/dashboard" className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 transition-colors">
+                    <Link to="/dashboard" className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">
                       Dashboard
                     </Link>
                   )}
@@ -80,7 +80,7 @@ export function Root() {
                   <Link to="/login" className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium">
                     Sign in
                   </Link>
-                  <Link to="/signup" className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 transition-colors">
+                  <Link to="/signup" className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">
                     Sign up
                   </Link>
                 </>

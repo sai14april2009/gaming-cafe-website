@@ -151,7 +151,7 @@ function Avatar({ name, owner = false }: { name: string; owner?: boolean }) {
   return (
     <div
       className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
-        owner ? "bg-gradient-to-r from-indigo-600 to-purple-600" : "bg-gradient-to-r from-purple-600 to-pink-600"
+        owner ? "bg-gradient-to-r from-indigo-600 to-blue-600" : "bg-gradient-to-r from-blue-600 to-cyan-400"
       }`}
     >
       {name.charAt(0).toUpperCase()}
@@ -480,7 +480,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
         {user && !isOwner && canReview && !hasReviewed && !showForm && (
           <Button
             onClick={() => setShowForm(true)}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            className="bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700"
           >
             Write a Review
           </Button>
@@ -506,7 +506,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
 
       {/* Create form */}
       {showForm && (
-        <div className="bg-gray-50 rounded-xl p-5 mb-6 border-2 border-purple-200">
+        <div className="bg-gray-50 rounded-xl p-5 mb-6 border-2 border-blue-200">
           <h3 className="font-semibold mb-4">Your Review for {cafeName}</h3>
           <p className="text-sm text-gray-500 mb-3">Rate the categories that matter to you (at least one).</p>
           <CategoryInputs
@@ -529,7 +529,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
             onChange={(e) => setComment(e.target.value)}
             rows={4}
             placeholder="Share your experience at this cafe..."
-            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 resize-none mt-2"
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 resize-none mt-2"
           />
           {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
           <div className="flex gap-2 mt-4">
@@ -546,7 +546,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
             <Button
               onClick={handleSubmit}
               disabled={submitting}
-              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700"
             >
               {submitting ? "Submitting..." : "Submit Review"}
             </Button>
@@ -598,7 +598,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                 )}
 
                 {isEditing ? (
-                  <div className="bg-gray-50 rounded-xl p-4 border-2 border-purple-200">
+                  <div className="bg-gray-50 rounded-xl p-4 border-2 border-blue-200">
                     <CategoryInputs
                       ratings={editRatings}
                       setRating={(key, v) => setEditRatings((prev) => ({ ...prev, [key]: v }))}
@@ -611,7 +611,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                       value={editComment}
                       onChange={(e) => setEditComment(e.target.value)}
                       rows={3}
-                      className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 resize-none"
+                      className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 resize-none"
                     />
                     {editError && <p className="text-red-600 text-sm mt-2">{editError}</p>}
                     <div className="flex gap-2 mt-3">
@@ -621,7 +621,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                       <Button
                         onClick={() => handleSaveEdit(review)}
                         disabled={savingEdit}
-                        className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700"
                       >
                         {savingEdit ? "Saving..." : "Save Changes"}
                       </Button>
@@ -654,7 +654,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                         <>
                           <button
                             onClick={() => startEdit(review)}
-                            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-purple-600 transition-colors"
+                            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
                           >
                             <Pencil className="w-4 h-4" /> Edit
                           </button>
@@ -671,7 +671,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                       {canReply && (
                         <button
                           onClick={() => startReply(review.id)}
-                          className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-purple-600 transition-colors"
+                          className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
                         >
                           <MessageSquare className="w-4 h-4" /> Reply
                         </button>
@@ -686,7 +686,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                           onChange={(e) => setReplyText(e.target.value)}
                           rows={2}
                           placeholder="Write a reply..."
-                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 resize-none text-sm"
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 resize-none text-sm"
                         />
                         {replyError && <p className="text-red-600 text-sm mt-1">{replyError}</p>}
                         <div className="flex gap-2 mt-2">
@@ -704,7 +704,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                             size="sm"
                             onClick={() => handleSubmitReply(review.id)}
                             disabled={submittingReply}
-                            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                            className="bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700"
                           >
                             {submittingReply ? "Posting..." : "Reply"}
                           </Button>
@@ -717,7 +717,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                       <div className="mt-3 ml-13">
                         <button
                           onClick={() => toggleReplies(review.id)}
-                          className="flex items-center gap-1 text-sm font-semibold text-purple-600 hover:text-purple-700"
+                          className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
                         >
                           {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                           {isExpanded ? "Hide" : "View"} {reviewReplies.length}{" "}
@@ -737,7 +737,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                                     <div className="flex items-center gap-2 flex-wrap">
                                       <p className="font-semibold text-sm">{rep.user_name}</p>
                                       {repIsOwner && (
-                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 px-2 py-0.5 rounded-full">
+                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-blue-600 px-2 py-0.5 rounded-full">
                                           Cafe Owner
                                         </span>
                                       )}
@@ -749,7 +749,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                                           value={editReplyText}
                                           onChange={(e) => setEditReplyText(e.target.value)}
                                           rows={2}
-                                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 resize-none text-sm"
+                                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 resize-none text-sm"
                                         />
                                         <div className="flex gap-2 mt-1.5">
                                           <Button variant="outline" size="sm" onClick={() => setEditingReplyId(null)} disabled={savingReply}>
@@ -759,7 +759,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                                             size="sm"
                                             onClick={() => handleSaveReply(rep)}
                                             disabled={savingReply}
-                                            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                                            className="bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700"
                                           >
                                             {savingReply ? "Saving..." : "Save"}
                                           </Button>
@@ -772,7 +772,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                                           <div className="flex gap-3 mt-1.5">
                                             <button
                                               onClick={() => startEditReply(rep)}
-                                              className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-purple-600"
+                                              className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-blue-600"
                                             >
                                               <Pencil className="w-3 h-3" /> Edit
                                             </button>

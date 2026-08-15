@@ -336,7 +336,7 @@ export function AdvancedBookingInterface({
       <div className="flex justify-between items-center gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200">
         <div className="text-sm text-gray-600">
           {loadingSlots ? "Loading availability..." : (
-            <>Showing <span className="font-bold text-purple-600">{systemsToDisplay.length}</span> gaming systems</>
+            <>Showing <span className="font-bold text-blue-600">{systemsToDisplay.length}</span> gaming systems</>
           )}
         </div>
         <div className="flex items-center gap-4 text-xs">
@@ -344,7 +344,7 @@ export function AdvancedBookingInterface({
           <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-red-500"></div><span>Booked</span></div>
           <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-orange-500"></div><span>Occupied</span></div>
           <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-amber-400"></div><span>Reserved</span></div>
-          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-purple-500"></div><span>Repair</span></div>
+          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-blue-500"></div><span>Repair</span></div>
         </div>
       </div>
 
@@ -399,7 +399,7 @@ export function AdvancedBookingInterface({
                           ? "border-2 border-orange-500 bg-orange-500 text-white cursor-not-allowed"
                           : slot.status === "reserved"
                           ? "border-2 border-amber-400 bg-amber-400 text-amber-950 cursor-not-allowed"
-                          : "border-2 border-purple-500 bg-purple-500 text-white cursor-not-allowed"
+                          : "border-2 border-blue-500 bg-blue-500 text-white cursor-not-allowed"
                       }`}
                     >
                       {slot.status === "booked" ? "BOOKED" : slot.status === "repair" ? "REPAIR" : slot.status === "walkin" ? "OCCUPIED" : slot.status === "reserved" ? "RESERVED" : formatTime(slot.hour)}
@@ -416,7 +416,7 @@ export function AdvancedBookingInterface({
       )}
 
       {getSelectedCount() > 0 && (
-        <div className="sticky bottom-0 bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 shadow-lg">
+        <div className="sticky bottom-0 bg-gradient-to-r from-blue-600 to-cyan-400 text-white p-6 shadow-lg">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <div>
               <div className="text-sm opacity-90 mb-1">
@@ -438,7 +438,7 @@ export function AdvancedBookingInterface({
               className={`px-10 py-4 text-lg font-bold rounded-lg ${
                 !isRequiredSlotsMet
                   ? "bg-gray-400 text-gray-600 cursor-not-allowed"
-                  : "bg-white text-purple-600 hover:bg-gray-100"
+                  : "bg-white text-blue-600 hover:bg-gray-100"
               }`}
             >
               {!isRequiredSlotsMet

@@ -665,7 +665,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                   <span className="font-medium text-gray-800">{new Date(b.booking_date).toDateString()}</span>
                 </p>
                 <p>{formatHour(parseInt(b.start_time.split(":")[0]))} – {formatHour(parseInt(b.end_time.split(":")[0]))}</p>
-                <p className="flex items-center gap-1 font-semibold text-purple-600">₹{b.total_price}</p>
+                <p className="flex items-center gap-1 font-semibold text-blue-600">₹{b.total_price}</p>
               </div>
 
               {/* Player details */}
@@ -674,7 +674,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Player Details</p>
                   <div className="space-y-2">
                     {b.players!.map((player, i) => (
-                      <div key={i} className="flex items-center justify-between bg-purple-50 rounded-lg px-3 py-2 text-sm">
+                      <div key={i} className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2 text-sm">
                         <span className="font-medium">{player.name || "—"}</span>
                         <span className="text-gray-600">{player.phone || "—"}</span>
                       </div>
@@ -780,7 +780,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                 )}
               </div>
             )}
-            <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600" onClick={() => setEndedSession(null)}>
+            <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-400" onClick={() => setEndedSession(null)}>
               OK, Got it!
             </Button>
           </div>
@@ -902,7 +902,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">Gaming Systems ({systems.length})</h2>
           <Button onClick={() => setShowForm(!showForm)}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 gap-2">
+            className="bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700 gap-2">
             <Plus className="w-4 h-4" /> Add System
           </Button>
         </div>
@@ -921,14 +921,14 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                   key={dateStr}
                   onClick={() => selectDate(dateStr)}
                   className={`flex-shrink-0 px-5 py-3 flex flex-col items-center justify-center min-w-[84px] transition-all ${
-                    isSelected ? "bg-purple-600 text-white" : "bg-white text-gray-700 hover:bg-gray-50"
+                    isSelected ? "bg-blue-600 text-white" : "bg-white text-gray-700 hover:bg-gray-50"
                   } ${index !== 0 ? "border-l border-gray-200" : ""}`}
                 >
                   <div className="text-xs font-medium">{day}</div>
                   <div className="text-2xl font-bold my-0.5">{dateNum}</div>
                   <div className="text-[10px] font-medium">{month}</div>
                   <span className={`mt-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                    count === 0 ? "opacity-0" : isSelected ? "bg-white text-purple-700" : "bg-purple-100 text-purple-700"
+                    count === 0 ? "opacity-0" : isSelected ? "bg-white text-blue-700" : "bg-blue-100 text-blue-700"
                   }`}>
                     {count || 0}
                   </span>
@@ -953,12 +953,12 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">System Name</label>
                 <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="e.g. System 1" className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" />
+                  placeholder="e.g. System 1" className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">Type</label>
                 <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as "PC" | "Console" })}
-                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400">
+                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
                   <option value="PC">PC</option>
                   <option value="Console">Console</option>
                 </select>
@@ -968,23 +968,23 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
               <div className="grid grid-cols-3 gap-4">
                 <div><label className="text-sm font-medium text-gray-700 mb-1 block">GPU</label>
                   <input type="text" value={form.gpu} onChange={(e) => setForm({ ...form, gpu: e.target.value })}
-                    placeholder="NVIDIA RTX 4090" className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" /></div>
+                    placeholder="NVIDIA RTX 4090" className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" /></div>
                 <div><label className="text-sm font-medium text-gray-700 mb-1 block">CPU</label>
                   <input type="text" value={form.cpu} onChange={(e) => setForm({ ...form, cpu: e.target.value })}
-                    placeholder="Intel Core i9" className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" /></div>
+                    placeholder="Intel Core i9" className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" /></div>
                 <div><label className="text-sm font-medium text-gray-700 mb-1 block">RAM</label>
                   <input type="text" value={form.ram} onChange={(e) => setForm({ ...form, ram: e.target.value })}
-                    placeholder="64GB DDR5" className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" /></div>
+                    placeholder="64GB DDR5" className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" /></div>
               </div>
             ) : (
               <div><label className="text-sm font-medium text-gray-700 mb-1 block">Console</label>
                 <input type="text" value={form.console} onChange={(e) => setForm({ ...form, console: e.target.value })}
-                  placeholder="PS5 / Xbox Series X" className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" /></div>
+                  placeholder="PS5 / Xbox Series X" className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" /></div>
             )}
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={resetForm}>Cancel</Button>
               <Button onClick={handleAdd} disabled={saving || !form.name}
-                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700">
                 {saving ? "Adding..." : "Add System"}
               </Button>
             </div>
@@ -1084,7 +1084,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                               : slotStatus === "booked"
                               ? "bg-red-500 text-white border-red-500 cursor-pointer hover:bg-red-600"
                               : slotStatus === "repair"
-                              ? "bg-purple-500 text-white border-purple-500 cursor-pointer hover:bg-purple-600"
+                              ? "bg-blue-500 text-white border-blue-500 cursor-pointer hover:bg-blue-600"
                               : isPast
                               ? "bg-gray-100 text-gray-400 border-gray-200 cursor-default"
                               : "bg-white text-green-700 border-green-500 hover:bg-green-50 cursor-pointer"
@@ -1109,7 +1109,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-orange-500 inline-block"></span>Occupied</span>
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-yellow-400 inline-block"></span>Reserved</span>
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-red-500 inline-block"></span>Booked</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-purple-500 inline-block"></span>Repair</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-blue-500 inline-block"></span>Repair</span>
                   <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-gray-300 inline-block"></span>Past</span>
                 </div>
 
@@ -1144,13 +1144,13 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                       <div className="space-y-2">
                         <input value={resName} onChange={(e) => setResName(e.target.value)}
                           placeholder="Customer name (optional)"
-                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-purple-400" />
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400" />
                         <input value={resPhone} onChange={(e) => setResPhone(e.target.value)}
                           placeholder="Phone (optional)"
-                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-purple-400" />
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400" />
                         <textarea value={resNote} onChange={(e) => setResNote(e.target.value)} rows={2}
                           placeholder="Note (optional)"
-                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:border-purple-400" />
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:border-blue-400" />
                         <div className="flex gap-2">
                           <button onClick={() => { setPanelAction(null); setPanelError(""); }}
                             className="flex-1 text-xs py-2 border-2 border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Back</button>
@@ -1166,13 +1166,13 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                       <div className="space-y-2">
                         <input value={repairReason} onChange={(e) => setRepairReason(e.target.value)}
                           placeholder="Reason (optional) — e.g. GPU replacement"
-                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-purple-400" />
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400" />
                         <div className="flex gap-2">
                           <button onClick={() => { setPanelAction(null); setPanelError(""); }}
                             className="flex-1 text-xs py-2 border-2 border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Back</button>
                           <button onClick={() => createRepairFromGrid(system.id, selectedWalkInSlots)}
                             disabled={panelSaving || selectedWalkInSlots.length === 0}
-                            className="flex-1 text-xs py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 font-semibold">
+                            className="flex-1 text-xs py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-semibold">
                             {panelSaving ? "Blocking…" : "Confirm Repair Block"}
                           </button>
                         </div>
@@ -1219,7 +1219,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                           <button onClick={clearSelection}
                             className="flex-1 text-xs py-2 border-2 border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
                           <button onClick={() => { setPanelAction("repair"); setPanelError(""); }}
-                            className="flex-1 text-xs py-2 border-2 border-purple-400 text-purple-600 rounded-lg hover:bg-purple-50 font-semibold">🔧 Block for repair</button>
+                            className="flex-1 text-xs py-2 border-2 border-blue-400 text-blue-600 rounded-lg hover:bg-blue-50 font-semibold">🔧 Block for repair</button>
                           <button onClick={() => handleStartWalkIn(system.id)}
                             disabled={selectedWalkInSlots.length === 0 || !check.allowed}
                             className="flex-1 text-xs py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed font-semibold">Start Walk-in →</button>
@@ -1235,7 +1235,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                           className="flex-1 text-xs py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50 font-semibold">📅 Reserve</button>
                         <button onClick={() => { setPanelAction("repair"); setPanelError(""); }}
                           disabled={selectedWalkInSlots.length === 0}
-                          className="flex-1 text-xs py-2 border-2 border-purple-400 text-purple-600 rounded-lg hover:bg-purple-50 font-semibold">🔧 Block for repair</button>
+                          className="flex-1 text-xs py-2 border-2 border-blue-400 text-blue-600 rounded-lg hover:bg-blue-50 font-semibold">🔧 Block for repair</button>
                       </div>
                     )}
                   </div>

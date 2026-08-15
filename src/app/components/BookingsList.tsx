@@ -121,7 +121,7 @@ export function BookingsList({ cafeId }: BookingsListProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className={`flex items-center gap-1 font-semibold text-purple-600 ${isCancelled ? "line-through" : ""}`}>
+                  <span className={`flex items-center gap-1 font-semibold text-blue-600 ${isCancelled ? "line-through" : ""}`}>
                     <IndianRupee className="w-4 h-4 flex-shrink-0" />
                     {booking.total_price}
                   </span>
@@ -142,9 +142,9 @@ export function BookingsList({ cafeId }: BookingsListProps) {
                       </p>
                       <div className="space-y-2">
                         {booking.players.map((player: any, i: number) => (
-                          <div key={i} className="flex items-center justify-between bg-purple-50 rounded-lg px-3 py-2">
+                          <div key={i} className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2">
                             <div className="flex items-center gap-2 text-sm">
-                              <User className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                              <User className="w-4 h-4 text-blue-500 flex-shrink-0" />
                               <span className="font-medium">{player.name || "—"}</span>
                             </div>
                             <div className="flex items-center gap-1 text-sm text-gray-600">

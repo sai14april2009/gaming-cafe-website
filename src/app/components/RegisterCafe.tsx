@@ -96,8 +96,8 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Store className="w-8 h-8 text-purple-600" />
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Store className="w-8 h-8 text-blue-600" />
           </div>
           <h1 className="text-3xl font-bold mb-2">Register Your Cafe</h1>
           <p className="text-gray-500">Tell us about your gaming cafe to get started</p>
@@ -111,7 +111,7 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
               value={form.name}
               onChange={(e) => handleChange("name", e.target.value)}
               placeholder="e.g. Pixel Paradise Gaming Lounge"
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
+              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
               required
             />
           </div>
@@ -123,7 +123,7 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
               onChange={(e) => handleChange("description", e.target.value)}
               placeholder="Tell players what makes your cafe special..."
               rows={3}
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
+              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
             />
           </div>
 
@@ -135,7 +135,7 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
                 value={form.city}
                 onChange={(e) => handleChange("city", e.target.value)}
                 placeholder="e.g. San Francisco"
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
                 required
               />
             </div>
@@ -147,7 +147,7 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
                 value={form.price_per_hour}
                 onChange={(e) => handleChange("price_per_hour", e.target.value)}
                 placeholder="8"
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
                 required
               />
             </div>
@@ -160,7 +160,7 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
               value={form.address}
               onChange={(e) => handleChange("address", e.target.value)}
               placeholder="Street address"
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
+              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
               required
             />
           </div>
@@ -173,7 +173,7 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
                 value={form.phone}
                 onChange={(e) => handleChange("phone", e.target.value)}
                 placeholder="10-digit number"
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
               />
             </div>
             <div>
@@ -183,7 +183,7 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
                 value={form.email}
                 onChange={(e) => handleChange("email", e.target.value)}
                 placeholder="cafe@example.com"
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
               />
             </div>
           </div>
@@ -195,7 +195,7 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
                 type="time"
                 value={form.open_time}
                 onChange={(e) => handleChange("open_time", e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
               />
             </div>
             <div>
@@ -204,7 +204,7 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
                 type="time"
                 value={form.close_time}
                 onChange={(e) => handleChange("close_time", e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
               />
               {form.open_time && form.close_time && crossesMidnight(form.open_time, form.close_time) && (
                 <p className="text-xs text-gray-500 mt-1">Closes at {formatTimeHint(form.close_time)} the next day</p>
@@ -219,7 +219,7 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
               value={form.image_url}
               onChange={(e) => handleChange("image_url", e.target.value)}
               placeholder="https://..."
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400"
+              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
             />
           </div>
 
@@ -232,7 +232,7 @@ export function RegisterCafe({ onRegistered }: RegisterCafeProps) {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700"
           >
             {loading ? "Registering..." : "Register Cafe"}
           </Button>

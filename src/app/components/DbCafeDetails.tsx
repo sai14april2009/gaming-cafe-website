@@ -196,24 +196,24 @@ const handleBookingComplete = (bookings: any) => {
           </div>
 
           {/* Booking box */}
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 mb-6 border-2 border-purple-200">
+          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-6 mb-6 border-2 border-blue-200">
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               <div>
                 <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-3xl font-bold text-purple-600">₹{cafe.price_per_hour}</span>
+                  <span className="text-3xl font-bold text-blue-600">₹{cafe.price_per_hour}</span>
                   <span className="text-gray-600">per hour</span>
                 </div>
               </div>
               <div className="flex items-center gap-3 text-gray-700">
-                <Gamepad2 className="w-5 h-5 text-purple-600" />
+                <Gamepad2 className="w-5 h-5 text-blue-600" />
                 <div><p className="text-sm text-gray-500">Gaming Systems</p><p className="font-medium">{systems.length} systems</p></div>
               </div>
               <div className="flex items-center gap-3 text-gray-700">
-                <Clock className="w-5 h-5 text-purple-600" />
+                <Clock className="w-5 h-5 text-blue-600" />
                 <div><p className="text-sm text-gray-500">Hours</p><p className="font-medium">{formatTime(displaySchedule.open_time)} - {formatTime(displaySchedule.close_time)}</p></div>
               </div>
               <div className="flex items-center">
-                <Button onClick={handleBookNow} className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 h-12 text-lg font-semibold">
+                <Button onClick={handleBookNow} className="w-full bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700 h-12 text-lg font-semibold">
                   Book Now
                 </Button>
               </div>
@@ -269,24 +269,24 @@ const handleBookingComplete = (bookings: any) => {
           ) : showHourSelection ? (
             <div className="bg-white rounded-xl shadow-md p-6">
               <h2 className="text-2xl font-bold mb-6">How Many Hours?</h2>
-              <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border-2 border-purple-200">
+              <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border-2 border-blue-200">
                 <h3 className="text-lg font-semibold mb-3">
                   {partySize === "solo" ? "Select hours you want to play" : "Hours each person will play"}
                 </h3>
                 <div className="flex items-center gap-4">
                   <input type="number" min="1" max="12" value={numberOfHours}
                     onChange={(e) => setNumberOfHours(Math.max(1, Math.min(parseInt(e.target.value) || 1, 12)))}
-                    className="w-24 px-4 py-2 border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 font-semibold text-lg" />
+                    className="w-24 px-4 py-2 border-2 border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-lg" />
                   <div className="flex gap-2">
-                    <button onClick={() => setNumberOfHours(Math.max(1, numberOfHours - 1))} className="px-4 py-2 bg-white border-2 border-purple-300 rounded-lg hover:bg-purple-100 font-semibold">-</button>
-                    <button onClick={() => setNumberOfHours(Math.min(12, numberOfHours + 1))} className="px-4 py-2 bg-white border-2 border-purple-300 rounded-lg hover:bg-purple-100 font-semibold">+</button>
+                    <button onClick={() => setNumberOfHours(Math.max(1, numberOfHours - 1))} className="px-4 py-2 bg-white border-2 border-blue-300 rounded-lg hover:bg-blue-100 font-semibold">-</button>
+                    <button onClick={() => setNumberOfHours(Math.min(12, numberOfHours + 1))} className="px-4 py-2 bg-white border-2 border-blue-300 rounded-lg hover:bg-blue-100 font-semibold">+</button>
                   </div>
                   <span className="text-sm text-gray-600">{numberOfHours === 1 ? "hour" : "hours"} per person</span>
                 </div>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={() => setShowHourSelection(false)}>Back</Button>
-                <Button className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                <Button className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700"
                   onClick={() => setShowAdvancedBooking(true)}>Continue to Booking</Button>
               </div>
             </div>
@@ -295,34 +295,34 @@ const handleBookingComplete = (bookings: any) => {
               <h2 className="text-2xl font-bold mb-6">Select Party Size</h2>
               {!partySize ? (
                 <div className="grid md:grid-cols-2 gap-4 mb-4">
-                  <button onClick={() => { if (!user) { navigate("/login", { state: { returnTo: `/cafe/db/${id}` } }); return; } setPartySize("solo"); }} className="p-6 border-2 border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all">
+                  <button onClick={() => { if (!user) { navigate("/login", { state: { returnTo: `/cafe/db/${id}` } }); return; } setPartySize("solo"); }} className="p-6 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
                     <div className="text-4xl mb-2">🎮</div>
                     <div className="font-semibold">Playing Solo</div>
                     <div className="text-sm text-gray-600 mt-1">Just me</div>
                   </button>
-                  <button onClick={() => { if (!user) { navigate("/login", { state: { returnTo: `/cafe/db/${id}` } }); return; } setPartySize("group"); }} className="p-6 border-2 border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all">
+                  <button onClick={() => { if (!user) { navigate("/login", { state: { returnTo: `/cafe/db/${id}` } }); return; } setPartySize("group"); }} className="p-6 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
                     <div className="text-4xl mb-2">👥</div>
                     <div className="font-semibold">With Friends</div>
                     <div className="text-sm text-gray-600 mt-1">Group gaming</div>
                   </button>
                 </div>
               ) : partySize === "group" ? (
-                <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border-2 border-purple-200">
+                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border-2 border-blue-200">
                   <h3 className="text-lg font-semibold mb-3">How many friends? (including you)</h3>
                   <div className="flex items-center gap-4">
                     <input type="number" min="2" max={systems.length} value={numberOfFriends}
                       onChange={(e) => setNumberOfFriends(Math.max(2, Math.min(parseInt(e.target.value) || 2, systems.length)))}
-                      className="w-24 px-4 py-2 border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 font-semibold text-lg" />
+                      className="w-24 px-4 py-2 border-2 border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-lg" />
                     <div className="flex gap-2">
-                      <button onClick={() => setNumberOfFriends(Math.max(2, numberOfFriends - 1))} className="px-4 py-2 bg-white border-2 border-purple-300 rounded-lg hover:bg-purple-100 font-semibold">-</button>
-                      <button onClick={() => setNumberOfFriends(Math.min(systems.length, numberOfFriends + 1))} className="px-4 py-2 bg-white border-2 border-purple-300 rounded-lg hover:bg-purple-100 font-semibold">+</button>
+                      <button onClick={() => setNumberOfFriends(Math.max(2, numberOfFriends - 1))} className="px-4 py-2 bg-white border-2 border-blue-300 rounded-lg hover:bg-blue-100 font-semibold">-</button>
+                      <button onClick={() => setNumberOfFriends(Math.min(systems.length, numberOfFriends + 1))} className="px-4 py-2 bg-white border-2 border-blue-300 rounded-lg hover:bg-blue-100 font-semibold">+</button>
                     </div>
                     <span className="text-sm text-gray-600">people</span>
                   </div>
                 </div>
               ) : null}
               {partySize && (
-                <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700"
                   onClick={() => setShowHourSelection(true)}>Continue to Booking</Button>
               )}
             </div>
@@ -336,8 +336,8 @@ const handleBookingComplete = (bookings: any) => {
             <div className="grid md:grid-cols-2 gap-3">
               {cafe.amenities.map((amenity) => (
                 <div key={amenity} className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
-                    <Coffee className="w-4 h-4 text-purple-600" />
+                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Coffee className="w-4 h-4 text-blue-600" />
                   </div>
                   <span>{amenity}</span>
                 </div>

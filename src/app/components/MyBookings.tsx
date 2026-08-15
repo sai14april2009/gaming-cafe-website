@@ -122,7 +122,7 @@ function BookingCard({ booking }: { booking: any }) {
             <Users className="w-4 h-4 flex-shrink-0 text-gray-400" />
             {booking.num_people} {booking.num_people === 1 ? "player" : "players"}
           </span>
-          <span className="flex items-center gap-1.5 font-semibold text-purple-600">
+          <span className="flex items-center gap-1.5 font-semibold text-blue-600">
             <IndianRupee className="w-4 h-4 flex-shrink-0" />
             {booking.total_price}
           </span>
@@ -161,8 +161,8 @@ function SkeletonCard() {
 function EmptyState({ tab }: { tab: Tab }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-      <div className="w-14 h-14 rounded-full bg-purple-50 flex items-center justify-center mx-auto mb-4">
-        <Ticket className="w-7 h-7 text-purple-400" />
+      <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4">
+        <Ticket className="w-7 h-7 text-blue-400" />
       </div>
       <h3 className="text-lg font-semibold text-gray-900">
         {tab === "upcoming" ? "No upcoming bookings" : "No past bookings yet"}
@@ -174,7 +174,7 @@ function EmptyState({ tab }: { tab: Tab }) {
       </p>
       <Link
         to="/"
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-sm hover:from-purple-700 hover:to-pink-700 transition-colors"
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-400 text-white font-semibold text-sm hover:from-blue-700 hover:to-cyan-700 transition-colors"
       >
         Browse cafes
       </Link>
@@ -264,11 +264,11 @@ export function MyBookings() {
               key={t}
               onClick={() => setTab(t)}
               className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                active ? "bg-white text-purple-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                active ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
               }`}
             >
               {t === "upcoming" ? "Upcoming" : "Past"}
-              <span className={`ml-2 ${active ? "text-purple-400" : "text-gray-400"}`}>{count}</span>
+              <span className={`ml-2 ${active ? "text-blue-400" : "text-gray-400"}`}>{count}</span>
             </button>
           );
         })}

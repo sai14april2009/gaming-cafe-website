@@ -1,0 +1,59 @@
+/* ── Micro-interactions (Phase 3) ── */
+
+/* Button press feedback — Emil Kowalski principle: buttons must feel responsive */
+button:not(:disabled):active,
+a[role="button"]:not(:disabled):active,
+[class*="btn"]:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+/* Smooth transition for all interactive elements */
+button,
+a,
+input,
+select,
+textarea {
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+              box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1),
+              background-color 150ms ease,
+              border-color 150ms ease,
+              color 150ms ease;
+}
+
+/* Card hover lift — subtle elevation on interactive cards */
+a[class*="rounded"] {
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
+              box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+a[class*="rounded"]:hover {
+  transform: translateY(-2px);
+}
+
+/* Focus ring — accessible, visible, styled */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Reduced motion — respect user preferences */
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):active,
+  a[role="button"]:not(:disabled):active,
+  [class*="btn"]:not(:disabled):active {
+    transform: none;
+  }
+
+  a[class*="rounded"]:hover {
+    transform: none;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    transition-duration: 0ms;
+  }
+}

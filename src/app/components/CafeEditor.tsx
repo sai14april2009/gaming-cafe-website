@@ -217,44 +217,44 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
       <div>
         <label className="text-sm font-medium text-gray-700 mb-1 block">Cafe Name</label>
         <input type="text" value={form.name} onChange={(e) => handleChange("name", e.target.value)}
-          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" />
+          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
       </div>
 
       <div>
         <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
         <textarea value={form.description} onChange={(e) => handleChange("description", e.target.value)}
-          rows={3} className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" />
+          rows={3} className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium text-gray-700 mb-1 block">City</label>
           <input type="text" value={form.city} onChange={(e) => handleChange("city", e.target.value)}
-            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" />
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
         </div>
         <div>
           <label className="text-sm font-medium text-gray-700 mb-1 block">Price per Hour ($)</label>
           <input type="number" step="0.01" value={form.price_per_hour} onChange={(e) => handleChange("price_per_hour", e.target.value)}
-            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" />
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
         </div>
       </div>
 
       <div>
         <label className="text-sm font-medium text-gray-700 mb-1 block">Address</label>
         <input type="text" value={form.address} onChange={(e) => handleChange("address", e.target.value)}
-          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" />
+          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium text-gray-700 mb-1 block">Phone</label>
           <input type="tel" value={form.phone} onChange={(e) => handleChange("phone", e.target.value)}
-            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" />
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
         </div>
         <div>
           <label className="text-sm font-medium text-gray-700 mb-1 block">Email</label>
           <input type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)}
-            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" />
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
         </div>
       </div>
 
@@ -262,12 +262,12 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
         <div>
           <label className="text-sm font-medium text-gray-700 mb-1 block">Opening Time</label>
           <input type="time" value={form.open_time} onChange={(e) => handleChange("open_time", e.target.value)}
-            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" />
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
         </div>
         <div>
           <label className="text-sm font-medium text-gray-700 mb-1 block">Closing Time</label>
           <input type="time" value={form.close_time} onChange={(e) => handleChange("close_time", e.target.value)}
-            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" />
+            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
           {form.open_time && form.close_time && crossesMidnight(form.open_time, form.close_time) && (
             <p className="text-xs text-gray-500 mt-1">Closes at {formatTimeHint(form.close_time)} the next day</p>
           )}
@@ -277,7 +277,7 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
       <div>
         <label className="text-sm font-medium text-gray-700 mb-1 block">Cover Image URL</label>
         <input type="text" value={form.image_url} onChange={(e) => handleChange("image_url", e.target.value)}
-          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400" />
+          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
       </div>
 
       <div>
@@ -285,7 +285,7 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
         <div className="flex flex-wrap gap-2 mb-3">
           {AMENITY_SUGGESTIONS.map((amenity) => (
             <button key={amenity} type="button" onClick={() => toggleAmenity(amenity)}
-              className={"px-3 py-1.5 rounded-full text-sm border-2 transition-all " + (amenities.includes(amenity) ? "bg-purple-600 text-white border-purple-600" : "bg-white text-gray-600 border-gray-300 hover:border-purple-400")}>
+              className={"px-3 py-1.5 rounded-full text-sm border-2 transition-all " + (amenities.includes(amenity) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-300 hover:border-blue-400")}>
               {amenity}
             </button>
           ))}
@@ -294,7 +294,7 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
           <input type="text" value={customAmenity} onChange={(e) => setCustomAmenity(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addCustomAmenity()}
             placeholder="Add custom amenity..."
-            className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 text-sm" />
+            className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-sm" />
           <Button type="button" variant="outline" onClick={addCustomAmenity} className="gap-1">
             <Plus className="w-4 h-4" /> Add
           </Button>
@@ -302,7 +302,7 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
         {amenities.filter(a => !AMENITY_SUGGESTIONS.includes(a)).length > 0 && (
           <div className="flex flex-wrap gap-2 mt-2">
             {amenities.filter(a => !AMENITY_SUGGESTIONS.includes(a)).map((amenity) => (
-              <span key={amenity} className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-full text-sm">
+              <span key={amenity} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-full text-sm">
                 {amenity}
                 <button onClick={() => toggleAmenity(amenity)}><X className="w-3 h-3" /></button>
               </span>
@@ -317,7 +317,7 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
         {games.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3">
             {games.map((game) => (
-              <span key={game} className="flex items-center gap-1 px-3 py-1.5 bg-pink-600 text-white rounded-full text-sm">
+              <span key={game} className="flex items-center gap-1 px-3 py-1.5 bg-cyan-600 text-white rounded-full text-sm">
                 {game}
                 <button onClick={() => removeGame(game)} className="hover:opacity-75"><X className="w-3 h-3" /></button>
               </span>
@@ -330,14 +330,14 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
             <input type="text" value={gameSearch} onChange={(e) => handleGameSearchChange(e.target.value)}
               onFocus={() => steamResults.length > 0 && setShowDropdown(true)}
               placeholder="Search Steam games... (e.g. Valorant, CS2)"
-              className="w-full pl-10 pr-10 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-pink-400 text-sm" />
+              className="w-full pl-10 pr-10 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-cyan-400 text-sm" />
             {searchLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />}
           </div>
           {showDropdown && steamResults.length > 0 && (
             <div className="absolute z-50 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg overflow-y-auto max-h-64">
               {steamResults.map((game) => (
                 <button key={game.id} onClick={() => addGame(game.name)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-pink-50 transition-colors text-left">
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-cyan-50 transition-colors text-left">
                   {game.tiny_image && <img src={game.tiny_image} alt={game.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />}
                   <span className="text-sm font-medium text-gray-800">{game.name}</span>
                   {games.includes(game.name) && <span className="ml-auto text-xs text-green-600 font-medium">Added ✓</span>}
@@ -352,7 +352,7 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
       {success && <div className="bg-green-50 border-2 border-green-300 rounded-lg p-3 text-green-600 text-sm">Saved successfully!</div>}
 
       <Button onClick={handleSave} disabled={loading}
-        className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+        className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700">
         {loading ? "Saving..." : "Save Changes"}
       </Button>
     </div>

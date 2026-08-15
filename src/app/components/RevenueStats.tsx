@@ -80,7 +80,7 @@ export function RevenueStats({ cafeId }: RevenueStatsProps) {
       label: "Total Bookings",
       value: stats.totalBookings,
       icon: Calendar,
-      color: "from-purple-500 to-pink-600",
+      color: "from-blue-500 to-cyan-600",
     },
     {
       label: "Total Players Served",
@@ -138,7 +138,7 @@ export function RevenueStats({ cafeId }: RevenueStatsProps) {
                         cancelled
                       </span>
                     )}
-                    <p className={`font-bold text-purple-600 ${isCancelled ? "line-through" : ""}`}>₹{booking.total_price}</p>
+                    <p className={`font-bold text-blue-600 ${isCancelled ? "line-through" : ""}`}>₹{booking.total_price}</p>
                   </div>
                 </div>
               );

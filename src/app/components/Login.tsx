@@ -26,8 +26,8 @@ const returnTo = (location.state as any)?.returnTo || "/";
         <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
             <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
                 <div className="flex items-center justify-center gap-2 mb-8">
-                    <Gamepad2 className="w-8 h-8 text-purple-600" />
-                    <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    <Gamepad2 className="w-8 h-8 text-blue-600" />
+                    <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent">
                         GameSpot
                     </span>
                 </div>
@@ -41,7 +41,7 @@ const returnTo = (location.state as any)?.returnTo || "/";
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="you@example.com"
                             required
                         />
@@ -52,7 +52,7 @@ const returnTo = (location.state as any)?.returnTo || "/";
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="��������"
                             required
                         />
@@ -60,14 +60,14 @@ const returnTo = (location.state as any)?.returnTo || "/";
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 rounded-lg transition-colors disabled:opacity-50"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors disabled:opacity-50"
                     >
                         {loading ? "Signing in..." : "Sign In"}
                     </button>
                 </form>
                 <p className="text-center text-sm text-gray-500 mt-6">
                     Don't have an account?{" "}
-                    <Link to="/signup" className="text-purple-600 font-medium hover:underline">Sign up</Link>
+                    <Link to="/signup" className="text-blue-600 font-medium hover:underline">Sign up</Link>
                 </p>
             </div>
         </div>

@@ -207,7 +207,7 @@ export function AdminApprovals() {
                   <Button
                     disabled={processingId === cafe.id}
                     onClick={() => handleApprove(cafe.id)}
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                    className="bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700"
                   >
                     Approve
                   </Button>

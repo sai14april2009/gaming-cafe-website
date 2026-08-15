@@ -431,7 +431,7 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
                 )}
               </div>
             )}
-            <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600" onClick={() => setNotice(null)}>
+            <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-400" onClick={() => setNotice(null)}>
               OK, Got it!
             </Button>
           </div>

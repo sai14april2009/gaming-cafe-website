@@ -86,7 +86,7 @@ export function Dashboard() {
               onClick={() => setActiveTab(tab.key as any)}
               className={`px-4 py-3 font-semibold text-sm border-b-2 transition-all whitespace-nowrap ${
                 activeTab === tab.key
-                  ? "border-purple-600 text-purple-600"
+                  ? "border-blue-600 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-800"
               }`}
             >

@@ -169,12 +169,12 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
     <div className="bg-white rounded-xl shadow-md p-6 mt-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <Wrench className="w-5 h-5 text-purple-600" />
+          <Wrench className="w-5 h-5 text-blue-600" />
           <h2 className="text-xl font-bold">Repair Slots</h2>
         </div>
         <Button
           onClick={() => setShowForm(!showForm)}
-          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 flex items-center gap-2"
+          className="bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700 flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
           Mark as Repair
@@ -194,7 +194,7 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
 
       {/* Add Repair Form */}
       {showForm && (
-        <div className="mb-6 p-5 bg-purple-50 border-2 border-purple-200 rounded-xl">
+        <div className="mb-6 p-5 bg-blue-50 border-2 border-blue-200 rounded-xl">
           <h3 className="font-semibold text-gray-800 mb-4">Add Repair Slot</h3>
           <div className="grid md:grid-cols-2 gap-4">
 
@@ -204,7 +204,7 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
               <select
                 value={selectedSystem}
                 onChange={(e) => setSelectedSystem(e.target.value)}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 text-sm"
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-sm"
               >
                 <option value="">Select system...</option>
                 {systems.map((s) => (
@@ -221,7 +221,7 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
                 value={selectedDate}
                 min={today}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 text-sm"
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-sm"
               />
             </div>
 
@@ -231,7 +231,7 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
               <select
                 value={startHour}
                 onChange={(e) => setStartHour(Number(e.target.value))}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 text-sm"
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-sm"
               >
                 {hours.map((h) => (
                   <option key={h} value={h}>{formatHour(h)}</option>
@@ -245,7 +245,7 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
               <select
                 value={endHour}
                 onChange={(e) => setEndHour(Number(e.target.value))}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 text-sm"
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-sm"
               >
                 {hours.map((h) => (
                   <option key={h} value={h}>{formatHour(h)}</option>
@@ -261,7 +261,7 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="e.g. GPU replacement, monitor repair..."
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 text-sm"
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-sm"
               />
             </div>
           </div>
@@ -275,7 +275,7 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
               Cancel
             </Button>
             <Button
-              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
+              className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-400"
               onClick={handleAddRepair}
               disabled={saving}
             >
@@ -295,7 +295,7 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
         <div className="space-y-3">
           <p className="text-sm text-gray-500 mb-3">Upcoming repair slots (visible to customers as unavailable):</p>
           {repairSlots.map((slot) => (
-            <div key={slot.id} className="flex items-center justify-between p-4 bg-purple-50 border-2 border-purple-200 rounded-lg">
+            <div key={slot.id} className="flex items-center justify-between p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
               <div>
                 <div className="font-semibold text-gray-800">
                   🖥️ {slot.gaming_systems?.name}
@@ -305,7 +305,7 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
                   🕐 {formatHour(slot.start_hour)} – {formatHour(slot.end_hour)}
                 </div>
                 {slot.reason && (
-                  <div className="text-sm text-purple-700 mt-1">🔧 {slot.reason}</div>
+                  <div className="text-sm text-blue-700 mt-1">🔧 {slot.reason}</div>
                 )}
               </div>
               <button

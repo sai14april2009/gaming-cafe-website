@@ -118,12 +118,12 @@ export function BookingConfirm() {
   };
 
   const playerColors = [
-    "bg-purple-500", "bg-pink-500", "bg-blue-500", "bg-green-500",
+    "bg-blue-500", "bg-cyan-500", "bg-blue-500", "bg-green-500",
     "bg-yellow-500", "bg-red-500", "bg-indigo-500", "bg-orange-500"
   ];
 
   const playerBorders = [
-    "border-purple-500", "border-pink-500", "border-blue-500", "border-green-500",
+    "border-blue-500", "border-cyan-500", "border-blue-500", "border-green-500",
     "border-yellow-500", "border-red-500", "border-indigo-500", "border-orange-500"
   ];
 
@@ -336,7 +336,7 @@ const handleConfirm = async () => {
             <p className="text-sm text-gray-600"><span className="font-semibold">Total Paid:</span> ₹{totalPrice}</p>
           </div>
           <Button
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600"
+            className="w-full bg-gradient-to-r from-blue-600 to-cyan-400"
             onClick={() => navigate("/")}
           >
             Back to Home
@@ -355,7 +355,7 @@ const handleConfirm = async () => {
         {/* Booking Summary */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-purple-600" /> Booking Summary
+            <Calendar className="w-5 h-5 text-blue-600" /> Booking Summary
           </h2>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
@@ -380,7 +380,7 @@ const handleConfirm = async () => {
         {/* Player Details */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <User className="w-5 h-5 text-purple-600" /> Player Details
+            <User className="w-5 h-5 text-blue-600" /> Player Details
           </h2>
           <div className="space-y-4">
             {players.map((player, i) => (
@@ -399,7 +399,7 @@ const handleConfirm = async () => {
                       placeholder="Enter name"
                       value={player.name}
                       onChange={(e) => setPlayers((prev) => prev.map((p, idx) => idx === i ? { ...p, name: e.target.value } : p))}
-                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 text-sm"
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-sm"
                     />
                   </div>
                   <div>
@@ -409,7 +409,7 @@ const handleConfirm = async () => {
                       placeholder="10-digit number"
                       value={player.phone}
                       onChange={(e) => setPlayers((prev) => prev.map((p, idx) => idx === i ? { ...p, phone: e.target.value } : p))}
-                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-400 text-sm"
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-sm"
                     />
                   </div>
                 </div>
@@ -422,7 +422,7 @@ const handleConfirm = async () => {
         {partySize === "group" && (
           <div className="bg-white rounded-xl shadow-md p-6 mb-6">
             <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
-              <Monitor className="w-5 h-5 text-purple-600" /> Assign Time Slots to Players
+              <Monitor className="w-5 h-5 text-blue-600" /> Assign Time Slots to Players
             </h2>
             <p className="text-sm text-gray-500 mb-4">Select a player, then click their time slots to assign them.</p>
 
@@ -460,7 +460,7 @@ const handleConfirm = async () => {
                         className={`px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all ${
                           assignedTo !== null
                             ? `${playerColors[assignedTo]} text-white border-transparent`
-                            : "border-gray-300 bg-white text-gray-600 hover:border-purple-400"
+                            : "border-gray-300 bg-white text-gray-600 hover:border-blue-400"
                         }`}
                       >
                         {formatTime(hour)}
@@ -492,7 +492,7 @@ const handleConfirm = async () => {
             </div>
             <div className="border-t pt-2 flex justify-between text-lg font-bold">
               <span>Total</span>
-              <span className="text-purple-600">₹{totalPrice}</span>
+              <span className="text-blue-600">₹{totalPrice}</span>
             </div>
           </div>
         </div>
@@ -508,7 +508,7 @@ const handleConfirm = async () => {
         <Button
           onClick={handleConfirm}
           disabled={loading}
-          className="w-full h-14 text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+          className="w-full h-14 text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700"
         >
           {loading ? "Confirming..." : `Confirm & Pay ₹${totalPrice}`}
         </Button>
