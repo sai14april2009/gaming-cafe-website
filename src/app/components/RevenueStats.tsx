@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabase";
-import { IndianRupee, Calendar, Users, TrendingUp } from "lucide-react";
+import { IndianRupee, Calendar, Users, TrendingUp, Clock } from "lucide-react";
 import { toLocalDateString } from "../utils/date";
 
 interface RevenueStatsProps {
@@ -66,59 +66,86 @@ export function RevenueStats({ cafeId }: RevenueStatsProps) {
   };
 
   if (loading) {
-    return <div className="text-center py-8 text-gray-500">Loading stats...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => <div key={i} className="skeleton h-32 rounded-xl" />)}
+        </div>
+        <div className="skeleton h-64 rounded-xl" />
+      </div>
+    );
   }
 
   const cards = [
     {
       label: "Total Revenue",
-      value: `₹${stats.totalRevenue}`,
+      value: `₹${stats.totalRevenue.toLocaleString("en-IN")}`,
       icon: IndianRupee,
       color: "from-green-500 to-emerald-600",
+      bg: "bg-green-50",
+      accent: "text-green-600",
     },
     {
       label: "Total Bookings",
       value: stats.totalBookings,
       icon: Calendar,
       color: "from-blue-500 to-cyan-600",
+      bg: "bg-blue-50",
+      accent: "text-blue-600",
     },
     {
-      label: "Total Players Served",
+      label: "Players Served",
       value: stats.totalPlayers,
       icon: Users,
-      color: "from-blue-500 to-indigo-600",
+      color: "from-violet-500 to-indigo-600",
+      bg: "bg-violet-50",
+      accent: "text-violet-600",
     },
     {
-      label: "Upcoming Bookings",
+      label: "Upcoming",
       value: stats.upcomingBookings,
       icon: TrendingUp,
-      color: "from-orange-500 to-red-600",
+      color: "from-orange-500 to-red-500",
+      bg: "bg-orange-50",
+      accent: "text-orange-600",
     },
   ];
 
   return (
     <div className="space-y-6">
+      {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className="bg-white rounded-xl shadow-md p-5">
-              <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${card.color} flex items-center justify-center mb-3`}>
-                <Icon className="w-5 h-5 text-white" />
+            <div
+              key={card.label}
+              className="dash-card bg-white rounded-xl shadow-sm border border-gray-100 p-5 cursor-default"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm font-medium text-gray-500">{card.label}</p>
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center shadow-sm`}>
+                  <Icon className="w-5 h-5 text-white" />
+                </div>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-              <p className="text-sm text-gray-500">{card.label}</p>
+              <p className="text-3xl font-bold text-gray-900 tracking-tight">{card.value}</p>
             </div>
           );
         })}
       </div>
 
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <h2 className="text-lg font-bold mb-4">Recent Bookings</h2>
+      {/* Recent bookings */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h2 className="text-base font-semibold text-gray-900">Recent Bookings</h2>
+        </div>
         {recentBookings.length === 0 ? (
-          <p className="text-gray-500 text-sm text-center py-6">No bookings yet</p>
+          <div className="px-6 py-12 text-center">
+            <Calendar className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+            <p className="text-gray-400 text-sm">No bookings yet</p>
+          </div>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-gray-50">
             {recentBookings.map((booking) => {
               // Recent list keeps ALL statuses (unlike the totals) so a cancellation
               // is visible when revenue dips — styled like BookingsList's cancelled rows.
@@ -126,19 +153,42 @@ export function RevenueStats({ cafeId }: RevenueStatsProps) {
               return (
                 <div
                   key={booking.id}
-                  className={`flex items-center justify-between border-b border-gray-100 pb-3 last:border-0 last:pb-0 ${isCancelled ? "opacity-60" : ""}`}
+                  className={`flex items-center justify-between px-6 py-3.5 hover:bg-gray-50 transition-colors ${isCancelled ? "opacity-50" : ""}`}
                 >
-                  <div>
-                    <p className="font-medium text-sm">{new Date(booking.booking_date).toDateString()}</p>
-                    <p className="text-xs text-gray-500">{booking.num_people} player{booking.num_people !== 1 ? "s" : ""}</p>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                      isCancelled ? "bg-red-400" : booking.status === "completed" ? "bg-green-400" : "bg-blue-400"
+                    }`} />
+                    <div className="min-w-0">
+                      <p className={`font-medium text-sm text-gray-900 ${isCancelled ? "line-through" : ""}`}>
+                        {new Date(booking.booking_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {booking.start_time} – {booking.end_time}
+                        </span>
+                        <span>·</span>
+                        <span>{booking.num_people} player{booking.num_people !== 1 ? "s" : ""}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     {isCancelled && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-600">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-red-100 text-red-600">
                         cancelled
                       </span>
                     )}
-                    <p className={`font-bold text-blue-600 ${isCancelled ? "line-through" : ""}`}>₹{booking.total_price}</p>
+                    {!isCancelled && booking.status && (
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${
+                        booking.status === "confirmed" ? "bg-blue-100 text-blue-600" : "bg-green-100 text-green-600"
+                      }`}>
+                        {booking.status}
+                      </span>
+                    )}
+                    <p className={`font-semibold text-sm tabular-nums ${isCancelled ? "line-through text-gray-400" : "text-gray-900"}`}>
+                      ₹{booking.total_price}
+                    </p>
                   </div>
                 </div>
               );

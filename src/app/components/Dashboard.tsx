@@ -9,6 +9,7 @@ import { LiveSessions } from "./LiveSessions";
 import { BookingsList } from "./BookingsList";
 import { RepairSlotsManager } from "./RepairSlotsManager";
 import { RevenueStats } from "./RevenueStats";
+import { BarChart3, Settings, Monitor, Radio, History } from "lucide-react";
 
 export function Dashboard() {
   const { user, profile, loading: authLoading } = useAuth();
@@ -45,7 +46,25 @@ export function Dashboard() {
   };
 
   if (authLoading || loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          {/* Skeleton header */}
+          <div className="skeleton h-8 w-48 mb-3" />
+          <div className="skeleton h-5 w-32 mb-6" />
+          {/* Skeleton tabs */}
+          <div className="flex gap-4 mb-6 border-b border-gray-200 pb-3">
+            {[1,2,3,4,5].map(i => <div key={i} className="skeleton h-8 w-24" />)}
+          </div>
+          {/* Skeleton stat cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {[1,2,3,4].map(i => <div key={i} className="skeleton h-28 rounded-xl" />)}
+          </div>
+          {/* Skeleton content */}
+          <div className="skeleton h-64 rounded-xl" />
+        </div>
+      </div>
+    );
   }
 
   if (!user) return <Navigate to="/login" />;
@@ -65,36 +84,69 @@ export function Dashboard() {
     return <RegisterCafe onRegistered={fetchCafe} />;
   }
 
+  const tabs = [
+    { key: "overview" as const, label: "Overview", icon: BarChart3 },
+    { key: "details" as const, label: "Cafe Details", icon: Settings },
+    { key: "systems" as const, label: "Gaming Systems", icon: Monitor },
+    { key: "live" as const, label: "Live Now", icon: Radio },
+    { key: "bookings" as const, label: "Booking History", icon: History },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-2">{cafe.name}</h1>
-        <p className="text-gray-500 mb-6">
-          {cafe.is_approved ? "✅ Approved & Live" : "⏳ Pending Approval"}
-        </p>
-
-        <div className="flex gap-2 mb-6 border-b border-gray-200 overflow-x-auto">
-          {[
-            { key: "overview", label: "Overview" },
-            { key: "details", label: "Cafe Details" },
-            { key: "systems", label: "Gaming Systems" },
-            { key: "live", label: "🔴 Live Now" },
-            { key: "bookings", label: "Booking History" },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as any)}
-              className={`px-4 py-3 font-semibold text-sm border-b-2 transition-all whitespace-nowrap ${
-                activeTab === tab.key
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-800"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{cafe.name}</h1>
+            <div className="flex items-center gap-2 mt-1.5">
+              {cafe.is_approved ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  Live
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  Pending Approval
+                </span>
+              )}
+              {cafe.city && <span className="text-sm text-gray-400">·</span>}
+              {cafe.city && <span className="text-sm text-gray-500">{cafe.city}</span>}
+            </div>
+          </div>
         </div>
 
+        {/* Tab bar */}
+        <div className="relative flex gap-1 mb-6 bg-white rounded-xl shadow-sm p-1.5 overflow-x-auto">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.key;
+            const isLive = tab.key === "live";
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`relative flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                  isActive
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                }`}
+              >
+                {isLive && !isActive && (
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                )}
+                {isLive && isActive && (
+                  <span className="w-2 h-2 rounded-full bg-red-300" />
+                )}
+                {!isLive && <Icon className="w-4 h-4" />}
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab content */}
         {activeTab === "overview" && <RevenueStats cafeId={cafe.id} />}
         {activeTab === "details" && <CafeEditor cafe={cafe} onUpdated={refreshCafe} />}
         {activeTab === "systems" && (

@@ -53,7 +53,12 @@ export function BookingsList({ cafeId }: BookingsListProps) {
   };
 
   if (loading) {
-    return <div className="text-center py-8 text-gray-500">Loading bookings...</div>;
+    return (
+      <div className="space-y-4">
+        <div className="skeleton h-7 w-48" />
+        {[1,2,3].map(i => <div key={i} className="skeleton h-20 rounded-xl" />)}
+      </div>
+    );
   }
 
   return (
