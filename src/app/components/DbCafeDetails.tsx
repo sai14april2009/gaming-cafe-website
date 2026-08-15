@@ -155,7 +155,21 @@ const handleBookingComplete = (bookings: any) => {
   };
 
   if (loading) {
-    return <div className="max-w-7xl mx-auto px-4 py-16 text-center"><p className="text-gray-500">Loading...</p></div>;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="skeleton h-9 w-20 rounded-lg" />
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+          <div className="skeleton rounded-xl aspect-[16/6]" />
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 space-y-6">
+          <div className="skeleton h-64 rounded-xl" />
+          <div className="skeleton h-48 rounded-xl" />
+          <div className="skeleton h-40 rounded-xl" />
+        </div>
+      </div>
+    );
   }
 
   if (!cafe || !cafe.is_approved) {
@@ -174,7 +188,7 @@ const handleBookingComplete = (bookings: any) => {
       </div>
 
       {/* Cover Image */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+      <div className="animate-in max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8" style={{"--stagger": 0} as React.CSSProperties}>
         <div className="rounded-xl overflow-hidden aspect-[16/6] bg-gray-100">
           {cafe.image_url ? (
             <img src={cafe.image_url} alt={cafe.name} className="w-full h-full object-cover" />
@@ -186,7 +200,7 @@ const handleBookingComplete = (bookings: any) => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+        <div className="animate-in bg-white rounded-xl shadow-md p-6 mb-6" style={{"--stagger": 1} as React.CSSProperties}>
           <h1 className="text-3xl font-bold mb-2">{cafe.name}</h1>
           <div className="flex flex-wrap items-center gap-4 mb-4 text-gray-600">
             <div className="flex items-center gap-1"><MapPin className="w-5 h-5" /><span>{cafe.address}, {cafe.city}</span></div>
@@ -233,11 +247,11 @@ const handleBookingComplete = (bookings: any) => {
 
         {/* Available Games */}
         {cafe.games && cafe.games.length > 0 && (
-          <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+          <div className="animate-in bg-white rounded-xl shadow-md p-6 mb-6" style={{"--stagger": 2} as React.CSSProperties}>
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Gamepad2 className="w-6 h-6" />Available Games</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {cafe.games.map((game) => (
-                <div key={game} className="flex flex-col overflow-hidden rounded-lg border-2 border-gray-200">
+                <div key={game} className="game-card flex flex-col overflow-hidden rounded-lg border-2 border-gray-200">
                   <div className="w-full h-24 overflow-hidden bg-gray-100 flex items-center justify-center">
   {gameImages[game] ? (
     <img src={gameImages[game]} alt={game} className="w-full h-full object-cover" />
@@ -253,7 +267,7 @@ const handleBookingComplete = (bookings: any) => {
         )}
 
         {/* Booking Flow */}
-        <div ref={bookingRef} className="mb-6">
+        <div ref={bookingRef} className="animate-in mb-6" style={{"--stagger": 3} as React.CSSProperties}>
           {systems.length === 0 ? (
             <div className="bg-white rounded-xl shadow-md p-6 text-center text-gray-500">No gaming systems listed yet.</div>
           ) : showAdvancedBooking ? (
@@ -295,12 +309,12 @@ const handleBookingComplete = (bookings: any) => {
               <h2 className="text-2xl font-bold mb-6">Select Party Size</h2>
               {!partySize ? (
                 <div className="grid md:grid-cols-2 gap-4 mb-4">
-                  <button onClick={() => { if (!user) { navigate("/login", { state: { returnTo: `/cafe/db/${id}` } }); return; } setPartySize("solo"); }} className="p-6 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
+                  <button onClick={() => { if (!user) { navigate("/login", { state: { returnTo: `/cafe/db/${id}` } }); return; } setPartySize("solo"); }} className="party-card p-6 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50">
                     <div className="text-4xl mb-2">🎮</div>
                     <div className="font-semibold">Playing Solo</div>
                     <div className="text-sm text-gray-600 mt-1">Just me</div>
                   </button>
-                  <button onClick={() => { if (!user) { navigate("/login", { state: { returnTo: `/cafe/db/${id}` } }); return; } setPartySize("group"); }} className="p-6 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
+                  <button onClick={() => { if (!user) { navigate("/login", { state: { returnTo: `/cafe/db/${id}` } }); return; } setPartySize("group"); }} className="party-card p-6 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50">
                     <div className="text-4xl mb-2">👥</div>
                     <div className="font-semibold">With Friends</div>
                     <div className="text-sm text-gray-600 mt-1">Group gaming</div>
@@ -331,7 +345,7 @@ const handleBookingComplete = (bookings: any) => {
 
         {/* Amenities */}
         {cafe.amenities && cafe.amenities.length > 0 && (
-          <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+          <div className="animate-in bg-white rounded-xl shadow-md p-6 mb-6" style={{"--stagger": 4} as React.CSSProperties}>
             <h2 className="text-xl font-bold mb-4">Amenities</h2>
             <div className="grid md:grid-cols-2 gap-3">
               {cafe.amenities.map((amenity) => (
@@ -347,7 +361,9 @@ const handleBookingComplete = (bookings: any) => {
         )}
 
         {/* Reviews */}
-        <DbReviewsSection cafeId={cafe.id} cafeName={cafe.name} />
+        <div className="animate-in" style={{"--stagger": 5} as React.CSSProperties}>
+          <DbReviewsSection cafeId={cafe.id} cafeName={cafe.name} />
+        </div>
       </div>
     </div>
   );
