@@ -53,7 +53,7 @@ export function BrowseCafes() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Hero Section */}
-      <div className="mb-8">
+      <div className="animate-in mb-8" style={{"--stagger": 0} as React.CSSProperties}>
         <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent">
           Find Your Perfect Gaming Cafe
         </h1>
@@ -63,7 +63,7 @@ export function BrowseCafes() {
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+      <div className="animate-in bg-white rounded-xl shadow-md p-6 mb-8" style={{"--stagger": 1} as React.CSSProperties}>
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -94,19 +94,19 @@ export function BrowseCafes() {
       </div>
 
       {/* Results */}
-      <div className="mb-4">
+      <div className="animate-in mb-4" style={{"--stagger": 2} as React.CSSProperties}>
         <p className="text-gray-600">
           {totalCount} {totalCount === 1 ? "cafe" : "cafes"} found
         </p>
       </div>
 
       {/* Cafes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="animate-in grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" style={{"--stagger": 3} as React.CSSProperties}>
         {filteredDbCafes.map((cafe) => (
           <Link
             key={cafe.id}
             to={`/cafe/db/${cafe.id}`}
-            className="group block bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300"
+            className="cafe-card group block bg-white rounded-xl overflow-hidden shadow-sm"
           >
             <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
               {cafe.image_url ? (
