@@ -24,7 +24,7 @@ const returnTo = (location.state as any)?.returnTo || "/";
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-            <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
+            <div className="animate-in bg-white rounded-2xl shadow-lg p-8 w-full max-w-md" style={{"--stagger": 0} as React.CSSProperties}>
                 <div className="flex items-center justify-center gap-2 mb-8">
                     <Gamepad2 className="w-8 h-8 text-blue-600" />
                     <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent">

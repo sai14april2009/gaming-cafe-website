@@ -32,7 +32,7 @@ export function Signup() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
+      <div className="animate-in bg-white rounded-2xl shadow-lg p-8 w-full max-w-md" style={{"--stagger": 0} as React.CSSProperties}>
         <div className="flex items-center justify-center gap-2 mb-8">
           <Gamepad2 className="w-8 h-8 text-blue-600" />
           <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent">
@@ -82,7 +82,7 @@ export function Signup() {
               <button
                 type="button"
                 onClick={() => setRole("customer")}
-                className={`py-3 rounded-lg border-2 font-medium transition-colors ${
+                className={`party-card py-3 rounded-lg border-2 font-medium ${
                   role === "customer"
                     ? "border-blue-600 bg-blue-50 text-blue-700"
                     : "border-gray-200 text-gray-600 hover:border-gray-300"
@@ -93,7 +93,7 @@ export function Signup() {
               <button
                 type="button"
                 onClick={() => setRole("owner")}
-                className={`py-3 rounded-lg border-2 font-medium transition-colors ${
+                className={`party-card py-3 rounded-lg border-2 font-medium ${
                   role === "owner"
                     ? "border-blue-600 bg-blue-50 text-blue-700"
                     : "border-gray-200 text-gray-600 hover:border-gray-300"
