@@ -268,6 +268,106 @@ a[class*="rounded"]:hover {
   border-radius: 4px;
 }
 
+/* ── Register Cafe wizard ── */
+
+/* Step slide transitions */
+@keyframes step-slide-fwd {
+  from { opacity: 0; transform: translateX(52px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes step-slide-bwd {
+  from { opacity: 0; transform: translateX(-52px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.step-fwd { animation: step-slide-fwd 360ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.step-bwd { animation: step-slide-bwd 360ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+
+/* Step progress dots */
+.reg-step-dot {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 350ms cubic-bezier(0.23, 1, 0.32, 1),
+              box-shadow 350ms cubic-bezier(0.23, 1, 0.32, 1),
+              color 200ms ease;
+}
+.reg-step-done {
+  background: #22c55e; color: white;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35);
+}
+.reg-step-active {
+  background: #2563eb; color: white;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.45);
+  animation: reg-pulse 2s ease infinite;
+}
+.reg-step-pending {
+  background: #f3f4f6; color: #9ca3af;
+  border: 2px solid #e5e7eb;
+}
+
+@keyframes reg-pulse {
+  0%, 100% { box-shadow: 0 4px 16px rgba(37, 99, 235, 0.45), 0 0 0 0 rgba(37, 99, 235, 0.25); }
+  50%       { box-shadow: 0 4px 16px rgba(37, 99, 235, 0.45), 0 0 0 10px rgba(37, 99, 235, 0); }
+}
+
+/* Back button */
+.reg-back-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 20px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 14px; font-weight: 600;
+  color: #6b7280; background: white;
+  cursor: pointer;
+  transition: border-color 200ms ease, color 200ms ease,
+              background 200ms ease, transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.reg-back-btn:hover { border-color: #d1d5db; color: #374151; background: #f9fafb; transform: translateX(-2px); }
+.reg-back-btn:active { transform: scale(0.97); }
+
+/* Register input (non-floating-label) */
+.reg-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 14px;
+  background: #fafafa;
+  outline: none;
+  transition: border-color 200ms ease, box-shadow 200ms ease, background 200ms ease;
+}
+.reg-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  background: white;
+}
+
+/* Success pop */
+@keyframes success-pop {
+  0%   { transform: scale(0.75); opacity: 0; }
+  65%  { transform: scale(1.06); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.success-pop { animation: success-pop 520ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+
+/* Preview card */
+.reg-preview-card {
+  transition: transform 300ms cubic-bezier(0.23, 1, 0.32, 1),
+              box-shadow 300ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.reg-preview-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.12);
+}
+
+/* System cards in step 4 */
+.reg-sys-card {
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
+              box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.reg-sys-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+
 /* Reduced motion — respect user preferences */
 @media (prefers-reduced-motion: reduce) {
   button:not(:disabled):active,
@@ -314,4 +414,11 @@ a[class*="rounded"]:hover {
   .auth-btn::after { animation: none; }
   .auth-card-3d { transition: none; }
   .role-card-3d:hover { transform: none; }
+
+  /* Register wizard */
+  .step-fwd, .step-bwd { animation: none; opacity: 1; }
+  .reg-step-active { animation: none; }
+  .success-pop { animation: none; opacity: 1; }
+  .reg-preview-card:hover, .reg-sys-card:hover { transform: none; box-shadow: none; }
+  .reg-back-btn:hover { transform: none; }
 }
