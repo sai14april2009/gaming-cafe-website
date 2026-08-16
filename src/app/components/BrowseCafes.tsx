@@ -1,8 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
-import { Search, SlidersHorizontal, Star, MapPin } from "lucide-react";
+import {
+  Search, SlidersHorizontal, Star, MapPin, Monitor, Gamepad2,
+  Cpu, Zap, ChevronRight, Flame, Trophy, Swords, Target,
+} from "lucide-react";
 import { Input } from "./ui/input";
 import { supabase } from "../../supabase";
+
+/* ── Types ── */
 
 interface DbCafe {
   id: string;
@@ -15,55 +20,231 @@ interface DbCafe {
   is_approved: boolean;
 }
 
+interface DbSystem {
+  id: string;
+  cafe_id: string;
+  name: string;
+  type: "PC" | "Console";
+  gpu: string | null;
+  cpu: string | null;
+  ram: string | null;
+  console: string | null;
+}
+
+/* ── Hero slides — gaming motivation posters ── */
+
+const HERO_SLIDES = [
+  {
+    gradient: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #0891b2 100%)",
+    icon: Swords,
+    heading: "Level Up Your Game",
+    sub: "Premium rigs. Zero lag. Book your station and dominate.",
+    accent: "#06b6d4",
+  },
+  {
+    gradient: "linear-gradient(135deg, #1a1025 0%, #4c1d95 40%, #7c3aed 100%)",
+    icon: Trophy,
+    heading: "Where Champions Play",
+    sub: "RTX-powered PCs, PS5s, tournament setups — all near you.",
+    accent: "#a78bfa",
+  },
+  {
+    gradient: "linear-gradient(135deg, #1c1917 0%, #92400e 40%, #f59e0b 100%)",
+    icon: Flame,
+    heading: "No Setup. Just Play.",
+    sub: "Walk in or book ahead. Your perfect gaming session starts here.",
+    accent: "#fbbf24",
+  },
+  {
+    gradient: "linear-gradient(135deg, #0c1222 0%, #1e40af 40%, #3b82f6 100%)",
+    icon: Target,
+    heading: "Book. Play. Win.",
+    sub: "Pick your exact machine, see the specs, lock your slot.",
+    accent: "#60a5fa",
+  },
+];
+
+const GAMING_QUOTES = [
+  "🎮 \"The game is never over until it's over.\" — Yogi Berra",
+  "⚔️ \"Winners never quit and quitters never win.\"",
+  "🏆 \"It's not about the graphics, it's about the gameplay.\"",
+  "🔥 \"Lag is temporary. Glory is forever.\"",
+  "💎 \"GG doesn't mean the end — it means respect.\"",
+  "🎯 \"In the world of gaming, the only limit is your imagination.\"",
+  "⭐ \"Practice isn't the thing you do once you're good. It's the thing that makes you good.\"",
+  "🕹️ \"Every pro was once a noob.\"",
+];
+
+/* ── Component ── */
+
 export function BrowseCafes() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState<string>("all");
   const [dbCafes, setDbCafes] = useState<DbCafe[]>([]);
+  const [systems, setSystems] = useState<DbSystem[]>([]);
+  const [heroIdx, setHeroIdx] = useState(0);
+  const [heroDir, setHeroDir] = useState<"enter" | "exit">("enter");
 
+  /* Fetch cafes + their gaming systems */
   useEffect(() => {
-    const fetchCafes = async () => {
-      const { data, error } = await supabase
-        .from("cafes")
-        .select("id, name, description, city, address, price_per_hour, image_url, is_approved")
-        .eq("is_approved", true);
-
-      if (!error && data) {
-        setDbCafes(data as DbCafe[]);
-      }
-    };
-
-    fetchCafes();
+    (async () => {
+      const [{ data: cafesData }, { data: sysData }] = await Promise.all([
+        supabase
+          .from("cafes")
+          .select("id, name, description, city, address, price_per_hour, image_url, is_approved")
+          .eq("is_approved", true),
+        supabase
+          .from("gaming_systems")
+          .select("id, cafe_id, name, type, gpu, cpu, ram, console"),
+      ]);
+      if (cafesData) setDbCafes(cafesData as DbCafe[]);
+      if (sysData) setSystems(sysData as DbSystem[]);
+    })();
   }, []);
 
-  const cities = ["all", ...Array.from(new Set(dbCafes.map((cafe) => cafe.city)))];
+  /* Auto-rotate hero carousel every 5s */
+  const advanceSlide = useCallback(() => {
+    setHeroDir("exit");
+    setTimeout(() => {
+      setHeroIdx((i) => (i + 1) % HERO_SLIDES.length);
+      setHeroDir("enter");
+    }, 480);
+  }, []);
 
-  const filteredDbCafes = dbCafes.filter((cafe) => {
+  useEffect(() => {
+    const timer = setInterval(advanceSlide, 5000);
+    return () => clearInterval(timer);
+  }, [advanceSlide]);
+
+  const goToSlide = (i: number) => {
+    if (i === heroIdx) return;
+    setHeroDir("exit");
+    setTimeout(() => { setHeroIdx(i); setHeroDir("enter"); }, 480);
+  };
+
+  /* Helpers */
+  const systemsForCafe = (cafeId: string) => systems.filter((s) => s.cafe_id === cafeId);
+  const cities = ["all", ...Array.from(new Set(dbCafes.map((c) => c.city)))];
+
+  const filteredCafes = dbCafes.filter((cafe) => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      cafe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cafe.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cafe.city.toLowerCase().includes(searchQuery.toLowerCase());
-
+      cafe.name.toLowerCase().includes(q) ||
+      cafe.address.toLowerCase().includes(q) ||
+      cafe.city.toLowerCase().includes(q);
     const matchesCity = selectedCity === "all" || cafe.city === selectedCity;
-
     return matchesSearch && matchesCity;
   });
 
-  const totalCount = filteredDbCafes.length;
+  const slide = HERO_SLIDES[heroIdx];
+  const SlideIcon = slide.icon;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Hero Section */}
-      <div className="animate-in mb-8" style={{"--stagger": 0} as React.CSSProperties}>
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent">
-          Find Your Perfect Gaming Cafe
-        </h1>
-        <p className="text-gray-600 text-lg">
-          Discover premium gaming cafes with top-tier equipment near you
-        </p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+      {/* ── Hero Carousel ── */}
+      <div className="animate-in mb-8 relative" style={{ "--stagger": 0 } as React.CSSProperties}>
+        <div
+          className="relative rounded-2xl overflow-hidden"
+          style={{ minHeight: 280 }}
+        >
+          {/* Background */}
+          <div
+            className={heroDir === "enter" ? "hero-slide-enter" : "hero-slide-exit"}
+            key={heroIdx}
+            style={{
+              background: slide.gradient,
+              position: "absolute", inset: 0,
+            }}
+          >
+            {/* Decorative glow orbs */}
+            <div
+              className="hero-glow absolute rounded-full blur-3xl"
+              style={{
+                width: 200, height: 200,
+                background: slide.accent,
+                opacity: 0.15,
+                top: "10%", right: "15%",
+              }}
+            />
+            <div
+              className="hero-glow absolute rounded-full blur-3xl"
+              style={{
+                width: 150, height: 150,
+                background: slide.accent,
+                opacity: 0.1,
+                bottom: "10%", left: "10%",
+                animationDelay: "3s",
+              }}
+            />
+          </div>
+
+          {/* Content */}
+          <div
+            className={`relative z-10 flex items-center p-8 md:p-12 ${heroDir === "enter" ? "hero-slide-enter" : "hero-slide-exit"}`}
+            key={`c-${heroIdx}`}
+            style={{ minHeight: 280 }}
+          >
+            <div className="flex-1 max-w-xl">
+              <div
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4"
+                style={{ background: `${slide.accent}22`, border: `1px solid ${slide.accent}44` }}
+              >
+                <Gamepad2 className="w-4 h-4" style={{ color: slide.accent }} />
+                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: slide.accent }}>
+                  GameSpot
+                </span>
+              </div>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
+                {slide.heading}
+              </h2>
+              <p className="text-white/70 text-base md:text-lg mb-6 max-w-md">
+                {slide.sub}
+              </p>
+              <button
+                onClick={() => document.getElementById("cafe-grid")?.scrollIntoView({ behavior: "smooth" })}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white"
+                style={{ background: slide.accent }}
+              >
+                Browse Cafes <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Large icon decoration */}
+            <div className="hidden md:flex items-center justify-center flex-shrink-0">
+              <SlideIcon
+                className="w-32 h-32 lg:w-44 lg:h-44"
+                style={{ color: `${slide.accent}30` }}
+                strokeWidth={1}
+              />
+            </div>
+          </div>
+
+          {/* Dot indicators */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
+            {HERO_SLIDES.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goToSlide(i)}
+                className={`hero-dot ${i === heroIdx ? "hero-dot-active" : ""}`}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="animate-in bg-white rounded-xl shadow-md p-6 mb-8" style={{"--stagger": 1} as React.CSSProperties}>
+      {/* ── Gaming quotes marquee ── */}
+      <div className="animate-in mb-8 overflow-hidden rounded-xl bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 py-3" style={{ "--stagger": 1 } as React.CSSProperties}>
+        <div className="marquee-track flex whitespace-nowrap gap-12" style={{ width: "max-content" }}>
+          {[...GAMING_QUOTES, ...GAMING_QUOTES].map((q, i) => (
+            <span key={i} className="text-sm text-gray-300 font-medium">{q}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Search and Filters ── */}
+      <div className="animate-in bg-white rounded-xl shadow-md p-6 mb-8" style={{ "--stagger": 2 } as React.CSSProperties}>
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -75,7 +256,6 @@ export function BrowseCafes() {
               className="pl-10"
             />
           </div>
-
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-5 h-5 text-gray-400" />
             <select
@@ -93,64 +273,131 @@ export function BrowseCafes() {
         </div>
       </div>
 
-      {/* Results */}
-      <div className="animate-in mb-4" style={{"--stagger": 2} as React.CSSProperties}>
+      {/* ── Results count ── */}
+      <div className="animate-in flex items-center justify-between mb-4" style={{ "--stagger": 3 } as React.CSSProperties}>
         <p className="text-gray-600">
-          {totalCount} {totalCount === 1 ? "cafe" : "cafes"} found
+          {filteredCafes.length} {filteredCafes.length === 1 ? "cafe" : "cafes"} found
         </p>
+        <div className="flex items-center gap-1 text-xs text-gray-400">
+          <Zap className="w-3 h-3" /> Real-time availability
+        </div>
       </div>
 
-      {/* Cafes Grid */}
-      <div className="animate-in grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" style={{"--stagger": 3} as React.CSSProperties}>
-        {filteredDbCafes.map((cafe) => (
-          <Link
-            key={cafe.id}
-            to={`/cafe/db/${cafe.id}`}
-            className="cafe-card group block bg-white rounded-xl overflow-hidden shadow-sm"
-          >
-            <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-              {cafe.image_url ? (
-                <img
-                  src={cafe.image_url}
-                  alt={cafe.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
-                  No Image
-                </div>
-              )}
-            </div>
+      {/* ── Cafes Grid ── */}
+      <div id="cafe-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredCafes.map((cafe, idx) => {
+          const cafeSystems = systemsForCafe(cafe.id);
+          const pcCount = cafeSystems.filter((s) => s.type === "PC").length;
+          const consoleCount = cafeSystems.filter((s) => s.type === "Console").length;
+          // Pick one highlight GPU/console to show
+          const highlightGpu = cafeSystems.find((s) => s.gpu)?.gpu;
+          const highlightConsole = cafeSystems.find((s) => s.console)?.console;
 
-            <div className="p-4">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <h3 className="font-semibold text-lg line-clamp-1">{cafe.name}</h3>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm font-medium">New</span>
+          return (
+            <Link
+              key={cafe.id}
+              to={`/cafe/db/${cafe.id}`}
+              className="animate-in cafe-card group block bg-white rounded-xl overflow-hidden shadow-sm"
+              style={{ "--stagger": 4 + idx } as React.CSSProperties}
+            >
+              {/* Image with overlay */}
+              <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
+                {cafe.image_url ? (
+                  <img
+                    src={cafe.image_url}
+                    alt={cafe.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                    <Gamepad2 className="w-12 h-12 text-gray-600" />
+                  </div>
+                )}
+
+                {/* Gradient overlay with price */}
+                <div className="cafe-card-overlay absolute inset-0" />
+                <div className="absolute bottom-3 left-4 right-4 z-10 flex items-end justify-between">
+                  <div>
+                    <h3 className="font-bold text-lg text-white drop-shadow-sm line-clamp-1">
+                      {cafe.name}
+                    </h3>
+                    <div className="flex items-center gap-1 text-white/80 text-xs mt-0.5">
+                      <MapPin className="w-3 h-3" />
+                      <span className="line-clamp-1">{cafe.city}</span>
+                    </div>
+                  </div>
+                  <div className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-1.5 text-right flex-shrink-0">
+                    <span className="font-bold text-base text-gray-900">₹{cafe.price_per_hour}</span>
+                    <span className="text-[10px] text-gray-500 block -mt-0.5">/hour</span>
+                  </div>
                 </div>
+
+                {/* System count badge */}
+                {cafeSystems.length > 0 && (
+                  <div className="sys-count-badge absolute top-3 right-3 flex items-center gap-1 bg-blue-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-lg">
+                    <Monitor className="w-3 h-3" />
+                    {cafeSystems.length} {cafeSystems.length === 1 ? "system" : "systems"}
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-center gap-1 text-gray-600 mb-2">
-                <MapPin className="w-4 h-4" />
-                <span className="text-sm">{cafe.address}, {cafe.city}</span>
-              </div>
+              {/* Card body — specs */}
+              <div className="p-4">
+                {/* Description */}
+                <p className="text-sm text-gray-500 line-clamp-2 mb-3">{cafe.description}</p>
 
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                <span className="text-sm text-gray-600">{cafe.description}</span>
-                <div className="text-right">
-                  <span className="font-semibold text-lg">₹{cafe.price_per_hour}</span>
-                  <span className="text-sm text-gray-600">/hour</span>
+                {/* System spec chips */}
+                {cafeSystems.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {pcCount > 0 && (
+                      <span className="spec-chip inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium">
+                        <Monitor className="w-3 h-3" /> {pcCount} PC{pcCount > 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {consoleCount > 0 && (
+                      <span className="spec-chip inline-flex items-center gap-1 px-2 py-1 rounded-md bg-purple-50 text-purple-700 text-xs font-medium">
+                        <Gamepad2 className="w-3 h-3" /> {consoleCount} Console{consoleCount > 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {highlightGpu && (
+                      <span className="spec-chip inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-xs font-medium">
+                        <Cpu className="w-3 h-3" /> {highlightGpu}
+                      </span>
+                    )}
+                    {highlightConsole && (
+                      <span className="spec-chip inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-50 text-amber-700 text-xs font-medium">
+                        <Gamepad2 className="w-3 h-3" /> {highlightConsole}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-xs text-gray-400">
+                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                    <span>New listing</span>
+                  </div>
+                )}
+
+                {/* Bottom row */}
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-1 text-xs text-gray-400">
+                    <MapPin className="w-3 h-3" />
+                    <span className="line-clamp-1">{cafe.address}</span>
+                  </div>
+                  <span className="text-xs font-semibold text-blue-600 group-hover:underline flex items-center gap-0.5">
+                    View <ChevronRight className="w-3 h-3" />
+                  </span>
                 </div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          );
+        })}
       </div>
 
-      {totalCount === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">No cafes found matching your criteria</p>
+      {filteredCafes.length === 0 && (
+        <div className="text-center py-16">
+          <Gamepad2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500 text-lg font-medium">No cafes found matching your criteria</p>
+          <p className="text-gray-400 text-sm mt-1">Try a different search or city filter</p>
         </div>
       )}
     </div>

@@ -268,6 +268,73 @@ a[class*="rounded"]:hover {
   border-radius: 4px;
 }
 
+/* ── Browse page hero carousel ── */
+
+@keyframes hero-slide-in {
+  from { opacity: 0; transform: translateX(60px) scale(0.97); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes hero-slide-out {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateX(-60px) scale(0.97); }
+}
+.hero-slide-enter { animation: hero-slide-in 500ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.hero-slide-exit  { animation: hero-slide-out 500ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+
+/* Carousel dot indicator */
+.hero-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255,255,255,0.4);
+  transition: width 300ms cubic-bezier(0.23, 1, 0.32, 1),
+              background 300ms ease;
+}
+.hero-dot-active {
+  width: 24px; border-radius: 4px;
+  background: white;
+}
+
+/* Floating glow orbs on hero */
+@keyframes glow-float {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  33% { transform: translate(15px, -25px) scale(1.1); opacity: 0.7; }
+  66% { transform: translate(-10px, 15px) scale(0.95); opacity: 0.4; }
+}
+.hero-glow { animation: glow-float 8s ease-in-out infinite; }
+
+/* Spec chip hover */
+.spec-chip {
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+              background 200ms ease, color 200ms ease;
+}
+.spec-chip:hover { transform: scale(1.05); }
+
+/* Cafe card image overlay gradient */
+.cafe-card-overlay {
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.15) 40%, transparent 100%);
+  transition: opacity 200ms ease;
+}
+.cafe-card:hover .cafe-card-overlay { opacity: 0.9; }
+
+/* Cafe card system count badge */
+.sys-count-badge {
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
+              box-shadow 200ms ease;
+}
+.cafe-card:hover .sys-count-badge {
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* Marquee for gaming quotes */
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: marquee-scroll 30s linear infinite;
+}
+.marquee-track:hover { animation-play-state: paused; }
+
 /* ── Register Cafe wizard ── */
 
 /* Step slide transitions */
@@ -414,6 +481,13 @@ a[class*="rounded"]:hover {
   .auth-btn::after { animation: none; }
   .auth-card-3d { transition: none; }
   .role-card-3d:hover { transform: none; }
+
+  /* Browse hero carousel */
+  .hero-slide-enter, .hero-slide-exit { animation: none; opacity: 1; }
+  .hero-glow { animation: none; }
+  .marquee-track { animation: none; }
+  .spec-chip:hover { transform: none; }
+  .cafe-card:hover .sys-count-badge { transform: none; }
 
   /* Register wizard */
   .step-fwd, .step-bwd { animation: none; opacity: 1; }
