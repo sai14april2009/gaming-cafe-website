@@ -12,6 +12,8 @@ import {
   Ticket,
   MapPin,
   Monitor,
+  Gamepad2,
+  ArrowRight,
 } from "lucide-react";
 
 type Tab = "upcoming" | "past";
@@ -37,7 +39,6 @@ function to12h(hhmm: string): string {
 }
 
 function formatDate(dateStr: string): string {
-  // Parse as local midnight, never UTC, so the weekday/day is correct in IST.
   return new Date(`${dateStr}T00:00:00`).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
@@ -50,9 +51,8 @@ function formatDate(dateStr: string): string {
 function cancellationText(reason: string | null): string {
   switch (reason) {
     case "owner_cancelled":
-      return "Cancelled by the cafe.";
     case "walkin_conflict_refund":
-      return "Cancelled by the cafe.";
+      return "Cancelled by the cafe — refund pending.";
     case "customer_agreed_reschedule":
       return "Cancelled — you agreed to reschedule.";
     default:
@@ -62,17 +62,67 @@ function cancellationText(reason: string | null): string {
 
 function StatusBadge({ status }: { status: string | null }) {
   const s = status || "pending";
-  const styles: Record<string, string> = {
-    confirmed: "bg-green-100 text-green-700",
-    completed: "bg-blue-100 text-blue-700",
-    cancelled: "bg-red-100 text-red-600",
-    pending: "bg-yellow-100 text-yellow-700",
+  const styles: Record<string, { bg: string; dot: string }> = {
+    confirmed: { bg: "bg-green-50 text-green-700 border-green-200", dot: "bg-green-500" },
+    completed: { bg: "bg-blue-50 text-blue-700 border-blue-200", dot: "bg-blue-500" },
+    cancelled: { bg: "bg-red-50 text-red-600 border-red-200", dot: "bg-red-500" },
+    pending: { bg: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-500" },
   };
+  const { bg, dot } = styles[s] || styles.pending;
   const label = s.charAt(0).toUpperCase() + s.slice(1);
   return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${styles[s] || styles.pending}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${bg}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
       {label}
     </span>
+  );
+}
+
+function SystemSpecs({ system }: { system: any }) {
+  if (!system) return null;
+  const systemName = system.name || "System not specified";
+  const isPC = system.type === "PC";
+
+  const specs: { label: string; value: string }[] = [];
+  if (isPC) {
+    if (system.gpu) specs.push({ label: "GPU", value: system.gpu });
+    if (system.cpu) specs.push({ label: "CPU", value: system.cpu });
+    if (system.ram) specs.push({ label: "RAM", value: system.ram });
+  } else {
+    if (system.console) specs.push({ label: "Console", value: system.console });
+  }
+
+  return (
+    <div className="mt-3 bg-gradient-to-br from-gray-50 to-slate-50 rounded-lg p-3 border border-gray-100">
+      <div className="flex items-center gap-2">
+        {isPC ? (
+          <Monitor className="w-4 h-4 text-blue-500 flex-shrink-0" />
+        ) : (
+          <Gamepad2 className="w-4 h-4 text-purple-500 flex-shrink-0" />
+        )}
+        <span className="font-semibold text-sm text-gray-900">{systemName}</span>
+        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+          isPC
+            ? "bg-blue-100 text-blue-600"
+            : "bg-purple-100 text-purple-600"
+        }`}>
+          {system.type || "—"}
+        </span>
+      </div>
+      {specs.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {specs.map((s) => (
+            <span
+              key={s.label}
+              className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-white border border-gray-200 rounded-md text-gray-600"
+            >
+              <span className="font-medium text-gray-500">{s.label}:</span>
+              {s.value}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -80,36 +130,42 @@ function BookingCard({ booking }: { booking: any }) {
   const isCancelled = booking.status === "cancelled";
   const cafeName = booking.cafes?.name || "Cafe unavailable";
   const city = booking.cafes?.city;
-  const systemName = booking.gaming_systems?.name || "System not specified";
   const strike = isCancelled ? "line-through" : "";
 
   return (
     <div
-      className={`bg-white rounded-xl border border-gray-200 transition-shadow hover:shadow-md ${
+      className={`dash-card bg-white rounded-xl border border-gray-200 overflow-hidden ${
         isCancelled ? "opacity-60" : ""
       }`}
     >
       <div className="p-5">
+        {/* Header: cafe name + status */}
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h3 className={`text-lg font-bold text-gray-900 truncate ${strike}`}>{cafeName}</h3>
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
-              <span className="flex items-center gap-1">
-                <Monitor className="w-4 h-4 flex-shrink-0" />
-                {systemName}
-              </span>
-              {city && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="w-4 h-4 flex-shrink-0" />
-                  {city}
-                </span>
-              )}
-            </div>
+            <Link
+              to={`/cafe/db/${booking.cafe_id}`}
+              className={`group inline-flex items-center gap-1.5 ${strike}`}
+            >
+              <h3 className="text-lg font-bold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                {cafeName}
+              </h3>
+              <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+            </Link>
+            {city && (
+              <div className="mt-0.5 flex items-center gap-1 text-sm text-gray-500">
+                <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                {city}
+              </div>
+            )}
           </div>
           <StatusBadge status={booking.status} />
         </div>
 
-        <div className={`mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-600 ${strike}`}>
+        {/* System specs panel */}
+        <SystemSpecs system={booking.gaming_systems} />
+
+        {/* Booking details */}
+        <div className={`mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-600 ${strike}`}>
           <span className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4 flex-shrink-0 text-gray-400" />
             {formatDate(booking.booking_date)}
@@ -141,18 +197,19 @@ function BookingCard({ booking }: { booking: any }) {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
+    <div className="bg-white rounded-xl border border-gray-200 p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-2">
-          <div className="h-5 w-1/2 bg-gray-200 rounded" />
-          <div className="h-4 w-1/3 bg-gray-100 rounded" />
+          <div className="skeleton h-5 w-2/5" />
+          <div className="skeleton h-3.5 w-1/4" />
         </div>
-        <div className="h-6 w-20 bg-gray-100 rounded-full" />
+        <div className="skeleton h-6 w-20 !rounded-full" />
       </div>
-      <div className="mt-4 flex gap-4">
-        <div className="h-4 w-24 bg-gray-100 rounded" />
-        <div className="h-4 w-24 bg-gray-100 rounded" />
-        <div className="h-4 w-16 bg-gray-100 rounded" />
+      <div className="skeleton h-[68px] w-full mt-3 !rounded-lg" />
+      <div className="mt-3 flex gap-4">
+        <div className="skeleton h-4 w-28" />
+        <div className="skeleton h-4 w-32" />
+        <div className="skeleton h-4 w-20" />
       </div>
     </div>
   );
@@ -160,7 +217,7 @@ function SkeletonCard() {
 
 function EmptyState({ tab }: { tab: Tab }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+    <div className="animate-in bg-white rounded-xl border border-gray-200 p-12 text-center" style={{ "--stagger": 0 } as React.CSSProperties}>
       <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4">
         <Ticket className="w-7 h-7 text-blue-400" />
       </div>
@@ -174,9 +231,10 @@ function EmptyState({ tab }: { tab: Tab }) {
       </p>
       <Link
         to="/"
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-400 text-white font-semibold text-sm hover:from-blue-700 hover:to-cyan-700 transition-colors"
+        className="auth-btn inline-flex items-center gap-2 !w-auto px-6 py-2.5 text-sm"
       >
         Browse cafes
+        <ArrowRight className="w-4 h-4" />
       </Link>
     </div>
   );
@@ -192,14 +250,9 @@ export function MyBookings() {
     if (!user) return;
     const fetchBookings = async () => {
       setLoading(true);
-      // Explicit user_id filter. RLS alone scopes a *pure* customer correctly, but a
-      // user who is ALSO a cafe owner would additionally see their whole cafe's
-      // bookings via the owner SELECT policy — wrong for a page called "My Bookings".
-      // This filter is a strict subset of what RLS allows (so it can't leak anything)
-      // and makes the page mean "bookings I personally made" for every role.
       const { data, error } = await supabase
         .from("bookings")
-        .select("*, cafes (name, city), gaming_systems (name, type)")
+        .select("*, cafes (name, city), gaming_systems (name, type, gpu, cpu, ram, console)")
         .eq("user_id", user.id)
         .order("booking_date", { ascending: false });
       if (error) console.error(error);
@@ -209,12 +262,11 @@ export function MyBookings() {
     fetchBookings();
   }, [user]);
 
-  // Wait for auth to resolve before deciding — otherwise a refresh bounces a
-  // signed-in user to /login.
   if (authLoading) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-4">
-        <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-6" />
+        <div className="skeleton h-8 w-48 mb-2" />
+        <div className="skeleton h-4 w-64 mb-6" />
         <SkeletonCard />
         <SkeletonCard />
       </div>
@@ -227,9 +279,6 @@ export function MyBookings() {
 
   const today = toLocalDateString(new Date());
 
-  // Time-based split: a booking is "upcoming" while its slot hasn't ended,
-  // regardless of status — so a cafe-cancelled future booking stays in Upcoming,
-  // clearly flagged, which is what the customer most needs to see.
   const upcoming = bookings
     .filter((b) => !hasEnded(b, today))
     .sort((a, b) =>
@@ -249,31 +298,39 @@ export function MyBookings() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="mb-6">
+      {/* Header */}
+      <div className="animate-in mb-6" style={{ "--stagger": 0 } as React.CSSProperties}>
         <h1 className="text-3xl font-bold text-gray-900">Your Bookings</h1>
         <p className="text-gray-500 mt-1">View your gaming sessions and their status.</p>
       </div>
 
-      {/* Segmented tabs */}
-      <div className="inline-flex bg-gray-100 rounded-lg p-1 mb-6">
-        {(["upcoming", "past"] as Tab[]).map((t) => {
-          const count = t === "upcoming" ? upcoming.length : past.length;
-          const active = tab === t;
-          return (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                active ? "bg-white text-blue-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {t === "upcoming" ? "Upcoming" : "Past"}
-              <span className={`ml-2 ${active ? "text-blue-400" : "text-gray-400"}`}>{count}</span>
-            </button>
-          );
-        })}
+      {/* Pill tabs */}
+      <div className="animate-in mb-6" style={{ "--stagger": 1 } as React.CSSProperties}>
+        <div className="inline-flex bg-white rounded-xl shadow-sm border border-gray-200 p-1.5">
+          {(["upcoming", "past"] as Tab[]).map((t) => {
+            const count = t === "upcoming" ? upcoming.length : past.length;
+            const active = tab === t;
+            return (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  active
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {t === "upcoming" ? "Upcoming" : "Past"}
+                <span className={`ml-2 tabular-nums ${active ? "text-blue-200" : "text-gray-400"}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
+      {/* Content */}
       {loading ? (
         <div className="space-y-4">
           <SkeletonCard />
@@ -284,8 +341,14 @@ export function MyBookings() {
         <EmptyState tab={tab} />
       ) : (
         <div className="space-y-4">
-          {shown.map((b) => (
-            <BookingCard key={b.id} booking={b} />
+          {shown.map((b, i) => (
+            <div
+              key={b.id}
+              className="animate-in"
+              style={{ "--stagger": Math.min(i, 8) } as React.CSSProperties}
+            >
+              <BookingCard booking={b} />
+            </div>
           ))}
         </div>
       )}
