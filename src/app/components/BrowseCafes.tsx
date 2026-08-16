@@ -269,7 +269,7 @@ export function BrowseCafes() {
   const [heroDir, setHeroDir] = useState<"enter" | "exit">("enter");
 
   const heroRef = useRef<HTMLDivElement>(null);
-  const gridRef = useScrollReveal(filteredCafes.length);
+  const gridRef = useScrollReveal(dbCafes.length);
   useHeroParallax(heroRef);
 
   /* Fetch cafes + gaming systems */
