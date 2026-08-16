@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router";
 import {
   Search, SlidersHorizontal, Star, MapPin, Monitor, Gamepad2,
   Cpu, Zap, ChevronRight, Flame, Trophy, Swords, Target,
+  Users, Wifi, Shield,
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { supabase } from "../../supabase";
@@ -31,7 +32,7 @@ interface DbSystem {
   console: string | null;
 }
 
-/* ── Hero slides — gaming motivation posters ── */
+/* ── Hero slides ── */
 
 const HERO_SLIDES = [
   {
@@ -79,7 +80,185 @@ const GAMING_QUOTES = [
   "🕹️ \"Every pro was once a noob.\"",
 ];
 
-/* ── Component ── */
+/* ── Hooks ── */
+
+/** IntersectionObserver scroll-reveal: adds .reveal-visible with stagger delay */
+function useScrollReveal() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            (e.target as HTMLElement).classList.add("reveal-visible");
+            obs.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
+    );
+    el.querySelectorAll(".reveal-hidden").forEach((c) => obs.observe(c));
+    return () => obs.disconnect();
+  }, []);
+  return containerRef;
+}
+
+/** 3D tilt on mouse — direct DOM, no re-renders */
+function useCardTilt(ref: React.RefObject<HTMLElement | null>, intensity = 6) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onMove = (e: MouseEvent) => {
+      const rect = el.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      el.style.transform =
+        `perspective(800px) rotateX(${y * -intensity}deg) rotateY(${x * intensity}deg) scale(1.02)`;
+    };
+    const onLeave = () => { el.style.transform = ""; };
+    el.addEventListener("mousemove", onMove);
+    el.addEventListener("mouseleave", onLeave);
+    return () => { el.removeEventListener("mousemove", onMove); el.removeEventListener("mouseleave", onLeave); };
+  }, [ref, intensity]);
+}
+
+/** Hero parallax on mouse */
+function useHeroParallax(ref: React.RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onMove = (e: MouseEvent) => {
+      const rect = el.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      const img = el.querySelector<HTMLElement>(".hero-parallax");
+      if (img) img.style.transform = `translate(${x * -12}px, ${y * -8}px) scale(1.05)`;
+    };
+    const onLeave = () => {
+      const img = el.querySelector<HTMLElement>(".hero-parallax");
+      if (img) img.style.transform = "";
+    };
+    el.addEventListener("mousemove", onMove);
+    el.addEventListener("mouseleave", onLeave);
+    return () => { el.removeEventListener("mousemove", onMove); el.removeEventListener("mouseleave", onLeave); };
+  }, [ref]);
+}
+
+/* ── Cafe Card with 3D tilt ── */
+
+function CafeCard({ cafe, cafeSystems, delay }: {
+  cafe: DbCafe;
+  cafeSystems: DbSystem[];
+  delay: number;
+}) {
+  const cardRef = useRef<HTMLAnchorElement>(null);
+  useCardTilt(cardRef as React.RefObject<HTMLElement | null>, 5);
+
+  const pcCount = cafeSystems.filter((s) => s.type === "PC").length;
+  const consoleCount = cafeSystems.filter((s) => s.type === "Console").length;
+  const highlightGpu = cafeSystems.find((s) => s.gpu)?.gpu;
+  const highlightConsole = cafeSystems.find((s) => s.console)?.console;
+
+  return (
+    <Link
+      ref={cardRef}
+      to={`/cafe/db/${cafe.id}`}
+      className="reveal-hidden cafe-tilt cafe-card-glow group block bg-white rounded-xl overflow-hidden shadow-sm"
+      style={{ animationDelay: `${delay * 120}ms` }}
+    >
+      {/* Image with overlay */}
+      <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
+        {cafe.image_url ? (
+          <img
+            src={cafe.image_url}
+            alt={cafe.name}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+            <Gamepad2 className="w-12 h-12 text-gray-600" />
+          </div>
+        )}
+
+        {/* Gradient overlay with price */}
+        <div className="cafe-card-overlay absolute inset-0" />
+        <div className="absolute bottom-3 left-4 right-4 z-10 flex items-end justify-between">
+          <div>
+            <h3 className="font-bold text-lg text-white drop-shadow-sm line-clamp-1">
+              {cafe.name}
+            </h3>
+            <div className="flex items-center gap-1 text-white/80 text-xs mt-0.5">
+              <MapPin className="w-3 h-3" />
+              <span className="line-clamp-1">{cafe.city}</span>
+            </div>
+          </div>
+          <div className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-1.5 text-right flex-shrink-0">
+            <span className="font-bold text-base text-gray-900">₹{cafe.price_per_hour}</span>
+            <span className="text-[10px] text-gray-500 block -mt-0.5">/hour</span>
+          </div>
+        </div>
+
+        {/* System count badge */}
+        {cafeSystems.length > 0 && (
+          <div className="sys-count-badge absolute top-3 right-3 flex items-center gap-1 bg-blue-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-lg">
+            <Monitor className="w-3 h-3" />
+            {cafeSystems.length} {cafeSystems.length === 1 ? "system" : "systems"}
+          </div>
+        )}
+      </div>
+
+      {/* Card body — specs */}
+      <div className="p-4">
+        <p className="text-sm text-gray-500 line-clamp-2 mb-3">{cafe.description}</p>
+
+        {cafeSystems.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {pcCount > 0 && (
+              <span className="spec-chip inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium">
+                <Monitor className="w-3 h-3" /> {pcCount} PC{pcCount > 1 ? "s" : ""}
+              </span>
+            )}
+            {consoleCount > 0 && (
+              <span className="spec-chip inline-flex items-center gap-1 px-2 py-1 rounded-md bg-purple-50 text-purple-700 text-xs font-medium">
+                <Gamepad2 className="w-3 h-3" /> {consoleCount} Console{consoleCount > 1 ? "s" : ""}
+              </span>
+            )}
+            {highlightGpu && (
+              <span className="spec-chip inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-xs font-medium">
+                <Cpu className="w-3 h-3" /> {highlightGpu}
+              </span>
+            )}
+            {highlightConsole && (
+              <span className="spec-chip inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-50 text-amber-700 text-xs font-medium">
+                <Gamepad2 className="w-3 h-3" /> {highlightConsole}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 text-xs text-gray-400">
+            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+            <span>New listing</span>
+          </div>
+        )}
+
+        {/* Bottom row */}
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+          <div className="flex items-center gap-1 text-xs text-gray-400">
+            <MapPin className="w-3 h-3" />
+            <span className="line-clamp-1">{cafe.address}</span>
+          </div>
+          <span className="text-xs font-semibold text-blue-600 group-hover:underline flex items-center gap-0.5">
+            View <ChevronRight className="w-3 h-3 view-arrow" />
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+/* ── Main Component ── */
 
 export function BrowseCafes() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,7 +268,11 @@ export function BrowseCafes() {
   const [heroIdx, setHeroIdx] = useState(0);
   const [heroDir, setHeroDir] = useState<"enter" | "exit">("enter");
 
-  /* Fetch cafes + their gaming systems */
+  const heroRef = useRef<HTMLDivElement>(null);
+  const gridRef = useScrollReveal();
+  useHeroParallax(heroRef);
+
+  /* Fetch cafes + gaming systems */
   useEffect(() => {
     (async () => {
       const [{ data: cafesData }, { data: sysData }] = await Promise.all([
@@ -106,7 +289,7 @@ export function BrowseCafes() {
     })();
   }, []);
 
-  /* Auto-rotate hero carousel every 5s */
+  /* Auto-rotate hero carousel */
   const advanceSlide = useCallback(() => {
     setHeroDir("exit");
     setTimeout(() => {
@@ -140,17 +323,21 @@ export function BrowseCafes() {
     return matchesSearch && matchesCity;
   });
 
+  const totalSystems = systems.length;
+  const totalCafes = dbCafes.length;
+
   const slide = HERO_SLIDES[heroIdx];
   const SlideIcon = slide.icon;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-      {/* ── Hero Carousel ── */}
+      {/* ── Hero Carousel with parallax ── */}
       <div className="animate-in mb-8 relative" style={{ "--stagger": 0 } as React.CSSProperties}>
         <div
-          className="relative rounded-2xl overflow-hidden"
-          style={{ minHeight: 280 }}
+          ref={heroRef}
+          className="relative rounded-2xl overflow-hidden cursor-default"
+          style={{ minHeight: 300 }}
         >
           {/* Background image + gradient overlay */}
           <div
@@ -158,32 +345,23 @@ export function BrowseCafes() {
             key={heroIdx}
             style={{ position: "absolute", inset: 0 }}
           >
-            <img
-              src={slide.image}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-              loading="eager"
-            />
+            <div className="hero-parallax absolute inset-0">
+              <img
+                src={slide.image}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+                loading="eager"
+              />
+            </div>
             <div className="absolute inset-0" style={{ background: slide.overlay }} />
-            {/* Decorative glow orbs */}
+            {/* Glow orbs */}
             <div
               className="hero-glow absolute rounded-full blur-3xl"
-              style={{
-                width: 200, height: 200,
-                background: slide.accent,
-                opacity: 0.2,
-                top: "10%", right: "15%",
-              }}
+              style={{ width: 200, height: 200, background: slide.accent, opacity: 0.2, top: "10%", right: "15%" }}
             />
             <div
               className="hero-glow absolute rounded-full blur-3xl"
-              style={{
-                width: 150, height: 150,
-                background: slide.accent,
-                opacity: 0.12,
-                bottom: "10%", left: "10%",
-                animationDelay: "3s",
-              }}
+              style={{ width: 150, height: 150, background: slide.accent, opacity: 0.12, bottom: "10%", left: "10%", animationDelay: "3s" }}
             />
           </div>
 
@@ -191,7 +369,7 @@ export function BrowseCafes() {
           <div
             className={`relative z-10 flex items-center p-8 md:p-12 ${heroDir === "enter" ? "hero-slide-enter" : "hero-slide-exit"}`}
             key={`c-${heroIdx}`}
-            style={{ minHeight: 280 }}
+            style={{ minHeight: 300 }}
           >
             <div className="flex-1 max-w-xl">
               <div
@@ -203,7 +381,7 @@ export function BrowseCafes() {
                   GameSpot
                 </span>
               </div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white text-shimmer mb-3 leading-tight">
                 {slide.heading}
               </h2>
               <p className="text-white/70 text-base md:text-lg mb-6 max-w-md">
@@ -211,10 +389,10 @@ export function BrowseCafes() {
               </p>
               <button
                 onClick={() => document.getElementById("cafe-grid")?.scrollIntoView({ behavior: "smooth" })}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white group/btn"
                 style={{ background: slide.accent }}
               >
-                Browse Cafes <ChevronRight className="w-4 h-4" />
+                Browse Cafes <ChevronRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
               </button>
             </div>
 
@@ -242,8 +420,28 @@ export function BrowseCafes() {
         </div>
       </div>
 
+      {/* ── Animated stats row ── */}
+      <div className="animate-in grid grid-cols-2 md:grid-cols-4 gap-3 mb-8" style={{ "--stagger": 1 } as React.CSSProperties}>
+        {[
+          { icon: Monitor, label: "Gaming Systems", value: `${totalSystems}+`, color: "text-blue-600", bg: "bg-blue-50", delay: 0 },
+          { icon: Gamepad2, label: "Verified Cafes", value: String(totalCafes), color: "text-purple-600", bg: "bg-purple-50", delay: 1 },
+          { icon: Wifi, label: "Low Latency", value: "<5ms", color: "text-emerald-600", bg: "bg-emerald-50", delay: 2 },
+          { icon: Shield, label: "Verified Network", value: "100%", color: "text-amber-600", bg: "bg-amber-50", delay: 3 },
+        ].map(({ icon: Icon, label, value, color, bg, delay }) => (
+          <div key={label} className="stat-glass stat-pop rounded-xl px-4 py-3 flex items-center gap-3" style={{ animationDelay: `${delay * 100 + 300}ms` }}>
+            <div className={`${bg} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0`}>
+              <Icon className={`w-5 h-5 ${color}`} />
+            </div>
+            <div>
+              <div className={`text-lg font-bold ${color}`}>{value}</div>
+              <div className="text-[11px] text-gray-500 leading-tight">{label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* ── Gaming quotes marquee ── */}
-      <div className="animate-in mb-8 overflow-hidden rounded-xl bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 py-3" style={{ "--stagger": 1 } as React.CSSProperties}>
+      <div className="animate-in mb-8 overflow-hidden rounded-xl bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 py-3" style={{ "--stagger": 2 } as React.CSSProperties}>
         <div className="marquee-track flex whitespace-nowrap gap-12" style={{ width: "max-content" }}>
           {[...GAMING_QUOTES, ...GAMING_QUOTES].map((q, i) => (
             <span key={i} className="text-sm text-gray-300 font-medium">{q}</span>
@@ -252,7 +450,7 @@ export function BrowseCafes() {
       </div>
 
       {/* ── Search and Filters ── */}
-      <div className="animate-in bg-white rounded-xl shadow-md p-6 mb-8" style={{ "--stagger": 2 } as React.CSSProperties}>
+      <div className="animate-in bg-white rounded-xl shadow-md p-6 mb-8 search-glow transition-shadow" style={{ "--stagger": 3 } as React.CSSProperties}>
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -281,124 +479,28 @@ export function BrowseCafes() {
         </div>
       </div>
 
-      {/* ── Results count ── */}
-      <div className="animate-in flex items-center justify-between mb-4" style={{ "--stagger": 3 } as React.CSSProperties}>
-        <p className="text-gray-600">
+      {/* ── Results count with live indicator ── */}
+      <div className="animate-in flex items-center justify-between mb-4" style={{ "--stagger": 4 } as React.CSSProperties}>
+        <p className="text-gray-600 font-medium">
           {filteredCafes.length} {filteredCafes.length === 1 ? "cafe" : "cafes"} found
         </p>
-        <div className="flex items-center gap-1 text-xs text-gray-400">
-          <Zap className="w-3 h-3" /> Real-time availability
+        <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full">
+          <span className="live-dot" />
+          <Zap className="w-3 h-3 text-green-500" />
+          Real-time availability
         </div>
       </div>
 
-      {/* ── Cafes Grid ── */}
-      <div id="cafe-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCafes.map((cafe, idx) => {
-          const cafeSystems = systemsForCafe(cafe.id);
-          const pcCount = cafeSystems.filter((s) => s.type === "PC").length;
-          const consoleCount = cafeSystems.filter((s) => s.type === "Console").length;
-          // Pick one highlight GPU/console to show
-          const highlightGpu = cafeSystems.find((s) => s.gpu)?.gpu;
-          const highlightConsole = cafeSystems.find((s) => s.console)?.console;
-
-          return (
-            <Link
-              key={cafe.id}
-              to={`/cafe/db/${cafe.id}`}
-              className="animate-in cafe-card group block bg-white rounded-xl overflow-hidden shadow-sm"
-              style={{ "--stagger": 4 + idx } as React.CSSProperties}
-            >
-              {/* Image with overlay */}
-              <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
-                {cafe.image_url ? (
-                  <img
-                    src={cafe.image_url}
-                    alt={cafe.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                    <Gamepad2 className="w-12 h-12 text-gray-600" />
-                  </div>
-                )}
-
-                {/* Gradient overlay with price */}
-                <div className="cafe-card-overlay absolute inset-0" />
-                <div className="absolute bottom-3 left-4 right-4 z-10 flex items-end justify-between">
-                  <div>
-                    <h3 className="font-bold text-lg text-white drop-shadow-sm line-clamp-1">
-                      {cafe.name}
-                    </h3>
-                    <div className="flex items-center gap-1 text-white/80 text-xs mt-0.5">
-                      <MapPin className="w-3 h-3" />
-                      <span className="line-clamp-1">{cafe.city}</span>
-                    </div>
-                  </div>
-                  <div className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-1.5 text-right flex-shrink-0">
-                    <span className="font-bold text-base text-gray-900">₹{cafe.price_per_hour}</span>
-                    <span className="text-[10px] text-gray-500 block -mt-0.5">/hour</span>
-                  </div>
-                </div>
-
-                {/* System count badge */}
-                {cafeSystems.length > 0 && (
-                  <div className="sys-count-badge absolute top-3 right-3 flex items-center gap-1 bg-blue-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-lg">
-                    <Monitor className="w-3 h-3" />
-                    {cafeSystems.length} {cafeSystems.length === 1 ? "system" : "systems"}
-                  </div>
-                )}
-              </div>
-
-              {/* Card body — specs */}
-              <div className="p-4">
-                {/* Description */}
-                <p className="text-sm text-gray-500 line-clamp-2 mb-3">{cafe.description}</p>
-
-                {/* System spec chips */}
-                {cafeSystems.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {pcCount > 0 && (
-                      <span className="spec-chip inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium">
-                        <Monitor className="w-3 h-3" /> {pcCount} PC{pcCount > 1 ? "s" : ""}
-                      </span>
-                    )}
-                    {consoleCount > 0 && (
-                      <span className="spec-chip inline-flex items-center gap-1 px-2 py-1 rounded-md bg-purple-50 text-purple-700 text-xs font-medium">
-                        <Gamepad2 className="w-3 h-3" /> {consoleCount} Console{consoleCount > 1 ? "s" : ""}
-                      </span>
-                    )}
-                    {highlightGpu && (
-                      <span className="spec-chip inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-xs font-medium">
-                        <Cpu className="w-3 h-3" /> {highlightGpu}
-                      </span>
-                    )}
-                    {highlightConsole && (
-                      <span className="spec-chip inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-50 text-amber-700 text-xs font-medium">
-                        <Gamepad2 className="w-3 h-3" /> {highlightConsole}
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 text-xs text-gray-400">
-                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                    <span>New listing</span>
-                  </div>
-                )}
-
-                {/* Bottom row */}
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                  <div className="flex items-center gap-1 text-xs text-gray-400">
-                    <MapPin className="w-3 h-3" />
-                    <span className="line-clamp-1">{cafe.address}</span>
-                  </div>
-                  <span className="text-xs font-semibold text-blue-600 group-hover:underline flex items-center gap-0.5">
-                    View <ChevronRight className="w-3 h-3" />
-                  </span>
-                </div>
-              </div>
-            </Link>
-          );
-        })}
+      {/* ── Cafes Grid with scroll-reveal + 3D tilt ── */}
+      <div ref={gridRef} id="cafe-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredCafes.map((cafe, idx) => (
+          <CafeCard
+            key={cafe.id}
+            cafe={cafe}
+            cafeSystems={systemsForCafe(cafe.id)}
+            delay={idx}
+          />
+        ))}
       </div>
 
       {filteredCafes.length === 0 && (
@@ -408,6 +510,29 @@ export function BrowseCafes() {
           <p className="text-gray-400 text-sm mt-1">Try a different search or city filter</p>
         </div>
       )}
+
+      {/* ── Bottom CTA banner ── */}
+      <div className="animate-in mt-12 mb-4" style={{ "--stagger": 5 } as React.CSSProperties}>
+        <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 p-8 md:p-10">
+          <div className="hero-glow absolute rounded-full blur-3xl" style={{ width: 180, height: 180, background: "#60a5fa", opacity: 0.15, top: "-20%", right: "10%" }} />
+          <div className="hero-glow absolute rounded-full blur-3xl" style={{ width: 120, height: 120, background: "#818cf8", opacity: 0.1, bottom: "-10%", left: "20%", animationDelay: "2s" }} />
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div>
+              <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">Own a Gaming Cafe?</h3>
+              <p className="text-blue-200 text-sm md:text-base max-w-md">
+                Join the GameSpot network. Get online bookings, manage walk-ins, and grow your business.
+              </p>
+            </div>
+            <Link
+              to="/signup"
+              className="inline-flex items-center gap-2 bg-white text-blue-700 font-semibold px-6 py-3 rounded-xl text-sm hover:bg-blue-50 transition-colors flex-shrink-0"
+            >
+              <Users className="w-4 h-4" />
+              Register Your Cafe
+            </Link>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
