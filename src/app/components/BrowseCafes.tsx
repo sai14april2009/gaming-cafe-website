@@ -83,11 +83,11 @@ const GAMING_QUOTES = [
 /* ── Hooks ── */
 
 /** IntersectionObserver scroll-reveal: adds .reveal-visible with stagger delay */
-function useScrollReveal() {
+function useScrollReveal(itemCount: number) {
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = containerRef.current;
-    if (!el) return;
+    if (!el || itemCount === 0) return;
     const obs = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
@@ -101,7 +101,7 @@ function useScrollReveal() {
     );
     el.querySelectorAll(".reveal-hidden").forEach((c) => obs.observe(c));
     return () => obs.disconnect();
-  }, []);
+  }, [itemCount]);
   return containerRef;
 }
 
@@ -269,7 +269,7 @@ export function BrowseCafes() {
   const [heroDir, setHeroDir] = useState<"enter" | "exit">("enter");
 
   const heroRef = useRef<HTMLDivElement>(null);
-  const gridRef = useScrollReveal();
+  const gridRef = useScrollReveal(filteredCafes.length);
   useHeroParallax(heroRef);
 
   /* Fetch cafes + gaming systems */
