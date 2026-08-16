@@ -35,28 +35,32 @@ interface DbSystem {
 
 const HERO_SLIDES = [
   {
-    gradient: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #0891b2 100%)",
+    image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1400&q=80",
+    overlay: "linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(30,58,95,0.7) 50%, rgba(8,145,178,0.6) 100%)",
     icon: Swords,
     heading: "Level Up Your Game",
     sub: "Premium rigs. Zero lag. Book your station and dominate.",
     accent: "#06b6d4",
   },
   {
-    gradient: "linear-gradient(135deg, #1a1025 0%, #4c1d95 40%, #7c3aed 100%)",
+    image: "https://images.unsplash.com/photo-1511882150382-421056c89033?w=1400&q=80",
+    overlay: "linear-gradient(135deg, rgba(26,16,37,0.88) 0%, rgba(76,29,149,0.7) 50%, rgba(124,58,237,0.6) 100%)",
     icon: Trophy,
     heading: "Where Champions Play",
     sub: "RTX-powered PCs, PS5s, tournament setups — all near you.",
     accent: "#a78bfa",
   },
   {
-    gradient: "linear-gradient(135deg, #1c1917 0%, #92400e 40%, #f59e0b 100%)",
+    image: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=1400&q=80",
+    overlay: "linear-gradient(135deg, rgba(28,25,23,0.88) 0%, rgba(146,64,14,0.65) 50%, rgba(245,158,11,0.5) 100%)",
     icon: Flame,
     heading: "No Setup. Just Play.",
     sub: "Walk in or book ahead. Your perfect gaming session starts here.",
     accent: "#fbbf24",
   },
   {
-    gradient: "linear-gradient(135deg, #0c1222 0%, #1e40af 40%, #3b82f6 100%)",
+    image: "https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=1400&q=80",
+    overlay: "linear-gradient(135deg, rgba(12,18,34,0.88) 0%, rgba(30,64,175,0.7) 50%, rgba(59,130,246,0.55) 100%)",
     icon: Target,
     heading: "Book. Play. Win.",
     sub: "Pick your exact machine, see the specs, lock your slot.",
@@ -148,22 +152,26 @@ export function BrowseCafes() {
           className="relative rounded-2xl overflow-hidden"
           style={{ minHeight: 280 }}
         >
-          {/* Background */}
+          {/* Background image + gradient overlay */}
           <div
             className={heroDir === "enter" ? "hero-slide-enter" : "hero-slide-exit"}
             key={heroIdx}
-            style={{
-              background: slide.gradient,
-              position: "absolute", inset: 0,
-            }}
+            style={{ position: "absolute", inset: 0 }}
           >
+            <img
+              src={slide.image}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+              loading="eager"
+            />
+            <div className="absolute inset-0" style={{ background: slide.overlay }} />
             {/* Decorative glow orbs */}
             <div
               className="hero-glow absolute rounded-full blur-3xl"
               style={{
                 width: 200, height: 200,
                 background: slide.accent,
-                opacity: 0.15,
+                opacity: 0.2,
                 top: "10%", right: "15%",
               }}
             />
@@ -172,7 +180,7 @@ export function BrowseCafes() {
               style={{
                 width: 150, height: 150,
                 background: slide.accent,
-                opacity: 0.1,
+                opacity: 0.12,
                 bottom: "10%", left: "10%",
                 animationDelay: "3s",
               }}
