@@ -1,10 +1,12 @@
 import React, { useState, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router";
 import { supabase } from "../../supabase";
+import { useAuth } from "../context/AuthContext";
 import { Gamepad2, User, Mail, Lock, ArrowRight, Zap, Shield, Users, Monitor, Store } from "lucide-react";
 
 export function Signup() {
   const navigate = useNavigate();
+  const { refreshProfile } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -26,6 +28,8 @@ export function Signup() {
         email,
         role,
       });
+      // Refresh profile NOW so the role is available immediately after navigate
+      await refreshProfile();
     }
     navigate("/");
     setLoading(false);
