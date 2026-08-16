@@ -79,6 +79,153 @@
   box-shadow: 0 8px 20px -4px rgba(37, 99, 235, 0.15);
 }
 
+/* ── Auth page animations ── */
+
+/* Animated gradient background for branding panel */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.auth-gradient {
+  background: linear-gradient(-45deg, #1e3a8a, #2563eb, #0891b2, #1e40af);
+  background-size: 300% 300%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+/* Floating decorative shapes */
+@keyframes float-drift {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33% { transform: translateY(-20px) rotate(5deg); }
+  66% { transform: translateY(10px) rotate(-3deg); }
+}
+
+.auth-float {
+  animation: float-drift 6s ease-in-out infinite;
+}
+
+/* Staggered form field entrance — 80ms between fields, 150ms initial delay */
+@keyframes field-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.auth-field {
+  animation: field-enter 400ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation-delay: calc(var(--field-i, 0) * 80ms + 150ms);
+}
+
+/* Floating label input system */
+.auth-input-wrap { position: relative; }
+
+.auth-input {
+  width: 100%;
+  padding: 16px 16px 8px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 15px;
+  background: #fafafa;
+  outline: none;
+  transition: border-color 200ms ease,
+              box-shadow 200ms ease,
+              background-color 200ms ease;
+}
+
+.auth-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  background: white;
+}
+
+/* Hide native placeholder — we use floating labels instead */
+.auth-input::placeholder { color: transparent; }
+
+.auth-label {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 15px;
+  color: #9ca3af;
+  pointer-events: none;
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
+              color 200ms ease;
+  transform-origin: left center;
+}
+
+/* Float label up when focused or filled — transform-only, GPU-accelerated */
+.auth-input:focus ~ .auth-label,
+.auth-input:not(:placeholder-shown) ~ .auth-label {
+  transform: translateY(-80%) scale(0.75);
+  color: #2563eb;
+}
+
+/* Submit button with shine sweep */
+@keyframes shine-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+.auth-btn {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8, #1e40af);
+  color: white;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: 12px;
+  width: 100%;
+  font-size: 15px;
+  cursor: pointer;
+  border: none;
+}
+
+.auth-btn:hover {
+  box-shadow: 0 8px 25px -5px rgba(37, 99, 235, 0.4);
+}
+
+.auth-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  transform: translateX(-100%);
+}
+
+.auth-btn:hover::after {
+  animation: shine-sweep 600ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.auth-btn:disabled:hover { box-shadow: none; }
+.auth-btn:disabled::after { animation: none; }
+
+/* Role selector 3D cards */
+.role-card-3d {
+  border: 2px solid #e5e7eb;
+  border-radius: 16px;
+  cursor: pointer;
+  background: white;
+  transition: transform 250ms cubic-bezier(0.23, 1, 0.32, 1),
+              box-shadow 250ms cubic-bezier(0.23, 1, 0.32, 1),
+              border-color 200ms ease;
+}
+
+.role-card-3d:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.12);
+}
+
+.role-card-3d[data-selected="true"] {
+  border-color: #2563eb;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.04), rgba(8, 145, 178, 0.04));
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1), 0 8px 20px -6px rgba(37, 99, 235, 0.15);
+}
+
+/* 3D tilt card — transition for smooth reset on mouse leave */
+.auth-card-3d {
+  transition: transform 300ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
 /* ── Micro-interactions (Phase 3) ── */
 
 /* Button press feedback — Emil Kowalski principle: buttons must feel responsive */
@@ -156,4 +303,12 @@ a[class*="rounded"]:hover {
   textarea {
     transition-duration: 0ms;
   }
+
+  /* Auth page */
+  .auth-gradient { animation: none; }
+  .auth-float { animation: none; }
+  .auth-field { animation: none; opacity: 1; }
+  .auth-btn::after { animation: none; }
+  .auth-card-3d { transition: none; }
+  .role-card-3d:hover { transform: none; }
 }
