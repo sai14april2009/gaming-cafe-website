@@ -330,6 +330,7 @@ export function BrowseCafes() {
   const SlideIcon = slide.icon;
 
   return (
+    <div className="browse-bg min-h-screen">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
       {/* ── Hero Carousel with parallax ── */}
@@ -533,6 +534,7 @@ export function BrowseCafes() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
