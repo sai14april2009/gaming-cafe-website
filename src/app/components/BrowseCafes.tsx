@@ -476,11 +476,11 @@ export function BrowseCafes() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-5 h-5 text-gray-400" />
+            <SlidersHorizontal className="w-5 h-5 text-gray-400 flex-shrink-0" />
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 md:flex-none px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {cities.map((city) => (
                 <option key={city} value={city}>

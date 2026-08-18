@@ -298,7 +298,7 @@ export function AdvancedBookingInterface({
   return (
     <div className="bg-white rounded-xl shadow-md">
       {isRequiredSlotsMet && (
-        <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 text-center shadow-lg">
+        <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 sm:px-6 py-4 text-center shadow-lg">
           <div className="flex items-center justify-center gap-2">
             <span className="text-2xl">✓</span>
             <div>
@@ -317,12 +317,12 @@ export function AdvancedBookingInterface({
             <button
               key={date.toDateString()}
               onClick={() => setSelectedDate(date)}
-              className={`flex-shrink-0 px-6 py-4 flex flex-col items-center justify-center min-w-[90px] transition-all ${
+              className={`flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4 flex flex-col items-center justify-center min-w-[72px] sm:min-w-[90px] transition-all ${
                 isSelected ? "bg-red-500 text-white" : "bg-white text-gray-700 hover:bg-gray-50"
               } ${index !== 0 ? "border-l border-gray-200" : ""}`}
             >
               <div className="text-sm font-medium">{day}</div>
-              <div className="text-3xl font-bold my-1">{dateNum}</div>
+              <div className="text-2xl sm:text-3xl font-bold my-1">{dateNum}</div>
               <div className="text-xs font-medium">{month}</div>
             </button>
           );
@@ -330,7 +330,7 @@ export function AdvancedBookingInterface({
       </div>
 
       {partySize === "solo" && numberOfHours && (
-        <div className="bg-blue-50 border-b border-blue-200 px-6 py-3">
+        <div className="bg-blue-50 border-b border-blue-200 px-4 sm:px-6 py-3">
           <p className="text-sm text-blue-800 text-center">
             <strong>Playing Solo:</strong> Select {numberOfHours} time slot{numberOfHours !== 1 ? "s" : ""}.
             You cannot select the same time on different systems.
@@ -338,25 +338,25 @@ export function AdvancedBookingInterface({
         </div>
       )}
       {partySize === "group" && numberOfHours && (
-        <div className="bg-blue-50 border-b border-blue-200 px-6 py-4">
+        <div className="bg-blue-50 border-b border-blue-200 px-4 sm:px-6 py-4">
           <p className="text-sm text-blue-800 text-center mb-2">
             <strong>Group Booking:</strong> {numberOfFriends} people × {numberOfHours} hours each = <strong>{numberOfFriends * numberOfHours} total slots needed</strong>
           </p>
-          <div className="flex justify-center gap-6 text-xs text-blue-700">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-1 text-xs text-blue-700">
             <div>✓ Max {numberOfFriends} systems per time slot</div>
             <div>✓ Max {numberOfHours} slots per system</div>
           </div>
         </div>
       )}
 
-      <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 space-y-2">
-        <div className="flex justify-between items-center gap-4">
+      <div className="px-4 sm:px-6 py-3 bg-gray-50 border-b border-gray-200 space-y-2">
+        <div className="flex flex-wrap justify-between items-center gap-x-4 gap-y-2">
           <div className="text-sm text-gray-600">
             {loadingSlots ? "Loading availability..." : (
               <>Showing <span className="font-bold text-blue-600">{systemsToDisplay.length}</span> of {bookingStates.length} systems</>
             )}
           </div>
-          <div className="flex items-center gap-4 text-xs">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
             <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-green-600"></div><span>Available</span></div>
             <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-red-500"></div><span>Booked</span></div>
             <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-orange-500"></div><span>Occupied</span></div>
@@ -405,7 +405,7 @@ export function AdvancedBookingInterface({
             const system = getSystemInfo(bookingState.systemId);
             if (!system) return null;
             return (
-              <div key={bookingState.systemId} className="p-6 hover:bg-gray-50 transition-colors">
+              <div key={bookingState.systemId} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
                 <div className="mb-4">
                   <h3 className="text-lg font-bold text-gray-900 mb-2">{system.name}</h3>
                   {system.type === "PC" ? (
@@ -426,7 +426,7 @@ export function AdvancedBookingInterface({
                     {conflictWarning.message}
                   </div>
                 )}
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   {bookingState.slots.map((slot) => {
                     const gap = gapAfterHour.get(slot.hour);
                     return (
@@ -437,7 +437,7 @@ export function AdvancedBookingInterface({
                         handleSlotClick(bookingState.systemId, slot.hour)
                       }
                       disabled={slot.status === "booked" || slot.status === "repair" || slot.status === "reserved"}
-                      className={`px-6 py-3 rounded-md text-sm font-semibold transition-all min-w-[120px] ${
+                      className={`px-4 sm:px-6 py-3 rounded-md text-sm font-semibold transition-all min-w-[92px] sm:min-w-[120px] ${
                         slot.status === "available"
                           ? "border-2 border-green-600 text-green-700 bg-white hover:bg-green-50 cursor-pointer"
                           : slot.status === "selected"
@@ -465,8 +465,8 @@ export function AdvancedBookingInterface({
       )}
 
       {getSelectedCount() > 0 && (
-        <div className="sticky bottom-0 bg-gradient-to-r from-blue-600 to-cyan-400 text-white p-6 shadow-lg">
-          <div className="flex items-center justify-between max-w-7xl mx-auto">
+        <div className="sticky bottom-0 bg-gradient-to-r from-blue-600 to-cyan-400 text-white p-4 sm:p-6 shadow-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 max-w-7xl mx-auto">
             <div>
               <div className="text-sm opacity-90 mb-1">
                 {getSelectedCount()} / {requiredSlots} slot{requiredSlots !== 1 ? "s" : ""} selected
@@ -484,7 +484,7 @@ export function AdvancedBookingInterface({
             <Button
               onClick={handleProceedToBooking}
               disabled={!isRequiredSlotsMet}
-              className={`px-10 py-4 text-lg font-bold rounded-lg ${
+              className={`w-full sm:w-auto px-6 sm:px-10 py-3 sm:py-4 text-base sm:text-lg font-bold rounded-lg ${
                 !isRequiredSlotsMet
                   ? "bg-gray-400 text-gray-600 cursor-not-allowed"
                   : "bg-white text-blue-600 hover:bg-gray-100"
