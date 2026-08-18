@@ -446,6 +446,14 @@ a[class*="rounded"]:hover {
 }
 .browse-bg > * { position: relative; z-index: 1; }
 
+/* Filter chip interaction */
+.filter-chip {
+  transition: background 200ms ease, color 200ms ease,
+              transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+              box-shadow 200ms ease;
+}
+.filter-chip:active { transform: scale(0.95); }
+
 /* Search bar focus glow */
 .search-glow:focus-within {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1), 0 4px 16px -4px rgba(37, 99, 235, 0.12);
@@ -612,6 +620,7 @@ a[class*="rounded"]:hover {
   .cafe-card-glow::before { display: none; }
   .stat-glass:hover { transform: none; }
   .group:hover .view-arrow { transform: none; }
+  .filter-chip:active { transform: none; }
 
   /* Register wizard */
   .step-fwd, .step-bwd { animation: none; opacity: 1; }

@@ -1,5 +1,5 @@
-import { useState, useEffect, Fragment } from "react";
-import { Monitor, Cpu, MemoryStick } from "lucide-react";
+import { useState, useEffect, Fragment, useMemo } from "react";
+import { Monitor, Cpu, MemoryStick, Gamepad2, SlidersHorizontal } from "lucide-react";
 import { GamingSystem } from "../types";
 import { Button } from "./ui/button";
 import { supabase } from "../../supabase";
@@ -46,6 +46,8 @@ export function AdvancedBookingInterface({
   const [bookingStates, setBookingStates] = useState<SystemBookingState[]>([]);
   const [conflictWarning, setConflictWarning] = useState<{ systemId: string; message: string } | null>(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"all" | "PC" | "Console">("all");
+  const [availFilter, setAvailFilter] = useState<"all" | "free">("all");
 
   const next7Days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
@@ -275,9 +277,23 @@ export function AdvancedBookingInterface({
   const requiredSlots = partySize === "solo" ? numberOfHours : numberOfFriends * numberOfHours;
   const isRequiredSlotsMet = getSelectedCount() === requiredSlots;
 
-  const systemsToDisplay = isRequiredSlotsMet
-    ? bookingStates.filter((state) => state.slots.some((slot) => slot.status === "selected"))
-    : bookingStates;
+  const systemsToDisplay = useMemo(() => {
+    let filtered = isRequiredSlotsMet
+      ? bookingStates.filter((state) => state.slots.some((slot) => slot.status === "selected"))
+      : bookingStates;
+    if (typeFilter !== "all") {
+      filtered = filtered.filter((state) => {
+        const sys = getSystemInfo(state.systemId);
+        return sys?.type === typeFilter;
+      });
+    }
+    if (availFilter === "free") {
+      filtered = filtered.filter((state) =>
+        state.slots.some((slot) => slot.status === "available")
+      );
+    }
+    return filtered;
+  }, [bookingStates, isRequiredSlotsMet, typeFilter, availFilter]);
 
   return (
     <div className="bg-white rounded-xl shadow-md">
@@ -333,18 +349,51 @@ export function AdvancedBookingInterface({
         </div>
       )}
 
-      <div className="flex justify-between items-center gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200">
-        <div className="text-sm text-gray-600">
-          {loadingSlots ? "Loading availability..." : (
-            <>Showing <span className="font-bold text-blue-600">{systemsToDisplay.length}</span> gaming systems</>
-          )}
+      <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 space-y-2">
+        <div className="flex justify-between items-center gap-4">
+          <div className="text-sm text-gray-600">
+            {loadingSlots ? "Loading availability..." : (
+              <>Showing <span className="font-bold text-blue-600">{systemsToDisplay.length}</span> of {bookingStates.length} systems</>
+            )}
+          </div>
+          <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-green-600"></div><span>Available</span></div>
+            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-red-500"></div><span>Booked</span></div>
+            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-orange-500"></div><span>Occupied</span></div>
+            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-amber-400"></div><span>Reserved</span></div>
+            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-blue-500"></div><span>Repair</span></div>
+          </div>
         </div>
-        <div className="flex items-center gap-4 text-xs">
-          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-green-600"></div><span>Available</span></div>
-          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-red-500"></div><span>Booked</span></div>
-          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-orange-500"></div><span>Occupied</span></div>
-          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-amber-400"></div><span>Reserved</span></div>
-          <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-full bg-blue-500"></div><span>Repair</span></div>
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-2">
+          <SlidersHorizontal className="w-3.5 h-3.5 text-gray-400" />
+          {([["all", "All Systems"], ["PC", "🖥️ PC"], ["Console", "🎮 Console"]] as const).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setTypeFilter(val)}
+              className={`filter-chip px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                typeFilter === val
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-white text-gray-600 hover:bg-gray-200 border border-gray-200"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          <div className="w-px h-5 bg-gray-300 mx-1" />
+          {([["all", "All Slots"], ["free", "✅ Has Free Slots"]] as const).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setAvailFilter(val)}
+              className={`filter-chip px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                availFilter === val
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "bg-white text-gray-600 hover:bg-gray-200 border border-gray-200"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 

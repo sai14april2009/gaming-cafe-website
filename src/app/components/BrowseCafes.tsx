@@ -263,6 +263,8 @@ function CafeCard({ cafe, cafeSystems, delay }: {
 export function BrowseCafes() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState<string>("all");
+  const [systemTypeFilter, setSystemTypeFilter] = useState<"all" | "pc" | "console">("all");
+  const [priceFilter, setPriceFilter] = useState<"all" | "under100" | "100to300" | "over300">("all");
   const [dbCafes, setDbCafes] = useState<DbCafe[]>([]);
   const [systems, setSystems] = useState<DbSystem[]>([]);
   const [heroIdx, setHeroIdx] = useState(0);
@@ -320,7 +322,17 @@ export function BrowseCafes() {
       cafe.address.toLowerCase().includes(q) ||
       cafe.city.toLowerCase().includes(q);
     const matchesCity = selectedCity === "all" || cafe.city === selectedCity;
-    return matchesSearch && matchesCity;
+    const cafeSys = systemsForCafe(cafe.id);
+    const matchesType =
+      systemTypeFilter === "all" ||
+      (systemTypeFilter === "pc" && cafeSys.some((s) => s.type === "PC")) ||
+      (systemTypeFilter === "console" && cafeSys.some((s) => s.type === "Console"));
+    const matchesPrice =
+      priceFilter === "all" ||
+      (priceFilter === "under100" && cafe.price_per_hour < 100) ||
+      (priceFilter === "100to300" && cafe.price_per_hour >= 100 && cafe.price_per_hour <= 300) ||
+      (priceFilter === "over300" && cafe.price_per_hour > 300);
+    return matchesSearch && matchesCity && matchesType && matchesPrice;
   });
 
   const totalSystems = systems.length;
@@ -477,6 +489,39 @@ export function BrowseCafes() {
               ))}
             </select>
           </div>
+        </div>
+
+        {/* Filter chips */}
+        <div className="flex flex-wrap gap-2 mt-4">
+          <span className="text-xs font-medium text-gray-500 self-center mr-1">Type:</span>
+          {([["all", "All"], ["pc", "🖥️ PC"], ["console", "🎮 Console"]] as const).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setSystemTypeFilter(val)}
+              className={`filter-chip px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                systemTypeFilter === val
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          <div className="w-px h-6 bg-gray-200 self-center mx-1" />
+          <span className="text-xs font-medium text-gray-500 self-center mr-1">Price:</span>
+          {([["all", "Any"], ["under100", "Under ₹100"], ["100to300", "₹100–300"], ["over300", "₹300+"]] as const).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setPriceFilter(val)}
+              className={`filter-chip px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                priceFilter === val
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
