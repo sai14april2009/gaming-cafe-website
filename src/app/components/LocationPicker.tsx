@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Navigation, Search, Loader2, MapPin } from "lucide-react";
-import { geocodeAddress } from "../utils/geocode";
+import { geocodeAddress, searchAddresses, AddressSuggestion } from "../utils/geocode";
 
 interface LocationPickerProps {
   lat: number | null;
@@ -38,6 +38,12 @@ export function LocationPicker({ lat, lng, address, city, onChange }: LocationPi
 
   const [busy, setBusy] = useState<"geo" | "gps" | null>(null);
   const [msg, setMsg] = useState("");
+
+  // Address autocomplete — live suggestions so the owner picks a real, geocodable place
+  // instead of free-typing a misspelled address ("Naded" -> "Nanded").
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
+  const [searching, setSearching] = useState(false);
 
   // Init the map exactly once. The picker owns the marker after mount; parent prop
   // changes flow FROM this component (via onChange), so we don't re-sync from props.
@@ -75,6 +81,21 @@ export function LocationPicker({ lat, lng, address, city, onChange }: LocationPi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Debounced autocomplete lookups (min 3 chars, 350ms) — keeps us within Nominatim's
+  // rate limit while typing.
+  useEffect(() => {
+    if (query.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      setSearching(true);
+      setSuggestions(await searchAddresses(query));
+      setSearching(false);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [query]);
+
   function attachMarker(map: L.Map, la: number, ln: number) {
     const m = L.marker([la, ln], { icon: pinIcon(), draggable: true }).addTo(map);
     m.on("dragend", () => {
@@ -93,6 +114,13 @@ export function LocationPicker({ lat, lng, address, city, onChange }: LocationPi
     map.setView([la, ln], zoom);
     onChangeRef.current(la, ln);
   }
+
+  const pick = (s: AddressSuggestion) => {
+    setPoint(s.lat, s.lng, 16);
+    setQuery(s.label);
+    setSuggestions([]);
+    setMsg("Pin placed from the selected address — drag to fine-tune.");
+  };
 
   const findAddress = async () => {
     setBusy("geo");
@@ -133,6 +161,39 @@ export function LocationPicker({ lat, lng, address, city, onChange }: LocationPi
 
   return (
     <div className="space-y-2">
+      {/* Address autocomplete — pick a real place; the pin drops on it. */}
+      <div className="relative">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search your address, area, or landmark…"
+            className="w-full pl-9 pr-9 py-2 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400"
+          />
+          {searching && (
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />
+          )}
+        </div>
+        {suggestions.length > 0 && (
+          <ul className="absolute left-0 right-0 top-full mt-1 z-[1100] bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-auto">
+            {suggestions.map((s, i) => (
+              <li key={i}>
+                <button
+                  type="button"
+                  onClick={() => pick(s)}
+                  className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 flex items-start gap-2 border-b border-gray-100 last:border-0"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <span className="line-clamp-2">{s.label}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <div className="flex flex-wrap gap-2">
         <button
           type="button"

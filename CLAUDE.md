@@ -1145,8 +1145,16 @@ Migrations applied (not in repo — schema is inferred; recorded here):
   click** so neither hides the other. The "you are here" marker stays a plain marker on the map,
   not clustered. Verified in dev: coincident rows render one "2" bubble → click → two separate
   clickable price pins, zero console errors.
-- **Still deferred:** address autocomplete (Nominatim/Photon/Places) to kill typos at the source
-  (e.g. "Naded" → "Nanded") before geocoding even runs.
+- **Address autocomplete (shipped 2026-08-20):** `LocationPicker` has a live search box —
+  debounced (min 3 chars, 350ms) `searchAddresses()` → `/api/geocode?...&limit=6` → dropdown of
+  real candidates; picking one drops the pin exactly (`pick()` → `setPoint`). Kills typos at the
+  source ("Naded" → "Nanded") since the owner selects a real geocoded place instead of free-
+  typing. `api/geocode.ts` now returns `{ results: [{lat,lng,display_name,city}] }` (up to
+  `limit`, default 1); `geocodeAddress` reads `results[0]`, both shipped together so the shape
+  contract never splits. Deployed endpoint verified returning multiple candidates.
+- **Still deferred (nice-to-have):** swap Nominatim → Photon for the autocomplete specifically
+  (Photon is autocomplete-optimized, no key) if suggestion latency/quality becomes a problem at
+  volume. Not urgent.
 
 ### Customer side (Phase 2 — `BrowseCafes`)
 - **City dropdown = default** (unchanged). **`📍 Use my location`** button → `navigator.
