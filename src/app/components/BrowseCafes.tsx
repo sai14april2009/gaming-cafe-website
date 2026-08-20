@@ -72,17 +72,6 @@ const HERO_SLIDES = [
   },
 ];
 
-const GAMING_QUOTES = [
-  "🎮 \"The game is never over until it's over.\" — Yogi Berra",
-  "⚔️ \"Winners never quit and quitters never win.\"",
-  "🏆 \"It's not about the graphics, it's about the gameplay.\"",
-  "🔥 \"Lag is temporary. Glory is forever.\"",
-  "💎 \"GG doesn't mean the end — it means respect.\"",
-  "🎯 \"In the world of gaming, the only limit is your imagination.\"",
-  "⭐ \"Practice isn't the thing you do once you're good. It's the thing that makes you good.\"",
-  "🕹️ \"Every pro was once a noob.\"",
-];
-
 /* ── Hooks ── */
 
 /** IntersectionObserver scroll-reveal: adds .reveal-visible with stagger delay */
@@ -524,15 +513,6 @@ export function BrowseCafes() {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* ── Gaming quotes marquee ── */}
-      <div className="animate-in mb-8 overflow-hidden rounded-xl bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 py-3" style={{ "--stagger": 2 } as React.CSSProperties}>
-        <div className="marquee-track flex whitespace-nowrap gap-12" style={{ width: "max-content" }}>
-          {[...GAMING_QUOTES, ...GAMING_QUOTES].map((q, i) => (
-            <span key={i} className="text-sm text-gray-300 font-medium">{q}</span>
-          ))}
-        </div>
       </div>
 
       {/* ── Search and Filters ── */}
