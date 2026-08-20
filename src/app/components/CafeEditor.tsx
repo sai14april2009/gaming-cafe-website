@@ -3,6 +3,7 @@ import { supabase } from "../../supabase";
 import { Button } from "./ui/button";
 import { X, Plus, Search, Loader2 } from "lucide-react";
 import { crossesMidnight } from "../utils/cafeHours";
+import { geocodeAddress } from "../utils/geocode";
 
 // "HH:MM" -> "H:MM AM/PM" (leading zero stripped)
 const formatTimeHint = (t: string) => {
@@ -159,6 +160,19 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
     setLoading(true);
     setError("");
     setSuccess(false);
+
+    // Re-geocode only when the address/city actually changed, so an unrelated edit
+    // (hours, games, amenities) never overwrites a good coordinate or wastes a
+    // Nominatim call. Nearby-cafes uses the resulting lat/lng.
+    const addressChanged =
+      form.address !== (cafe.address || "") || form.city !== (cafe.city || "");
+    const coords = addressChanged
+      ? await geocodeAddress(form.address, form.city).then(({ lat, lng }) => ({
+          latitude: lat,
+          longitude: lng,
+        }))
+      : {};
+
     const { error: updateError } = await supabase
       .from("cafes")
       .update({
@@ -172,6 +186,7 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
         image_url: form.image_url,
         amenities,
         games,
+        ...coords,
       })
       .eq("id", cafe.id);
     if (updateError) {

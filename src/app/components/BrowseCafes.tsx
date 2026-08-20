@@ -3,10 +3,11 @@ import { Link } from "react-router";
 import {
   Search, SlidersHorizontal, Star, MapPin, Monitor, Gamepad2,
   Cpu, Zap, ChevronRight, Flame, Trophy, Swords, Target,
-  Users, Wifi, Shield,
+  Users, Wifi, Shield, Navigation, Loader2, Map as MapIcon,
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { supabase } from "../../supabase";
+import { CafeMap, MapCafe } from "./CafeMap";
 
 /* ── Types ── */
 
@@ -19,6 +20,8 @@ interface DbCafe {
   price_per_hour: number;
   image_url: string | null;
   is_approved: boolean;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 interface DbSystem {
@@ -148,10 +151,11 @@ function useHeroParallax(ref: React.RefObject<HTMLElement | null>) {
 
 /* ── Cafe Card with 3D tilt ── */
 
-function CafeCard({ cafe, cafeSystems, delay }: {
+function CafeCard({ cafe, cafeSystems, delay, distanceKm }: {
   cafe: DbCafe;
   cafeSystems: DbSystem[];
   delay: number;
+  distanceKm?: number | null;
 }) {
   const cardRef = useRef<HTMLAnchorElement>(null);
   useCardTilt(cardRef as React.RefObject<HTMLElement | null>, 5);
@@ -164,8 +168,9 @@ function CafeCard({ cafe, cafeSystems, delay }: {
   return (
     <Link
       ref={cardRef}
+      id={`cafe-${cafe.id}`}
       to={`/cafe/db/${cafe.id}`}
-      className="reveal-hidden cafe-tilt cafe-card-glow group block bg-white rounded-xl overflow-hidden shadow-sm"
+      className="reveal-hidden cafe-tilt cafe-card-glow group block bg-white rounded-xl overflow-hidden shadow-sm scroll-mt-24"
       style={{ animationDelay: `${delay * 120}ms` }}
     >
       {/* Image with overlay */}
@@ -205,6 +210,14 @@ function CafeCard({ cafe, cafeSystems, delay }: {
           <div className="sys-count-badge absolute top-3 right-3 flex items-center gap-1 bg-blue-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-lg">
             <Monitor className="w-3 h-3" />
             {cafeSystems.length} {cafeSystems.length === 1 ? "system" : "systems"}
+          </div>
+        )}
+
+        {/* Distance badge (shown once the visitor shares their location) */}
+        {typeof distanceKm === "number" && (
+          <div className="absolute top-3 left-3 flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-lg">
+            <Navigation className="w-3 h-3" />
+            {distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m` : `${distanceKm.toFixed(1)} km`}
           </div>
         )}
       </div>
@@ -265,6 +278,11 @@ export function BrowseCafes() {
   const [selectedCity, setSelectedCity] = useState<string>("all");
   const [systemTypeFilter, setSystemTypeFilter] = useState<"all" | "pc" | "console">("all");
   const [priceFilter, setPriceFilter] = useState<"all" | "under100" | "100to300" | "over300">("all");
+  const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
+  const [distances, setDistances] = useState<Record<string, number>>({}); // cafe id -> metres
+  const [locating, setLocating] = useState(false);
+  const [locError, setLocError] = useState("");
+  const [showMap, setShowMap] = useState(true);
   const [dbCafes, setDbCafes] = useState<DbCafe[]>([]);
   const [systems, setSystems] = useState<DbSystem[]>([]);
   const [heroIdx, setHeroIdx] = useState(0);
@@ -280,7 +298,7 @@ export function BrowseCafes() {
       const [{ data: cafesData }, { data: sysData }] = await Promise.all([
         supabase
           .from("cafes")
-          .select("id, name, description, city, address, price_per_hour, image_url, is_approved")
+          .select("id, name, description, city, address, price_per_hour, image_url, is_approved, latitude, longitude")
           .eq("is_approved", true),
         supabase
           .from("gaming_systems")
@@ -315,6 +333,40 @@ export function BrowseCafes() {
   const systemsForCafe = (cafeId: string) => systems.filter((s) => s.cafe_id === cafeId);
   const cities = ["all", ...Array.from(new Set(dbCafes.map((c) => c.city)))];
 
+  /* Locate the visitor (opt-in) and rank cafes by real distance via the nearby_cafes RPC.
+     The city dropdown stays the default path — this only runs if they tap the button. */
+  const useMyLocation = () => {
+    if (!navigator.geolocation) {
+      setLocError("Location isn't available on this device. Pick your city instead.");
+      return;
+    }
+    setLocating(true);
+    setLocError("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLoc(loc);
+        const { data } = await supabase.rpc("nearby_cafes", {
+          p_lat: loc.lat,
+          p_lng: loc.lng,
+          p_radius_m: 2_000_000, // wide net so every cafe gets a distance; nearest sort to top
+          p_limit: 200,
+        });
+        const map: Record<string, number> = {};
+        (data || []).forEach((r: { id: string; distance_m: number }) => {
+          map[r.id] = r.distance_m;
+        });
+        setDistances(map);
+        setLocating(false);
+      },
+      () => {
+        setLocError("Couldn't get your location. Showing cafes by city instead.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    );
+  };
+
   const filteredCafes = dbCafes.filter((cafe) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
@@ -334,6 +386,27 @@ export function BrowseCafes() {
       (priceFilter === "over300" && cafe.price_per_hour > 300);
     return matchesSearch && matchesCity && matchesType && matchesPrice;
   });
+
+  // When the visitor has shared location, sort nearest-first (cafes without a distance
+  // sink to the bottom). Otherwise keep the default order.
+  const hasDistances = userLoc && Object.keys(distances).length > 0;
+  const displayCafes = hasDistances
+    ? [...filteredCafes].sort(
+        (a, b) => (distances[a.id] ?? Infinity) - (distances[b.id] ?? Infinity)
+      )
+    : filteredCafes;
+
+  const mapCafes: MapCafe[] = displayCafes
+    .filter((c) => typeof c.latitude === "number" && typeof c.longitude === "number")
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      city: c.city,
+      latitude: c.latitude as number,
+      longitude: c.longitude as number,
+      price_per_hour: c.price_per_hour,
+      distanceKm: distances[c.id] != null ? distances[c.id] / 1000 : null,
+    }));
 
   const totalSystems = systems.length;
   const totalCafes = dbCafes.length;
@@ -537,14 +610,52 @@ export function BrowseCafes() {
         </div>
       </div>
 
+      {/* ── Location controls ── */}
+      <div className="animate-in flex flex-wrap items-center gap-2 mb-4" style={{ "--stagger": 4 } as React.CSSProperties}>
+        <button
+          onClick={useMyLocation}
+          disabled={locating}
+          className="filter-chip flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
+        >
+          {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+          {userLoc ? "Update my location" : "Use my location"}
+        </button>
+        <button
+          onClick={() => setShowMap((v) => !v)}
+          className="filter-chip flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
+        >
+          <MapIcon className="w-4 h-4" /> {showMap ? "Hide map" : "Show map"}
+        </button>
+        {hasDistances && (
+          <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+            <span className="live-dot" /> Sorted by distance from you
+          </span>
+        )}
+        {locError && <span className="text-xs text-amber-600">{locError}</span>}
+      </div>
+
+      {/* ── Map panel ── */}
+      {showMap && mapCafes.length > 0 && (
+        <div className="animate-in mb-6" style={{ "--stagger": 4 } as React.CSSProperties}>
+          <CafeMap
+            cafes={mapCafes}
+            userLoc={userLoc}
+            onSelect={(id) =>
+              document.getElementById(`cafe-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })
+            }
+          />
+        </div>
+      )}
+
       {/* ── Cafes Grid with scroll-reveal + 3D tilt ── */}
       <div ref={gridRef} id="cafe-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCafes.map((cafe, idx) => (
+        {displayCafes.map((cafe, idx) => (
           <CafeCard
             key={cafe.id}
             cafe={cafe}
             cafeSystems={systemsForCafe(cafe.id)}
             delay={idx}
+            distanceKm={distances[cafe.id] != null ? distances[cafe.id] / 1000 : null}
           />
         ))}
       </div>

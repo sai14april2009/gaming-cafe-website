@@ -44,7 +44,7 @@ The codebase used to have two parallel implementations of cafe browsing/booking 
 There are no `.sql` files or a `supabase/` migrations directory checked in; the schema only exists as inferred from `supabase.from(...)` calls scattered across components. Known tables and key columns (grep for `.from("<table>")` to find all usages before changing shape):
 
 - `profiles` — `id` (= auth user id), `email`, `full_name`, `role` (`"owner"` gates `/dashboard`; anything else is a regular customer)
-- `cafes` — `owner_id`, `name`, `description`, `city`, `address`, `phone`, `email`, `price_per_hour`, `image_url`, `is_approved`, `amenities` (array), `games` (array)
+- `cafes` — `owner_id`, `name`, `description`, `city`, `address`, `phone`, `email`, `price_per_hour`, `image_url`, `is_approved`, `amenities` (array), `games` (array), `latitude`, `longitude` (nullable doubles; geocoded from the address on register/edit), `location` (PostGIS `geography(Point,4326)`, **generated always** from lng/lat — never write it directly, only write lat/lng). Nearby search goes through the `nearby_cafes(p_lat, p_lng, p_radius_m, p_limit)` RPC (see Section 13), NOT a direct distance query.
 - `cafe_hours` — `cafe_id`, `day_of_week` (0-6), `open_time`/`close_time` (`"HH:MM"` strings) — the hours source of truth (see the midnight-crossing fix entry in Section 4). Replaces the legacy `cafes.opening_time`/`closing_time` columns, dropped 2026-08-01.
 - `gaming_systems` — `cafe_id`, `name`, `type` (`"PC" | "Console"`), `gpu`, `cpu`, `ram`, `console`
 - `bookings` — `id`, `user_id` (NOT NULL), `cafe_id`, `system_id`, `booking_date`, `start_time`/`end_time` (`"HH:MM"`), `num_people`, `total_price`, `status` (`"confirmed"` is the only status filtered on), `players` (JSON array of `{name, phone}`), `cancellation_reason` (nullable)
@@ -67,7 +67,7 @@ Cafe owners can start ad-hoc "walk-in" sessions for a system from the dashboard 
 - Do not add `.css`, `.tsx`, or `.ts` to `assetsInclude` in `vite.config.ts`.
 # GameOrbit / GameSpot — Project Brain
 *Paste this entire file at the start of any new chat so the AI has full context immediately.*
-*Last updated: 2026-07-26*
+*Last updated: 2026-08-18*
 
 ---
 
@@ -167,11 +167,12 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - ✅ RevenueStats — excludes cancelled from revenue totals; fixed UTC upcoming-count bug; shows cancelled in recent list (2026-07-24)
 - 🔲 Image upload for cafe cover (currently URL paste only)
 - ~~🔲 Buffer system implementation (Smart Transition Buffer)~~ **CANCELLED (2026-08-11) — see Rule 8**
-- 🔲 Filter in booking interface (PC/Console, GPU) — Phase 2
-- 🔲 Filter in Gaming Systems tab (Free now / Occupied now / Free at X time) — Phase 2
+- ✅ Filter in booking interface (PC/Console + Has-Free-Slots) — shipped 2026-08-18 (`fb196633`); GPU filter still Phase 2
+- ✅ Homepage filters (system type PC/Console + price range chips) — shipped 2026-08-18 (`fb196633`)
+- 🔲 Filter in Gaming Systems tab (owner dashboard: Free now / Occupied now / Free at X time) — Phase 2
 - 🔲 Hardware autocomplete + case-insensitive FilterByHardware
 - 🔲 Custom SMTP (Resend/SendGrid) before real users
-- 🔲 Mobile responsiveness check
+- ✅ Mobile responsiveness — homepage + customer booking flow made responsive 2026-08-18 (`873ea087`); owner dashboard not yet audited
 - 🔲 Customer data collection (name, phone, email, city) for analytics — Phase 2
 - 🔲 Marketing campaign feature for café owners — Phase 2
 
@@ -334,6 +335,31 @@ booked/occupied/reserved. Bugs found and fixed:
 - **`walk_in_no_overlap` DB constraint applied** (see above), and functionally verified: a deliberate overlapping insert is rejected with `exclusion_violation`.
 - Historical note: the 7 overlapping sessions on hour 9 (2026-07-15) predate the disabled-button guard and are all `ended`. They pollute analytics but are not a live fault.
 
+### UI polish: homepage redesign, filters, mobile responsiveness (2026-08-17 → 2026-08-18)
+
+Customer-facing UI pass. All shipped + pushed; Vercel auto-deploys from main.
+
+- **Homepage (`BrowseCafes`) gamer redesign** (2026-08-17) — hero carousel (4 rotating
+  Unsplash slides w/ parallax), animated stats row, gaming-quotes marquee, scroll-reveal +
+  3D card tilt, glowing cafe cards showing gaming-system specs (PC/console counts, GPU,
+  console). Animation CSS suite added to `globals.css` with `prefers-reduced-motion`
+  fallbacks. Subtle dot-grid background + radial glow (`.browse-bg`).
+  - **TDZ bug fixed** (`6905b8ec`): `useScrollReveal` referenced `filteredCafes` before its
+    `const` init in the minified bundle → "Cannot access 'A' before initialization" crash on
+    live. Fixed by taking `itemCount: number` (`dbCafes.length`) as the effect dep instead.
+- **Filters** (`fb196633`): homepage type (PC/Console) + price-range chips; booking interface
+  (`AdvancedBookingInterface`) type (PC/Console) + Has-Free-Slots chips with live "X of Y
+  systems" count. `.filter-chip` class w/ `scale(0.95)` active state (reduced-motion safe).
+- **Mobile responsiveness** (`873ea087`) — customer surfaces only, all `sm:`-guarded so desktop
+  is untouched:
+  - `AdvancedBookingInterface`: count + 5-item legend row now `flex-wrap` (was overflowing);
+    sticky bottom bar `flex-col sm:flex-row` (price stacks over full-width button); slot buttons
+    `min-w-[92px] sm:min-w-[120px]`; compact date strip; `px-4 sm:px-6` section paddings.
+  - `BrowseCafes`: city dropdown `flex-1 md:flex-none` (fills width when search block stacks).
+  - Verified in prod: at true 375px viewport homepage + cafe-detail have zero horizontal
+    overflow; new responsive classes confirmed live in the deployed DOM. Owner dashboard NOT
+    yet made responsive (out of scope — see Section 3).
+
 ### Midnight-crossing schedule fix — FIXED (2026-07-29 → 2026-08-01)
 
 Cafés whose closing time is earlier in the day than opening time (e.g. open 18:00, close
@@ -450,7 +476,9 @@ covered; the column is no longer half-populated.
 - RevenueStats: exclude cancelled from revenue, fix upcoming count
 - Image upload for cafe cover
 - Custom SMTP
-- Mobile responsiveness
+- ~~Mobile responsiveness~~ **DONE (customer-facing) 2026-08-18** (`873ea087`) — homepage + booking
+  flow. Owner dashboard (`Dashboard`/`SystemsManager`/`LiveSessions`) still desktop-only; audit
+  when an owner actually manages from a phone.
 - ~~Remove mock café data path~~ **DONE — Stage 1 (2026-07-29, `a263e907`)** — mock components/
   routes deleted, homepage purely Supabase-backed. **Stage 2 (2026-08-06, `60e3ebdd`)** —
   `mockData.ts` deleted entirely; see the Important backlog entry above.
@@ -958,3 +986,167 @@ persisted afterward.
   follow-ups" for the full research and the Option 3 (session-first) decision.
 
 
+
+---
+
+## 12. CORE ARCHITECTURE — THE SLOT-TRUTH MODEL (traced 2026-08-20)
+
+The whole product rests on **one shared primitive**: every claim on a machine is a
+`(system, date, hour)` slot with **integer hours 0–23**. Double-booking prevention, walk-in
+sync, proportional pricing, and midnight-crossing schedules are all layers over that single
+primitive. This note traces how they hold together (grep the file refs to go deeper).
+
+```mermaid
+flowchart TB
+    CH["cafeHours.ts — calendar-day model<br/>crossesMidnight() + carry block<br/>hoursForCalendarDay() → number[]"]
+    CH -->|"defines the valid hours"| GRID
+
+    GRID["<b>SHARED PRIMITIVE</b><br/>(system, date, hour)<br/>integer hours 0–23<br/>rendered in the slot grid"]
+
+    GRID --> READ
+    GRID --> WRITE
+    GRID --> MOAT
+
+    subgraph PREVENT["Double-booking prevention (2 layers)"]
+      direction TB
+      READ["<b>Layer 2 · read</b><br/>get_booked_slots() RPC<br/>occupancy only, no PII<br/>→ booked slots render disabled"]
+      WRITE["<b>Layer 2 · write</b><br/>findSlotConflicts()<br/>walk-ins + bookings + repairs<br/>pre-insert re-check (cross-table)"]
+      B["<b>Layer 1 · DB backstop</b><br/>bookings_no_overlap (status=confirmed)"]
+      W["<b>Layer 1 · DB backstop</b><br/>walk_in_no_overlap (status≠ended)"]
+      WRITE --> B
+      WRITE --> W
+    end
+
+    subgraph MOATBOX["Built on the same grid — the moat"]
+      direction TB
+      PP["Proportional pricing · calculatePrice()<br/>occupancy = integer hour, billing = minutes played"]
+      RS["RESERVED status · scheduled walk-ins<br/>cancellable, distinct from paid BOOKED"]
+      SYNC["Walk-in ↔ online sync<br/>real-time OCCUPIED on customer page"]
+    end
+    MOAT["MOAT"] -.-> MOATBOX
+
+    classDef prim fill:#2563eb,stroke:#1e40af,color:#fff;
+    class GRID prim;
+```
+
+### Trace 1 — Double-booking prevention (two layers, because constraints are single-table)
+Three tables claim the same `(system, date, hour)`: `bookings` (online), `walk_in_sessions`
+(walk-ins/reservations), `repair_slots` (maintenance).
+
+- **Layer 1 — DB exclusion constraints (race-proof, single-table).** `bookings_no_overlap`
+  (`WHERE status='confirmed'`) and `walk_in_no_overlap` (`WHERE status<>'ended'`) are Postgres
+  `EXCLUDE USING gist` guards that hold even under a concurrent race or a UI bug. Status-scoped
+  so cancelling/ending frees the slot. `repair_slots` has **no** constraint (app-level only; a
+  `repair_no_overlap` is a fast-follow, and the 23P01 catch is already wired to fire when added).
+  Gap: single-table constraints can't see a walk-in overlapping an *online booking*.
+- **Layer 2 — app-level `findSlotConflicts()`** ([src/app/utils/slotConflicts.ts:19](src/app/utils/slotConflicts.ts))
+  closes the cross-table gap: one pre-insert query across all three tables (`scheduled|active`
+  walk-ins, `confirmed` bookings, all repairs) — status scoping mirrors the constraints exactly
+  so app and DB never disagree. Shared by the grid's reserve/block-for-repair and the Repair
+  Slots form so they can't drift.
+- **Layer 2 — read side: `get_booked_slots()` RPC** (`SECURITY DEFINER`, occupancy only, no
+  `user_id`/`players`) makes conflicts visually impossible to create (Rule #3) while the
+  `bookings` table stays RLS-locked. `AdvancedBookingInterface` + `BookingConfirm` both use it.
+- **End to end:** display disables taken slots → pre-insert re-check closes the "taken while page
+  open" window across all tables → DB backstop rejects a true race with `23P01`.
+- **Honest hole:** cross-table overlap (walk-in↔booking, repair↔anything) is app-level only.
+  Phase-2 fix = `BEFORE INSERT` triggers on both tables (§9), deferred until booking editing
+  multiplies write paths.
+
+### Trace 2 — Walk-in + online sync moat (built on the same grid)
+- **Proportional pricing** ([LiveSessions.tsx:142](src/app/components/LiveSessions.tsx))
+  `calculatePrice`: first slot pro-rated `slotEnd(min) − max(now, slotStart)`, later slots full
+  60 min. A 9:18 walk-in on the 9:00 slot occupies the *whole* hour for conflict math but is
+  billed 9:18→10:00 (~₹42). **Occupancy stays integer; only money is continuous** — the whole
+  reason the slot model separates the two. Walk-ins pay the café directly, 0% commission (Phase 1).
+- **RESERVED (amber) vs BOOKED (red):** RESERVED = owner-marked `scheduled` walk-in, cancellable
+  instantly (`status→'ended'` frees it for the grid *and* `walk_in_no_overlap`); BOOKED = a paying
+  online customer. Reservations write **only to `walk_in_sessions`, never `bookings`** — sidesteps
+  `bookings.user_id NOT NULL` and keeps `bookings` = "a real customer booked online."
+- **Live clock** ([LiveSessions.tsx:94](src/app/components/LiveSessions.tsx)): a 1-second
+  `setInterval` auto-ends past-`end_time` sessions, expires no-show reservations (so they stop
+  holding a slot), and recomputes progress + price live — the "live PC tracking" half of the
+  two-sided operational lock-in.
+
+### Trace 3 — Midnight-crossing schedule fix (makes "hour" well-defined)
+- **Bug:** a café open 18:00→02:00 has `close < open`; the old `for (h=open; h<close)` produced
+  zero slots — the schedule vanished. Since everything keys off `(system, date, hour)`, an
+  undefined hour breaks Traces 1 & 2. So this sits *under* them.
+- **Calendar-day model** ([src/app/utils/cafeHours.ts:44](src/app/utils/cafeHours.ts))
+  `hoursForCalendarDay(day, prev)` keeps every bookable hour in 0–23 on some calendar date: the
+  post-midnight tail **carries** into the next day's grid — (a) carry block from a
+  midnight-crossing *previous* day `[0..carryEnd]`, plus (b) the day's own block (opening→23 if it
+  itself crosses, else opening→close−1). So 18:00→02:00 = `[18..23]` on D + `[0,1]` on D+1, and
+  `bookings.booking_date` (a plain date) never changed shape.
+- **Rigid 1-hour rounding preserved** (Rule #7): first slot rounds *up* on sub-hour opening
+  (06:29→07:00); last slot must *end* by close, sub-hour close floored (00:35→no post-midnight
+  hour; 02:00→carry `[0,1]`).
+- **`findHourGaps()`** renders a shared `ClosedSlotMarker` ("Closed 3 AM–7 AM") in the dead zone
+  between carry and own blocks — display-only, both grids.
+- **MVP shortcut:** `hoursForUniformSchedule()` passes the same schedule as `day` and `prev`
+  (valid because `CafeEditor` writes one schedule to all 7 rows). Per-day hours (§9 deferred) just
+  switch callers to `hoursForCalendarDay(dayRow, prevDayRow)` — core logic untouched.
+- **Option 3 (session-first, §9/§11)** is the higher ruling that made this cheap: "day is not a
+  data primitive," so the calendar-day layout needed no storage change.
+
+**The triad, one sentence:** `cafeHours` defines a clean integer hour across midnight → the
+`(system, date, hour)` primitive → double-booking prevention guards it and the walk-in/online moat
+is built on it. One primitive, three hyperedges (surfaced by graphify's community detection).
+
+---
+
+## 13. NEARBY CAFÉS SYSTEM (shipped 2026-08-20)
+
+Airbnb-style "cafés near you" — distance ranking + a map. Built end-to-end in three phases.
+Respects Rule §1 ("never ask for GPS"): the **city dropdown stays the default**; precise
+location is a single **opt-in** button that only prompts if the visitor taps it.
+
+### Data model (live in Supabase, project `zvgfmjzrnzallkwgrgqb`)
+Migrations applied (not in repo — schema is inferred; recorded here):
+- `cafes_geolocation_columns` — `create extension postgis`; added `cafes.latitude`,
+  `cafes.longitude` (nullable doubles) and `cafes.location geography(Point,4326)
+  generated always as (st_point(longitude, latitude)::geography) stored`, plus a GIST index
+  `cafes_location_gist`. **App code only ever writes lat/lng — `location` is auto-derived.**
+- `nearby_cafes_rpc` — `nearby_cafes(p_lat, p_lng, p_radius_m default 25000, p_limit default 50)`,
+  `SECURITY DEFINER`, `stable`. Returns `(id, distance_m)` for `is_approved` cafés with a
+  non-null `location`, within `p_radius_m`, ordered nearest-first. `execute` granted to
+  `anon, authenticated`. Same pattern as `get_booked_slots` — call the RPC, don't distance-query
+  the table directly.
+
+### Geocoding (Phase 1 — café side)
+- **`api/geocode.ts`** — Vercel edge function, clone of `api/steam-search.ts`. Proxies
+  **OpenStreetMap Nominatim** (free, no API key; sends a required `User-Agent`). Swappable to
+  Google/Mapbox later without touching the client.
+- **`src/app/utils/geocode.ts`** — `geocodeAddress(address, city)`. Tries `"address, city"`
+  first, **falls back to `city` alone** on a miss (Nominatim often can't resolve a specific
+  Indian building but always resolves the locality — a city-centroid coord beats none). Returns
+  `{lat:null,lng:null}` only when even the city fails.
+- Wired into **`RegisterCafe.handleSubmit`** (geocode before insert) and
+  **`CafeEditor.handleSave`** (re-geocode **only when address/city changed**, so an unrelated
+  edit never overwrites a good coord or wastes a call). Null coords are non-fatal — the café
+  just isn't placeable until fixed via an edit.
+- **Deferred fast-follow:** manual lat/lng override fields in the editor for the rare case where
+  the address is right but OSM lacks it. Not built yet.
+
+### Customer side (Phase 2 — `BrowseCafes`)
+- **City dropdown = default** (unchanged). **`📍 Use my location`** button → `navigator.
+  geolocation.getCurrentPosition` (opt-in, one prompt) → `nearby_cafes` RPC → `distances` map
+  (`id → metres`) → list re-sorted nearest-first, distance badge on each `CafeCard`
+  ("1.2 km" / "800 m"). Graceful fallback text if the visitor denies or it's unsupported.
+- **`src/app/components/CafeMap.tsx`** — **vanilla Leaflet** (dep: `leaflet` + `@types/leaflet`;
+  **no `react-leaflet`**, no Mapbox, no token). OSM tiles, **Airbnb-style price pins** (`₹60`
+  pills via `L.divIcon` — divIcons sidestep the Leaflet-marker-asset-in-Vite bug), a cyan "You
+  are here" marker, auto `fitBounds`, popups (name/city/price/distance), and `onSelect` →
+  scroll to the matching card (`id="cafe-{id}"`). `scrollWheelZoom` off so it doesn't hijack
+  page scroll. Rebuilds only when the plotted point set or user location changes (keyed
+  signature). Map panel is shown by default (`showMap`), toggle to hide.
+
+### Verified (dev, real data)
+Both existing cafés backfilled to Nanded City, Pune (`18.4598, 73.7851`). From central Pune the
+RPC + UI both report **≈10.1 km** (DB `distance_m 10105`), badges render, list sorts, the "you"
+marker plots, 2 price pins + OSM tiles load, zero console errors. `npm run build` clean.
+
+### Deferred (Phase 3)
+IP geolocation (passive city guess, no prompt); "recommended for you" (needs booking volume);
+Google/Mapbox upgrade if Nominatim accuracy proves insufficient at scale. Owner-dashboard map
+not built (out of scope — customer-facing only).

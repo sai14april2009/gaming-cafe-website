@@ -2,6 +2,7 @@ import { useState, Fragment } from "react";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../supabase";
 import { crossesMidnight } from "../utils/cafeHours";
+import { geocodeAddress } from "../utils/geocode";
 import {
   Store, MapPin, Clock, IndianRupee, Monitor, Gamepad2,
   ArrowRight, ArrowLeft, Plus, Trash2, Check, Sparkles,
@@ -534,6 +535,11 @@ export function RegisterCafe({ onRegistered }: { onRegistered: () => void }) {
     setError("");
     setLoading(true);
 
+    // Geocode the address so the cafe can be found by distance (Phase: nearby cafes).
+    // Falls back to city centroid on a miss; null coords just mean "not yet placeable"
+    // and can be fixed later from the dashboard editor.
+    const { lat, lng } = await geocodeAddress(form.address, form.city);
+
     const { data: cafe, error: e1 } = await supabase
       .from("cafes")
       .insert({
@@ -543,6 +549,7 @@ export function RegisterCafe({ onRegistered }: { onRegistered: () => void }) {
         phone: form.phone, email: form.email,
         price_per_hour: parseFloat(form.price_per_hour),
         image_url: form.image_url,
+        latitude: lat, longitude: lng,
         is_approved: false,
       })
       .select("id")
