@@ -1,6 +1,10 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+// Clustering + spiderfy so coincident/very-close pins fan out instead of stacking.
+import "leaflet.markercluster";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
 export interface MapCafe {
   id: string;
@@ -74,8 +78,17 @@ export function CafeMap({ cafes, userLoc, onSelect }: CafeMapProps) {
 
     const latlngs: L.LatLngExpression[] = [];
 
+    // Cafe pins live in a cluster group. Two cafes at the same spot (e.g. same mall)
+    // collapse to a count bubble and spiderfy apart on click, so neither hides the other.
+    const cluster = L.markerClusterGroup({
+      showCoverageOnHover: false,
+      spiderfyOnMaxZoom: true,
+      spiderfyDistanceMultiplier: 1.6,
+      maxClusterRadius: 40, // only genuinely-close pins cluster; distinct cafes stay separate
+    });
+
     points.forEach((c) => {
-      const m = L.marker([c.latitude, c.longitude], { icon: pricePin(c.price_per_hour, false) }).addTo(map);
+      const m = L.marker([c.latitude, c.longitude], { icon: pricePin(c.price_per_hour, false) });
       const dist =
         typeof c.distanceKm === "number" ? `<div style="color:#2563eb;font-weight:600">${c.distanceKm.toFixed(1)} km away</div>` : "";
       m.bindPopup(
@@ -87,8 +100,10 @@ export function CafeMap({ cafes, userLoc, onSelect }: CafeMapProps) {
          </div>`
       );
       if (onSelect) m.on("click", () => onSelect(c.id));
+      cluster.addLayer(m);
       latlngs.push([c.latitude, c.longitude]);
     });
+    map.addLayer(cluster);
 
     if (userLoc) {
       L.marker([userLoc.lat, userLoc.lng], { icon: youIcon(), zIndexOffset: 1000 })

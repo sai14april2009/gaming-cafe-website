@@ -1137,9 +1137,16 @@ Migrations applied (not in repo — schema is inferred; recorded here):
   the picker's coords directly (the old auto-re-geocode-on-address-change was removed — it could
   silently write a wrong city-centroid coord). `geocodeAddress` is now called from
   `LocationPicker`, not the forms directly.
-- **Deferred (Phase B):** marker clustering / spiderfy (Leaflet.markercluster) so two cafes at
-  the same spot (e.g. same mall — or the two overlapping Nanded City seed rows) fan out instead
-  of stacking. Address autocomplete (Nominatim/Photon/Places) to kill typos at the source.
+- **Marker clustering (Phase B — shipped 2026-08-20):** `CafeMap.tsx` now adds cafe pins to an
+  `L.markerClusterGroup` (dep: `leaflet.markercluster` + `@types/leaflet.markercluster`;
+  `showCoverageOnHover:false`, `spiderfyOnMaxZoom:true`, `spiderfyDistanceMultiplier:1.6`,
+  `maxClusterRadius:40` so only genuinely-close pins cluster). Two cafes at the same spot (the
+  overlapping Nanded City seed rows) collapse to a "2" count bubble and **spiderfy apart on
+  click** so neither hides the other. The "you are here" marker stays a plain marker on the map,
+  not clustered. Verified in dev: coincident rows render one "2" bubble → click → two separate
+  clickable price pins, zero console errors.
+- **Still deferred:** address autocomplete (Nominatim/Photon/Places) to kill typos at the source
+  (e.g. "Naded" → "Nanded") before geocoding even runs.
 
 ### Customer side (Phase 2 — `BrowseCafes`)
 - **City dropdown = default** (unchanged). **`📍 Use my location`** button → `navigator.
