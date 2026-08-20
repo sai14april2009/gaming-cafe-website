@@ -325,16 +325,6 @@ a[class*="rounded"]:hover {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
-/* Marquee for gaming quotes */
-@keyframes marquee-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-.marquee-track {
-  animation: marquee-scroll 30s linear infinite;
-}
-.marquee-track:hover { animation-play-state: paused; }
-
 /* ── Scroll-reveal for cards ── */
 @keyframes reveal-up {
   from { opacity: 0; transform: translateY(32px) scale(0.97); }
@@ -610,7 +600,6 @@ a[class*="rounded"]:hover {
   /* Browse hero carousel */
   .hero-slide-enter, .hero-slide-exit { animation: none; opacity: 1; }
   .hero-glow { animation: none; }
-  .marquee-track { animation: none; }
   .spec-chip:hover { transform: none; }
   .cafe-card:hover .sys-count-badge { transform: none; }
   .reveal-visible { animation: none; opacity: 1; }
