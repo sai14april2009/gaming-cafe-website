@@ -1125,8 +1125,21 @@ Migrations applied (not in repo — schema is inferred; recorded here):
   **`CafeEditor.handleSave`** (re-geocode **only when address/city changed**, so an unrelated
   edit never overwrites a good coord or wastes a call). Null coords are non-fatal — the café
   just isn't placeable until fixed via an edit.
-- **Deferred fast-follow:** manual lat/lng override fields in the editor for the rare case where
-  the address is right but OSM lacks it. Not built yet.
+- **Draggable pin (Phase A — shipped 2026-08-20):** free-text geocoding is only a *seed* now,
+  not the source of truth. `src/app/components/LocationPicker.tsx` (vanilla Leaflet, draggable
+  📍 marker) is embedded in RegisterCafe's Location step and CafeEditor. The owner sets the exact
+  point three ways — **drag the pin**, **"Find my address"** (geocodes the typed address to seed
+  the pin), or **"Use my current location"** (GPS, for an owner registering at the venue) — plus
+  click-to-place. This is the fix for imprecise/undetectable addresses (e.g. the TESTUSER7 seed
+  row, whose address `"...Naded city..."` is misspelled and un-geocodable): the pin the owner
+  places wins regardless of what the text resolves to. RegisterCafe still falls back to
+  geocoding the address on submit **only if** the owner never touched the map; CafeEditor writes
+  the picker's coords directly (the old auto-re-geocode-on-address-change was removed — it could
+  silently write a wrong city-centroid coord). `geocodeAddress` is now called from
+  `LocationPicker`, not the forms directly.
+- **Deferred (Phase B):** marker clustering / spiderfy (Leaflet.markercluster) so two cafes at
+  the same spot (e.g. same mall — or the two overlapping Nanded City seed rows) fan out instead
+  of stacking. Address autocomplete (Nominatim/Photon/Places) to kill typos at the source.
 
 ### Customer side (Phase 2 — `BrowseCafes`)
 - **City dropdown = default** (unchanged). **`📍 Use my location`** button → `navigator.

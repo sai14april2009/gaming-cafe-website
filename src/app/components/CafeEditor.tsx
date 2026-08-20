@@ -3,7 +3,7 @@ import { supabase } from "../../supabase";
 import { Button } from "./ui/button";
 import { X, Plus, Search, Loader2 } from "lucide-react";
 import { crossesMidnight } from "../utils/cafeHours";
-import { geocodeAddress } from "../utils/geocode";
+import { LocationPicker } from "./LocationPicker";
 
 // "HH:MM" -> "H:MM AM/PM" (leading zero stripped)
 const formatTimeHint = (t: string) => {
@@ -52,6 +52,10 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [coords, setCoords] = useState<{ lat: number | null; lng: number | null }>({
+    lat: cafe.latitude ?? null,
+    lng: cafe.longitude ?? null,
+  });
 
   const [gameSearch, setGameSearch] = useState("");
   const [steamResults, setSteamResults] = useState<SteamGame[]>([]);
@@ -161,18 +165,8 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
     setError("");
     setSuccess(false);
 
-    // Re-geocode only when the address/city actually changed, so an unrelated edit
-    // (hours, games, amenities) never overwrites a good coordinate or wastes a
-    // Nominatim call. Nearby-cafes uses the resulting lat/lng.
-    const addressChanged =
-      form.address !== (cafe.address || "") || form.city !== (cafe.city || "");
-    const coords = addressChanged
-      ? await geocodeAddress(form.address, form.city).then(({ lat, lng }) => ({
-          latitude: lat,
-          longitude: lng,
-        }))
-      : {};
-
+    // The map pin is the source of truth for coordinates — the owner sets it via the
+    // LocationPicker (drag, "find my address", or current location). We just persist it.
     const { error: updateError } = await supabase
       .from("cafes")
       .update({
@@ -186,7 +180,8 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
         image_url: form.image_url,
         amenities,
         games,
-        ...coords,
+        latitude: coords.lat,
+        longitude: coords.lng,
       })
       .eq("id", cafe.id);
     if (updateError) {
@@ -258,6 +253,21 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
         <label className="text-sm font-medium text-gray-700 mb-1 block">Address</label>
         <input type="text" value={form.address} onChange={(e) => handleChange("address", e.target.value)}
           className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium text-gray-700 mb-1 block">Map location</label>
+        <p className="text-xs text-gray-500 mb-2">
+          This is the exact point gamers navigate to. Drag the pin, click the map, or use the buttons —
+          it overrides whatever the address text resolves to.
+        </p>
+        <LocationPicker
+          lat={coords.lat}
+          lng={coords.lng}
+          address={form.address}
+          city={form.city}
+          onChange={(lat, lng) => { setCoords({ lat, lng }); setSuccess(false); }}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4">

@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../supabase";
 import { crossesMidnight } from "../utils/cafeHours";
 import { geocodeAddress } from "../utils/geocode";
+import { LocationPicker } from "./LocationPicker";
 import {
   Store, MapPin, Clock, IndianRupee, Monitor, Gamepad2,
   ArrowRight, ArrowLeft, Plus, Trash2, Check, Sparkles,
@@ -119,7 +120,14 @@ function StepProfile({ form, set }: { form: FormState; set: (f: string, v: strin
   );
 }
 
-function StepLocation({ form, set }: { form: FormState; set: (f: string, v: string) => void }) {
+function StepLocation({
+  form, set, coords, onPickLocation,
+}: {
+  form: FormState;
+  set: (f: string, v: string) => void;
+  coords: { lat: number | null; lng: number | null };
+  onPickLocation: (lat: number, lng: number) => void;
+}) {
   return (
     <div className="space-y-5">
       <p className="auth-field text-sm text-gray-500" style={{ "--field-i": 0 } as React.CSSProperties}>
@@ -129,9 +137,22 @@ function StepLocation({ form, set }: { form: FormState; set: (f: string, v: stri
       <FloatInput icon={Building2} field="city" label="City" value={form.city} onChange={(v) => set("city", v)} required stagger={1} />
       <FloatInput icon={MapPin} field="address" label="Street address" value={form.address} onChange={(v) => set("address", v)} required stagger={2} />
 
+      {/* Map pin — the exact location gamers navigate to. Type the address above, then
+          "Find my address" to drop the pin, or "Use my current location" if you're at the cafe. */}
+      <div className="auth-field" style={{ "--field-i": 3 } as React.CSSProperties}>
+        <label className="text-sm font-medium text-gray-600 mb-2 block">Pin your exact location</label>
+        <LocationPicker
+          lat={coords.lat}
+          lng={coords.lng}
+          address={form.address}
+          city={form.city}
+          onChange={onPickLocation}
+        />
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
-        <FloatInput icon={Phone} field="phone" label="Phone" type="tel" value={form.phone} onChange={(v) => set("phone", v)} stagger={3} />
-        <FloatInput icon={Mail} field="email" label="Contact email" type="email" value={form.email} onChange={(v) => set("email", v)} stagger={4} autoComplete="email" />
+        <FloatInput icon={Phone} field="phone" label="Phone" type="tel" value={form.phone} onChange={(v) => set("phone", v)} stagger={4} />
+        <FloatInput icon={Mail} field="email" label="Contact email" type="email" value={form.email} onChange={(v) => set("email", v)} stagger={5} autoComplete="email" />
       </div>
     </div>
   );
@@ -496,6 +517,7 @@ export function RegisterCafe({ onRegistered }: { onRegistered: () => void }) {
     price_per_hour: "", open_time: "", close_time: "",
   });
 
+  const [coords, setCoords] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
   const [systems, setSystems] = useState<Sys[]>([]);
   const [addSys, setAddSys] = useState(false);
   const [newSys, setNewSys] = useState<Omit<Sys, "id">>({
@@ -535,10 +557,15 @@ export function RegisterCafe({ onRegistered }: { onRegistered: () => void }) {
     setError("");
     setLoading(true);
 
-    // Geocode the address so the cafe can be found by distance (Phase: nearby cafes).
-    // Falls back to city centroid on a miss; null coords just mean "not yet placeable"
-    // and can be fixed later from the dashboard editor.
-    const { lat, lng } = await geocodeAddress(form.address, form.city);
+    // The map pin the owner placed is the source of truth. Only if they never touched
+    // the map do we fall back to geocoding the typed address (best-effort placement).
+    let lat = coords.lat;
+    let lng = coords.lng;
+    if (lat == null || lng == null) {
+      const g = await geocodeAddress(form.address, form.city);
+      lat = g.lat;
+      lng = g.lng;
+    }
 
     const { data: cafe, error: e1 } = await supabase
       .from("cafes")
@@ -703,7 +730,14 @@ export function RegisterCafe({ onRegistered }: { onRegistered: () => void }) {
               {/* Animated step content */}
               <div key={`${step}-${dir}`} className={dir === "fwd" ? "step-fwd" : "step-bwd"}>
                 {step === 1 && <StepProfile form={form} set={set} />}
-                {step === 2 && <StepLocation form={form} set={set} />}
+                {step === 2 && (
+                  <StepLocation
+                    form={form}
+                    set={set}
+                    coords={coords}
+                    onPickLocation={(lat, lng) => setCoords({ lat, lng })}
+                  />
+                )}
                 {step === 3 && <StepSchedule form={form} set={set} />}
                 {step === 4 && (
                   <StepSystems
