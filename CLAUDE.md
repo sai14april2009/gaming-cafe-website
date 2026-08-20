@@ -67,7 +67,7 @@ Cafe owners can start ad-hoc "walk-in" sessions for a system from the dashboard 
 - Do not add `.css`, `.tsx`, or `.ts` to `assetsInclude` in `vite.config.ts`.
 # GameOrbit / GameSpot — Project Brain
 *Paste this entire file at the start of any new chat so the AI has full context immediately.*
-*Last updated: 2026-08-18*
+*Last updated: 2026-08-21*
 
 ---
 
@@ -335,18 +335,21 @@ booked/occupied/reserved. Bugs found and fixed:
 - **`walk_in_no_overlap` DB constraint applied** (see above), and functionally verified: a deliberate overlapping insert is rejected with `exclusion_violation`.
 - Historical note: the 7 overlapping sessions on hour 9 (2026-07-15) predate the disabled-button guard and are all `ended`. They pollute analytics but are not a live fault.
 
-### UI polish: homepage redesign, filters, mobile responsiveness (2026-08-17 → 2026-08-18)
+### UI polish: homepage redesign, filters, mobile responsiveness, nearby cafes (2026-08-17 → 2026-08-21)
 
 Customer-facing UI pass. All shipped + pushed; Vercel auto-deploys from main.
 
 - **Homepage (`BrowseCafes`) gamer redesign** (2026-08-17) — hero carousel (4 rotating
-  Unsplash slides w/ parallax), animated stats row, gaming-quotes marquee, scroll-reveal +
-  3D card tilt, glowing cafe cards showing gaming-system specs (PC/console counts, GPU,
-  console). Animation CSS suite added to `globals.css` with `prefers-reduced-motion`
-  fallbacks. Subtle dot-grid background + radial glow (`.browse-bg`).
+  Unsplash slides w/ parallax), animated stats row, scroll-reveal + 3D card tilt, glowing
+  cafe cards showing gaming-system specs (PC/console counts, GPU, console). Animation CSS
+  suite added to `globals.css` with `prefers-reduced-motion` fallbacks. Subtle dot-grid
+  background + radial glow (`.browse-bg`).
   - **TDZ bug fixed** (`6905b8ec`): `useScrollReveal` referenced `filteredCafes` before its
     `const` init in the minified bundle → "Cannot access 'A' before initialization" crash on
     live. Fixed by taking `itemCount: number` (`dbCafes.length`) as the effect dep instead.
+  - **Marquee removed** (`f1b5507f`): gaming-quotes dark scrolling strip removed from
+    homepage JSX. Dead `@keyframes marquee-scroll` + `.marquee-track` CSS rules deleted
+    from `globals.css` (`5c99e7a0`).
 - **Filters** (`fb196633`): homepage type (PC/Console) + price-range chips; booking interface
   (`AdvancedBookingInterface`) type (PC/Console) + Has-Free-Slots chips with live "X of Y
   systems" count. `.filter-chip` class w/ `scale(0.95)` active state (reduced-motion safe).
@@ -359,6 +362,11 @@ Customer-facing UI pass. All shipped + pushed; Vercel auto-deploys from main.
   - Verified in prod: at true 375px viewport homepage + cafe-detail have zero horizontal
     overflow; new responsive classes confirmed live in the deployed DOM. Owner dashboard NOT
     yet made responsive (out of scope — see Section 3).
+- **Nearby cafes system** (2026-08-20) — full end-to-end build; see Section 13 for complete
+  documentation. New files: `api/geocode.ts` (Nominatim proxy), `src/app/utils/geocode.ts`,
+  `src/app/components/CafeMap.tsx` (Leaflet + markerClusterGroup), `src/app/components/LocationPicker.tsx`
+  (draggable pin + address autocomplete). New deps: `leaflet`, `@types/leaflet`,
+  `leaflet.markercluster`, `@types/leaflet.markercluster`.
 
 ### Midnight-crossing schedule fix — FIXED (2026-07-29 → 2026-08-01)
 
