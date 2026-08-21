@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 import { supabase } from "../../supabase";
 import { gameImages } from "../data/gameImages";
 import { hoursForUniformSchedule, CafeHoursSchedule } from "../utils/cafeHours";
-import { effectiveSystemPrice, minSystemPrice } from "../utils/pricing";
+import { effectiveSystemPrice, minSystemPrice, maxSystemPrice } from "../utils/pricing";
 import { AdvancedBookingInterface } from "./AdvancedBookingInterface";
 import { useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
@@ -121,7 +121,11 @@ export function DbCafeDetails() {
     systems.map((s) => s.price_per_hour),
     cafe?.price_per_hour ?? 0
   );
-  // Whether systems have more than one distinct price, so we can say "from ₹X".
+  const toPrice = maxSystemPrice(
+    systems.map((s) => s.price_per_hour),
+    cafe?.price_per_hour ?? 0
+  );
+  // More than one distinct price → show the "₹low – ₹high" range instead of a single value.
   const pricesVary =
     new Set(
       systems.map((s) => effectiveSystemPrice(s.price_per_hour, cafe?.price_per_hour ?? 0))
@@ -232,8 +236,9 @@ const handleBookingComplete = (bookings: any) => {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               <div>
                 <div className="flex items-baseline gap-2 mb-1">
-                  {pricesVary && <span className="text-sm font-medium text-gray-500">from</span>}
-                  <span className="text-3xl font-bold text-blue-600">₹{fromPrice}</span>
+                  <span className="text-3xl font-bold text-blue-600">
+                    ₹{fromPrice}{pricesVary ? ` – ₹${toPrice}` : ""}
+                  </span>
                   <span className="text-gray-600">per hour</span>
                 </div>
               </div>

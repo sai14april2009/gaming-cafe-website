@@ -11,7 +11,7 @@ import {
 import { Input } from "./ui/input";
 import { supabase } from "../../supabase";
 import { CafeMap, MapCafe } from "./CafeMap";
-import { effectiveSystemPrice, minSystemPrice } from "../utils/pricing";
+import { effectiveSystemPrice, minSystemPrice, maxSystemPrice } from "../utils/pricing";
 
 /* ── Types ── */
 
@@ -242,8 +242,12 @@ function CafeCard({ cafe, cafeSystems, delay, distanceKm }: {
   const highlightGpu = cafeSystems.find((s) => s.gpu)?.gpu;
   const highlightConsole = cafeSystems.find((s) => s.console)?.console;
 
-  // Cheapest effective rate across this cafe's systems; "from" when rates differ.
+  // Effective price range across this cafe's systems; show "₹low – ₹high" when they differ.
   const displayPrice = minSystemPrice(
+    cafeSystems.map((s) => s.price_per_hour),
+    cafe.price_per_hour
+  );
+  const maxPrice = maxSystemPrice(
     cafeSystems.map((s) => s.price_per_hour),
     cafe.price_per_hour
   );
@@ -285,8 +289,9 @@ function CafeCard({ cafe, cafeSystems, delay, distanceKm }: {
             </div>
           </div>
           <div className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-1.5 text-right flex-shrink-0">
-            {pricesVary && <span className="text-[10px] text-gray-500 block -mb-0.5">from</span>}
-            <span className="font-bold text-base text-gray-900">₹{displayPrice}</span>
+            <span className="font-bold text-base text-gray-900">
+              ₹{displayPrice}{pricesVary ? `–₹${maxPrice}` : ""}
+            </span>
             <span className="text-[10px] text-gray-500 block -mt-0.5">/hour</span>
           </div>
         </div>

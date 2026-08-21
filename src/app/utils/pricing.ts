@@ -17,3 +17,13 @@ export function minSystemPrice(
   if (systemPrices.length === 0) return cafeDefault;
   return Math.min(...systemPrices.map((p) => effectiveSystemPrice(p, cafeDefault)));
 }
+
+// Highest effective price across a cafe's systems — with minSystemPrice, forms the
+// "₹low – ₹high" range shown when a cafe's systems are priced differently.
+export function maxSystemPrice(
+  systemPrices: (number | null | undefined)[],
+  cafeDefault: number
+): number {
+  if (systemPrices.length === 0) return cafeDefault;
+  return Math.max(...systemPrices.map((p) => effectiveSystemPrice(p, cafeDefault)));
+}
