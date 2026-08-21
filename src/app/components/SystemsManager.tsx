@@ -606,7 +606,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
   };
 
   const handleAdd = async () => {
-    if (!form.name) return;
+    if (!form.name || form.price.trim() === "") return;
     setSaving(true);
     await supabase.from("gaming_systems").insert({
       cafe_id: cafeId,
@@ -616,8 +616,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
       cpu: form.type === "PC" ? form.cpu : null,
       ram: form.type === "PC" ? form.ram : null,
       console: form.type === "Console" ? form.console : null,
-      // Blank price = inherit the cafe default (stored NULL).
-      price_per_hour: form.price.trim() === "" ? null : parseFloat(form.price),
+      price_per_hour: parseFloat(form.price),
     });
     await fetchAll();
     resetForm();
@@ -1013,17 +1012,15 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                   placeholder="PS5 / Xbox Series X" className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" /></div>
             )}
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Price per hour (₹) <span className="text-gray-400 font-normal">— optional, defaults to ₹{pricePerHour}</span>
-              </label>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">Price per hour (₹) *</label>
               <input type="number" min="0" step="1" value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
-                placeholder={`${pricePerHour} (cafe default)`}
+                placeholder="e.g. 120"
                 className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={resetForm}>Cancel</Button>
-              <Button onClick={handleAdd} disabled={saving || !form.name}
+              <Button onClick={handleAdd} disabled={saving || !form.name || form.price.trim() === ""}
                 className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700">
                 {saving ? "Adding..." : "Add System"}
               </Button>

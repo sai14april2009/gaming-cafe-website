@@ -393,13 +393,13 @@ function StepSystems({
 
           <div>
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">
-              Price / hour (₹) — optional
+              Price / hour (₹) *
             </label>
             <input
               type="number" min="0" step="1"
               value={newSys.price}
               onChange={(e) => setNewSys((p) => ({ ...p, price: e.target.value }))}
-              placeholder="Leave blank to use the cafe default"
+              placeholder="e.g. 120"
               className="reg-input"
             />
           </div>
@@ -415,7 +415,7 @@ function StepSystems({
             <button
               type="button"
               onClick={addSystem}
-              disabled={!newSys.name.trim()}
+              disabled={!newSys.name.trim() || newSys.price.trim() === ""}
               className="flex-1 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors disabled:opacity-50"
             >
               Add System
@@ -566,7 +566,7 @@ export function RegisterCafe({ onRegistered }: { onRegistered: () => void }) {
   };
 
   const addSystem = () => {
-    if (!newSys.name.trim()) return;
+    if (!newSys.name.trim() || newSys.price.trim() === "") return;
     setSystems((p) => [...p, { ...newSys, id: crypto.randomUUID() }]);
     setNewSys({ name: "", type: "PC", gpu: "", cpu: "", ram: "", console_name: "", price: "" });
     setAddSys(false);

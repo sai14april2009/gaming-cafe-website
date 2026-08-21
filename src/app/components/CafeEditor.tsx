@@ -176,7 +176,9 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
         address: form.address,
         phone: form.phone,
         email: form.email,
-        price_per_hour: parseFloat(form.price_per_hour),
+        // price_per_hour (the cafe default/fallback) is no longer edited here — pricing
+        // is per-system in the Gaming Systems tab. The stored value is left untouched so
+        // any legacy system with no own price still resolves.
         image_url: form.image_url,
         amenities,
         games,
@@ -236,18 +238,10 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
           rows={3} className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-1 block">City</label>
-          <input type="text" value={form.city} onChange={(e) => handleChange("city", e.target.value)}
-            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-1 block">Default price per hour (₹)</label>
-          <input type="number" step="0.01" value={form.price_per_hour} onChange={(e) => handleChange("price_per_hour", e.target.value)}
-            className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
-          <p className="text-xs text-gray-400 mt-1">Used for any system without its own price. Set per-system prices in the Gaming Systems tab.</p>
-        </div>
+      <div>
+        <label className="text-sm font-medium text-gray-700 mb-1 block">City</label>
+        <input type="text" value={form.city} onChange={(e) => handleChange("city", e.target.value)}
+          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
       </div>
 
       <div>
