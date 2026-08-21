@@ -4,6 +4,9 @@ import {
   Search, SlidersHorizontal, Star, MapPin, Monitor, Gamepad2,
   Cpu, Zap, ChevronRight, Flame, Trophy, Swords, Target,
   Users, Wifi, Shield, Navigation, Loader2, Map as MapIcon,
+  ShieldCheck, Timer, IndianRupee, Radio, Wrench, MessageSquare,
+  BarChart3, CalendarClock, MousePointerClick, XCircle, CheckCircle2,
+  ArrowRight,
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { supabase } from "../../supabase";
@@ -70,6 +73,89 @@ const HERO_SLIDES = [
     sub: "Pick your exact machine, see the specs, lock your slot.",
     accent: "#60a5fa",
   },
+  {
+    image: "https://images.unsplash.com/photo-1511882150382-421056c89033?w=1400&q=80",
+    overlay: "linear-gradient(135deg, rgba(6,20,18,0.88) 0%, rgba(6,95,70,0.68) 50%, rgba(16,185,129,0.52) 100%)",
+    icon: Cpu,
+    heading: "Book the Exact Machine",
+    sub: "See the GPU, the specs, the installed games — then lock it in.",
+    accent: "#34d399",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=1400&q=80",
+    overlay: "linear-gradient(135deg, rgba(28,10,20,0.9) 0%, rgba(136,19,55,0.62) 50%, rgba(244,63,94,0.5) 100%)",
+    icon: ShieldCheck,
+    heading: "Never Double-Booked",
+    sub: "Your slot is yours. Real-time availability makes a clash impossible.",
+    accent: "#fb7185",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1400&q=80",
+    overlay: "linear-gradient(135deg, rgba(20,20,6,0.88) 0%, rgba(63,98,18,0.62) 50%, rgba(132,204,22,0.5) 100%)",
+    icon: Timer,
+    heading: "Pay Only for What You Play",
+    sub: "Walk in mid-hour? You're charged by the minute, never rounded up.",
+    accent: "#a3e635",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=1400&q=80",
+    overlay: "linear-gradient(135deg, rgba(8,18,30,0.88) 0%, rgba(14,116,144,0.62) 50%, rgba(34,211,238,0.5) 100%)",
+    icon: Navigation,
+    heading: "Cafes Near You, Ranked",
+    sub: "Share your location and find the closest rigs, sorted by distance.",
+    accent: "#22d3ee",
+  },
+];
+
+/* ── Problem → Solution pairs (the "Why GameSpot" transform cards) ── */
+
+const PROBLEM_SOLUTIONS = [
+  {
+    icon: Cpu,
+    accent: "#2563eb",
+    problem: "You book a cafe and get handed a random PC — wrong GPU, and the game you came for isn't even installed.",
+    solution: "Book the exact machine. Every rig lists its GPU, CPU, RAM or console and installed games before you pay.",
+  },
+  {
+    icon: ShieldCheck,
+    accent: "#0891b2",
+    problem: "You show up on time and your slot was quietly given to a walk-in who got there first.",
+    solution: "Booked is booked. Slots update live and a double-booking is made impossible to create — enforced right down to the database.",
+  },
+  {
+    icon: Timer,
+    accent: "#16a34a",
+    problem: "You walk in, play twenty minutes, and still get charged for the full hour.",
+    solution: "Walk-ins pay only for the minutes actually played — pro-rated to the minute, never rounded up.",
+  },
+  {
+    icon: Radio,
+    accent: "#7c3aed",
+    problem: "The owner has no idea who's arriving, when, or on which machine — so overlaps turn into arguments.",
+    solution: "Owners see every booking — name, phone, system, time — and run live walk-ins from one dashboard that stays in sync.",
+  },
+];
+
+/* ── Feature capabilities, split by audience ── */
+
+const GAMER_FEATURES = [
+  { icon: Cpu, title: "Precision machine booking", desc: "Reserve one specific PC or console by its real specs." },
+  { icon: Zap, title: "Real-time availability", desc: "Booked, occupied and reserved slots update instantly." },
+  { icon: Users, title: "Solo & group booking", desc: "Book for yourself or a squad, assigned seat by seat." },
+  { icon: Navigation, title: "Cafes near you", desc: "Share your location to rank cafes by distance on a live map." },
+  { icon: SlidersHorizontal, title: "Smart filters", desc: "Filter by PC or console, price range, and free-slot availability." },
+  { icon: Star, title: "Verified reviews", desc: "Ratings only from people who actually booked and played." },
+  { icon: CalendarClock, title: "Your bookings, tracked", desc: "Upcoming and past sessions, with status and refunds, in one place." },
+];
+
+const OWNER_FEATURES = [
+  { icon: BarChart3, title: "Owner dashboard", desc: "Revenue, players served and upcoming bookings at a glance." },
+  { icon: Radio, title: "Live walk-in tracking", desc: "Start a walk-in, watch the timer, and end the session on the spot." },
+  { icon: Shield, title: "Walk-in ↔ online sync", desc: "Physical and online bookings share one truth — no clashes." },
+  { icon: IndianRupee, title: "Proportional pricing", desc: "Charge walk-ins fairly for the exact time they play." },
+  { icon: Wrench, title: "Reserve & repair blocks", desc: "Hold a slot for a customer or mark a machine down for repair." },
+  { icon: MessageSquare, title: "Reply to reviews", desc: "Answer customers publicly with a verified Cafe Owner badge." },
+  { icon: MousePointerClick, title: "One-tap slot actions", desc: "Tap a slot in the grid to book, reserve, block or cancel." },
 ];
 
 /* ── Hooks ── */
@@ -647,6 +733,130 @@ export function BrowseCafes() {
           <p className="text-gray-400 text-sm mt-1">Try a different search or city filter</p>
         </div>
       )}
+
+      {/* ── Why GameSpot — problem → solution ── */}
+      <section className="mt-16" aria-labelledby="why-gamespot">
+        <div className="text-center max-w-2xl mx-auto mb-8">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full mb-3">
+            <Zap className="w-3 h-3" /> Why GameSpot
+          </span>
+          <h2 id="why-gamespot" className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
+            Booking a gaming cafe is broken. We fixed it.
+          </h2>
+          <p className="text-gray-500 mt-2">
+            Four things gamers and cafe owners put up with for years — and what we do instead.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {PROBLEM_SOLUTIONS.map((ps) => {
+            const Icon = ps.icon;
+            return (
+              <div key={ps.problem} className="ps-card p-5 md:p-6">
+                <div className="grid sm:grid-cols-[1fr_auto_1fr] items-stretch gap-4">
+                  {/* The old way */}
+                  <div className="ps-problem rounded-xl p-4">
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">
+                      <XCircle className="w-3.5 h-3.5 text-rose-400" /> The old way
+                    </div>
+                    <p className="text-sm text-gray-500 leading-relaxed">{ps.problem}</p>
+                  </div>
+
+                  {/* Transform arrow */}
+                  <div className="ps-arrow flex sm:flex-col items-center justify-center">
+                    <ArrowRight className="w-6 h-6 rotate-90 sm:rotate-0" />
+                  </div>
+
+                  {/* With GameSpot */}
+                  <div className="ps-solution rounded-xl p-4">
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: ps.accent }}>
+                      <CheckCircle2 className="w-3.5 h-3.5" /> With GameSpot
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                        style={{ background: `${ps.accent}14`, color: ps.accent }}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-800 leading-relaxed">{ps.solution}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ── Everything you can do — feature grid, split by audience ── */}
+      <section className="mt-16" aria-labelledby="features">
+        <div className="text-center max-w-2xl mx-auto mb-8">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full mb-3">
+            <Gamepad2 className="w-3 h-3" /> Everything you can do
+          </span>
+          <h2 id="features" className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
+            One platform, both sides of the counter
+          </h2>
+          <p className="text-gray-500 mt-2">
+            Precision booking for gamers. Live operations for cafe owners.
+          </p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* For gamers */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center">
+                <Monitor className="w-4.5 h-4.5" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">For Gamers</h3>
+            </div>
+            <div className="space-y-3">
+              {GAMER_FEATURES.map((f) => {
+                const Icon = f.icon;
+                return (
+                  <div key={f.title} className="feat-card flex items-start gap-3 bg-white rounded-xl border border-gray-100 p-3.5">
+                    <div className="feat-icon w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm text-gray-900">{f.title}</p>
+                      <p className="text-xs text-gray-500 leading-relaxed mt-0.5">{f.desc}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* For cafe owners */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-9 h-9 rounded-lg bg-purple-600 text-white flex items-center justify-center">
+                <BarChart3 className="w-4.5 h-4.5" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">For Cafe Owners</h3>
+            </div>
+            <div className="space-y-3">
+              {OWNER_FEATURES.map((f) => {
+                const Icon = f.icon;
+                return (
+                  <div key={f.title} className="feat-card flex items-start gap-3 bg-white rounded-xl border border-gray-100 p-3.5">
+                    <div className="feat-icon w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm text-gray-900">{f.title}</p>
+                      <p className="text-xs text-gray-500 leading-relaxed mt-0.5">{f.desc}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ── Bottom CTA banner ── */}
       <div className="animate-in mt-12 mb-4" style={{ "--stagger": 5 } as React.CSSProperties}>
