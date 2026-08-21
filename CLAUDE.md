@@ -44,9 +44,9 @@ The codebase used to have two parallel implementations of cafe browsing/booking 
 There are no `.sql` files or a `supabase/` migrations directory checked in; the schema only exists as inferred from `supabase.from(...)` calls scattered across components. Known tables and key columns (grep for `.from("<table>")` to find all usages before changing shape):
 
 - `profiles` — `id` (= auth user id), `email`, `full_name`, `role` (`"owner"` gates `/dashboard`; anything else is a regular customer)
-- `cafes` — `owner_id`, `name`, `description`, `city`, `address`, `phone`, `email`, `price_per_hour`, `image_url`, `is_approved`, `amenities` (array), `games` (array), `latitude`, `longitude` (nullable doubles; geocoded from the address on register/edit), `location` (PostGIS `geography(Point,4326)`, **generated always** from lng/lat — never write it directly, only write lat/lng). Nearby search goes through the `nearby_cafes(p_lat, p_lng, p_radius_m, p_limit)` RPC (see Section 13), NOT a direct distance query.
+- `cafes` — `owner_id`, `name`, `description`, `city`, `address`, `phone`, `email`, `price_per_hour`, `image_url`, `is_approved`, `amenities` (array), `games` (array), `latitude`, `longitude` (nullable doubles; geocoded from the address on register/edit), `location` (PostGIS `geography(Point,4326)`, **generated always** from lng/lat — never write it directly, only write lat/lng). Nearby search goes through the `nearby_cafes(p_lat, p_lng, p_radius_m, p_limit)` RPC (see Section 13), NOT a direct distance query. `price_per_hour` is now the **cafe DEFAULT / fallback** — the effective price is per-system (`gaming_systems.price_per_hour` overrides it; NULL there inherits this). See per-system pricing below.
 - `cafe_hours` — `cafe_id`, `day_of_week` (0-6), `open_time`/`close_time` (`"HH:MM"` strings) — the hours source of truth (see the midnight-crossing fix entry in Section 4). Replaces the legacy `cafes.opening_time`/`closing_time` columns, dropped 2026-08-01.
-- `gaming_systems` — `cafe_id`, `name`, `type` (`"PC" | "Console"`), `gpu`, `cpu`, `ram`, `console`
+- `gaming_systems` — `cafe_id`, `name`, `type` (`"PC" | "Console"`), `gpu`, `cpu`, `ram`, `console`, `price_per_hour` (nullable numeric, `>= 0`; **NULL = inherit the cafe's `price_per_hour` default**). Per-system pricing added 2026-08-21. All price math goes through `effectiveSystemPrice(systemPrice, cafeDefault)` / `minSystemPrice(...)` in `src/app/utils/pricing.ts` — never read `price_per_hour` raw for a total, or NULL systems price at 0.
 - `bookings` — `id`, `user_id` (NOT NULL), `cafe_id`, `system_id`, `booking_date`, `start_time`/`end_time` (`"HH:MM"`), `num_people`, `total_price`, `status` (`"confirmed"` is the only status filtered on), `players` (JSON array of `{name, phone}`), `cancellation_reason` (nullable)
 - `walk_in_sessions` — `id`, `cafe_id`, `system_id`, `session_date`, `slots` (int[] of hours), `start_time`/`end_time` (**integer hour**, not a string — different convention from `bookings`), `status` (`"scheduled" | "active" | "ended"`), `started_at`/`ended_at`, `customer_name`/`customer_phone`/`note` (nullable, for owner-created reservations)
 - `repair_slots` — `cafe_id`, `system_id`, `repair_date`, `start_hour`/`end_hour` (int), `reason`
@@ -165,6 +165,7 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - ✅ Review section overhaul — verified-booker gate, 5 category sub-ratings, threaded replies, "Cafe Owner" reply badge (2026-07-26, see Section 10)
 - 🔲 Photos in reviews (deferred — needs Supabase Storage)
 - ✅ RevenueStats — excludes cancelled from revenue totals; fixed UTC upcoming-count bug; shows cancelled in recent list (2026-07-24)
+- ✅ Per-system pricing — each gaming system can set its own hourly rate; blank inherits the cafe default (2026-08-21, see Section 4)
 - 🔲 Image upload for cafe cover (currently URL paste only)
 - ~~🔲 Buffer system implementation (Smart Transition Buffer)~~ **CANCELLED (2026-08-11) — see Rule 8**
 - ✅ Filter in booking interface (PC/Console + Has-Free-Slots) — shipped 2026-08-18 (`fb196633`); GPU filter still Phase 2
@@ -200,7 +201,7 @@ return 0 rows.
 - `profiles`
 - `cafes`
 - `cafe_hours` — columns: `id, cafe_id, day_of_week (0-6), open_time, close_time`. Added 2026-07-29 in the midnight-crossing fix (migration `cafe_hours_schema_and_migration`); is now the sole hours source — the legacy `cafes.opening_time`/`closing_time` columns were dropped 2026-08-01 (migration `drop_legacy_cafes_hours_columns`).
-- `gaming_systems`
+- `gaming_systems` — columns include `price_per_hour` (nullable numeric, `>= 0`; NULL inherits `cafes.price_per_hour`). Added 2026-08-21 (migration `add_price_per_hour_to_gaming_systems`) for per-system pricing.
 - `bookings` — columns: `id, user_id (NOT NULL as of 2026-07-24), cafe_id, system_id, booking_date, start_time, end_time, num_people, total_price, status, players, cancellation_reason, created_at`
 - `reviews` — columns: `id, cafe_id, user_id, user_name, rating, comment, created_at, rating_systems, rating_internet, rating_cleanliness, rating_staff, rating_value` (the 5 nullable category sub-ratings added 2026-07-26; overall `rating` = rounded avg of the filled ones). INSERT gated to verified bookers via `has_visited_cafe()`; SELECT/UPDATE/DELETE author-scoped. See Section 10.
 - `review_replies` — columns: `id, review_id (FK→reviews ON DELETE CASCADE), user_id, user_name, comment, created_at`. Flat 2-level threading (review→replies). Added 2026-07-26. SELECT public; INSERT by verified booker of the review's cafe OR that cafe's owner; UPDATE/DELETE author-scoped. See Section 10.
@@ -367,6 +368,35 @@ Customer-facing UI pass. All shipped + pushed; Vercel auto-deploys from main.
   `src/app/components/CafeMap.tsx` (Leaflet + markerClusterGroup), `src/app/components/LocationPicker.tsx`
   (draggable pin + address autocomplete). New deps: `leaflet`, `@types/leaflet`,
   `leaflet.markercluster`, `@types/leaflet.markercluster`.
+
+### Per-system pricing (shipped 2026-08-21, commit `f0c72b04`)
+
+Each gaming system can carry its own hourly rate instead of one flat cafe price.
+
+- **DB** — nullable `gaming_systems.price_per_hour` (`>= 0` check), migration
+  `add_price_per_hour_to_gaming_systems` (applied to prod Supabase; not in repo). **NULL
+  means "inherit `cafes.price_per_hour`"**, so every pre-existing system keeps its old
+  effective price — fully backward-compatible. `cafes.price_per_hour` is now the
+  **default/fallback**, not the single source of price.
+- **One shared helper** — `src/app/utils/pricing.ts`: `effectiveSystemPrice(systemPrice,
+  cafeDefault)` (uses `??` so an explicit 0 survives and NULL falls back — never `||`) and
+  `minSystemPrice(prices, cafeDefault)` for "from ₹X" displays. **All price math must route
+  through these** so the surfaces below can't drift.
+- **Owner input** — `SystemsManager`: optional price in the Add-System form + inline
+  click-to-edit ₹/hr badge on each system card (shows "default" when inherited, blank clears
+  back to NULL). Also in the `RegisterCafe` wizard's system form. `CafeEditor`'s field was
+  relabeled "Default price per hour" (and a stale `$` → ₹).
+- **Customer math threaded per-system** (the money-correctness surface — change all together
+  or none): booking-grid total + per-system rate badge (`AdvancedBookingInterface`),
+  confirmation row `total_price` + breakdown (`BookingConfirm`), walk-in proportional pricing
+  (`SystemsManager.calculateWalkInPrice`, `LiveSessions.calculatePrice` — both now take a
+  `systemId`), and "from ₹X" on cafe cards, detail header, map pins and the price *filter*
+  (`BrowseCafes`, `DbCafeDetails`). Mixed-price group bookings show "priced per system"
+  instead of a false single-rate line.
+- **Verified**: clean `npm run build`; a money-path self-check (null→default, explicit 0
+  survives, mixed-price total, all-default matches the old flat rate); live (one system set to
+  ₹500 → detail header showed "from ₹300", then reverted). `bookings.total_price` already
+  stores the computed amount, so `RevenueStats` needed no change.
 
 ### Midnight-crossing schedule fix — FIXED (2026-07-29 → 2026-08-01)
 
