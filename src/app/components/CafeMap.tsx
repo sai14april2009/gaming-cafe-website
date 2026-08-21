@@ -12,7 +12,8 @@ export interface MapCafe {
   city: string;
   latitude: number;
   longitude: number;
-  price_per_hour: number;
+  price_per_hour: number; // low end of the range
+  priceMax?: number | null; // high end; when > price_per_hour the pin shows a range
   distanceKm?: number | null;
 }
 
@@ -23,19 +24,27 @@ interface CafeMapProps {
   onSelect?: (cafeId: string) => void;
 }
 
-// Airbnb-style price pin — a white pill with the hourly rate. Inline styles keep the
-// marker self-contained (no dependency on a stylesheet loading before Leaflet renders).
-function pricePin(price: number, active: boolean): L.DivIcon {
+// Label for a cafe's rate: a single "₹X" or, when its systems differ, a "₹low–₹high" range.
+function priceLabel(min: number, max: number | null | undefined): string {
+  return typeof max === "number" && max > min ? `₹${min}–₹${max}` : `₹${min}`;
+}
+
+// Airbnb-style price pin — a white pill with the hourly rate (or range). Inline styles keep
+// the marker self-contained (no dependency on a stylesheet loading before Leaflet renders).
+// Width/anchor are derived from the label so a wider range pill still centers on its point.
+function pricePin(min: number, max: number | null | undefined, active: boolean): L.DivIcon {
   const bg = active ? "#2563eb" : "#ffffff";
   const fg = active ? "#ffffff" : "#111827";
+  const label = priceLabel(min, max);
+  const w = Math.max(44, label.length * 8 + 20);
   return L.divIcon({
     className: "",
     html: `<div style="background:${bg};color:${fg};font-weight:700;font-size:12px;
       padding:4px 10px;border-radius:999px;border:1px solid rgba(15,23,42,.12);
       box-shadow:0 2px 8px rgba(15,23,42,.28);white-space:nowrap;
-      font-family:system-ui,sans-serif;line-height:1.1">₹${price}</div>`,
-    iconSize: [48, 24],
-    iconAnchor: [24, 24],
+      font-family:system-ui,sans-serif;line-height:1.1">${label}</div>`,
+    iconSize: [w, 24],
+    iconAnchor: [w / 2, 24],
     popupAnchor: [0, -22],
   });
 }
@@ -88,14 +97,14 @@ export function CafeMap({ cafes, userLoc, onSelect }: CafeMapProps) {
     });
 
     points.forEach((c) => {
-      const m = L.marker([c.latitude, c.longitude], { icon: pricePin(c.price_per_hour, false) });
+      const m = L.marker([c.latitude, c.longitude], { icon: pricePin(c.price_per_hour, c.priceMax, false) });
       const dist =
         typeof c.distanceKm === "number" ? `<div style="color:#2563eb;font-weight:600">${c.distanceKm.toFixed(1)} km away</div>` : "";
       m.bindPopup(
         `<div style="font-family:system-ui,sans-serif;min-width:120px">
            <div style="font-weight:700;font-size:14px;margin-bottom:2px">${c.name}</div>
            <div style="color:#6b7280;font-size:12px">${c.city}</div>
-           <div style="font-size:12px;margin-top:2px">₹${c.price_per_hour}/hour</div>
+           <div style="font-size:12px;margin-top:2px">${priceLabel(c.price_per_hour, c.priceMax)}/hour</div>
            ${dist}
          </div>`
       );

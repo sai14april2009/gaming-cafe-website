@@ -498,6 +498,7 @@ export function BrowseCafes() {
       latitude: c.latitude as number,
       longitude: c.longitude as number,
       price_per_hour: minSystemPrice(systemsForCafe(c.id).map((s) => s.price_per_hour), c.price_per_hour),
+      priceMax: maxSystemPrice(systemsForCafe(c.id).map((s) => s.price_per_hour), c.price_per_hour),
       distanceKm: distances[c.id] != null ? distances[c.id] / 1000 : null,
     }));
 
