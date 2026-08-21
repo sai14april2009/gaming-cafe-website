@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, Fragment } from "react";
 import { supabase } from "../../supabase";
 import { Button } from "./ui/button";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Pencil } from "lucide-react";
 import { toLocalDateString } from "../utils/date";
 import { findSlotConflicts } from "../utils/slotConflicts";
 import { hoursForUniformSchedule, findHourGaps, CafeHoursSchedule } from "../utils/cafeHours";
 import { ClosedSlotMarker } from "./ClosedSlotMarker";
+import { effectiveSystemPrice } from "../utils/pricing";
 
 interface SystemsManagerProps {
   cafeId: string;
@@ -20,6 +21,7 @@ interface GamingSystemRow {
   cpu: string;
   ram: string;
   console: string;
+  price_per_hour: number | null;
 }
 
 interface WalkInSession {
@@ -128,8 +130,13 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
   // Add system form
   const [form, setForm] = useState({
     name: "", type: "PC" as "PC" | "Console",
-    gpu: "", cpu: "", ram: "", console: "",
+    gpu: "", cpu: "", ram: "", console: "", price: "",
   });
+
+  // Inline per-system price editing (from each system card header).
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+  const [priceInput, setPriceInput] = useState("");
+  const [savingPrice, setSavingPrice] = useState(false);
 
   // Clock tick
   useEffect(() => {
@@ -217,8 +224,13 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
     }) || null;
   };
 
-  const calculateWalkInPrice = (slots: number[]) => {
+  const calculateWalkInPrice = (slots: number[], systemId: string) => {
     if (slots.length === 0) return { breakdown: [], total: 0 };
+    // Price at this specific system's rate (its own price, or the cafe default).
+    const rate = effectiveSystemPrice(
+      systems.find((s) => s.id === systemId)?.price_per_hour,
+      pricePerHour
+    );
     const sortedSlots = [...slots].sort((a, b) => a - b);
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     const breakdown: string[] = [];
@@ -232,7 +244,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
       } else {
         minutesPlayed = 60;
       }
-      const slotPrice = Math.round((minutesPlayed / 60) * pricePerHour * 100) / 100;
+      const slotPrice = Math.round((minutesPlayed / 60) * rate * 100) / 100;
       total += slotPrice;
       breakdown.push(`${formatHour(slot)} → ${minutesPlayed} min → ₹${slotPrice.toFixed(2)}`);
     });
@@ -583,13 +595,13 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
       const startH = parseInt(b.start_time.split(":")[0]);
       return b.system_id === session.system_id && startH === session.end_time;
     }) || null;
-    const { total } = calculateWalkInPrice(session.slots);
+    const { total } = calculateWalkInPrice(session.slots, session.system_id);
     setEndedSession({ systemName: system?.name || "System", nextBooking, amountToCollect: total });
     fetchAll();
   };
 
   const resetForm = () => {
-    setForm({ name: "", type: "PC", gpu: "", cpu: "", ram: "", console: "" });
+    setForm({ name: "", type: "PC", gpu: "", cpu: "", ram: "", console: "", price: "" });
     setShowForm(false);
   };
 
@@ -604,10 +616,29 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
       cpu: form.type === "PC" ? form.cpu : null,
       ram: form.type === "PC" ? form.ram : null,
       console: form.type === "Console" ? form.console : null,
+      // Blank price = inherit the cafe default (stored NULL).
+      price_per_hour: form.price.trim() === "" ? null : parseFloat(form.price),
     });
     await fetchAll();
     resetForm();
     setSaving(false);
+  };
+
+  // Save an inline per-system price edit. Blank clears it back to the cafe default.
+  const handleSavePrice = async (system: GamingSystemRow) => {
+    setSavingPrice(true);
+    const value = priceInput.trim() === "" ? null : parseFloat(priceInput);
+    const { error } = await supabase
+      .from("gaming_systems")
+      .update({ price_per_hour: value })
+      .eq("id", system.id);
+    setSavingPrice(false);
+    if (error) {
+      alert(`Could not update the price: ${error.message}`);
+      return;
+    }
+    setEditingPriceId(null);
+    fetchAll();
   };
 
   const handleDelete = async (id: string) => {
@@ -981,6 +1012,15 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                 <input type="text" value={form.console} onChange={(e) => setForm({ ...form, console: e.target.value })}
                   placeholder="PS5 / Xbox Series X" className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" /></div>
             )}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">
+                Price per hour (₹) <span className="text-gray-400 font-normal">— optional, defaults to ₹{pricePerHour}</span>
+              </label>
+              <input type="number" min="0" step="1" value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                placeholder={`${pricePerHour} (cafe default)`}
+                className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+            </div>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={resetForm}>Cancel</Button>
               <Button onClick={handleAdd} disabled={saving || !form.name}
@@ -1001,7 +1041,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
             const isWarning = check.reason.startsWith("warning:");
             const warningMsg = check.reason.replace("warning:", "");
             const { breakdown, total } = isSelecting && selectedWalkInSlots.length > 0
-              ? calculateWalkInPrice(selectedWalkInSlots)
+              ? calculateWalkInPrice(selectedWalkInSlots, system.id)
               : { breakdown: [], total: 0 };
             const nextSlot = isSelecting && selectedWalkInSlots.length > 0
               ? Math.max(...selectedWalkInSlots) + 1
@@ -1031,10 +1071,48 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                       <p className="text-xs text-gray-500 mt-0.5">{system.console} — Console</p>
                     )}
                   </div>
-                  <button onClick={() => handleDelete(system.id)}
-                    className="text-red-400 hover:bg-red-50 p-1 rounded transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {editingPriceId === system.id ? (
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm text-gray-500">₹</span>
+                        <input
+                          type="number" min="0" step="1" value={priceInput} autoFocus
+                          onChange={(e) => setPriceInput(e.target.value)}
+                          placeholder={`${pricePerHour}`}
+                          className="w-20 px-2 py-1 border-2 border-blue-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                        />
+                        <button onClick={() => handleSavePrice(system)} disabled={savingPrice}
+                          className="text-xs font-semibold text-white bg-blue-600 px-2 py-1 rounded hover:bg-blue-700 disabled:opacity-50">
+                          {savingPrice ? "…" : "Save"}
+                        </button>
+                        <button onClick={() => setEditingPriceId(null)} className="text-xs text-gray-500 px-1 hover:text-gray-700">
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setEditingPriceId(system.id);
+                          setPriceInput(system.price_per_hour != null ? String(system.price_per_hour) : "");
+                        }}
+                        title="Edit this system's price"
+                        className="group inline-flex items-center gap-1 text-sm font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        <span className="inline-flex items-baseline gap-0.5">
+                          ₹{effectiveSystemPrice(system.price_per_hour, pricePerHour)}
+                          <span className="text-xs font-normal text-blue-400">/hr</span>
+                        </span>
+                        {system.price_per_hour == null && (
+                          <span className="text-[10px] font-normal text-blue-400">default</span>
+                        )}
+                        <Pencil className="w-3 h-3 opacity-40 group-hover:opacity-100" />
+                      </button>
+                    )}
+                    <button onClick={() => handleDelete(system.id)}
+                      className="text-red-400 hover:bg-red-50 p-1 rounded transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Full Day Slot Grid */}

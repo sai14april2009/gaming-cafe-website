@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { CheckCircle, User, Phone, Monitor, Clock, Calendar } from "lucide-react";
 import { Button } from "./ui/button";
 import { toLocalDateString } from "../utils/date";
+import { effectiveSystemPrice } from "../utils/pricing";
 
 interface BookingData {
   systemId: string;
@@ -41,6 +42,14 @@ export function BookingConfirm() {
   } = location.state || {};
 
   const playerCount = partySize === "solo" ? 1 : numberOfFriends;
+
+  // Distinct effective prices among the booked systems — drives whether the
+  // breakdown can show one "× ₹rate" line or must say "priced per system".
+  const distinctPrices = new Set(
+    (systems || []).map((s: GamingSystem) => effectiveSystemPrice(s.pricePerHour, pricePerHour || 0))
+  );
+  const uniformRate =
+    distinctPrices.size === 1 ? ([...distinctPrices][0] as number) : pricePerHour;
 
   const [players, setPlayers] = useState<PlayerInfo[]>(
     Array.from({ length: playerCount }, (_, i) => ({
@@ -206,6 +215,11 @@ const handleConfirm = async () => {
         if (group.hours.length === 0) continue;
         const hours = [...group.hours].sort((a, b) => a - b);
         const player = players[group.playerIndex];
+        // Price this system's hours at its effective rate (own price, or cafe default).
+        const rate = effectiveSystemPrice(
+          systems?.find((s: GamingSystem) => s.id === group.systemId)?.pricePerHour,
+          pricePerHour || 0
+        );
         let runStart = hours[0];
         let prev = hours[0];
         for (let i = 1; i <= hours.length; i++) {
@@ -221,7 +235,7 @@ const handleConfirm = async () => {
             start_time: formatHour(runStart),
             end_time: formatHour(prev + 1),
             num_people: 1,
-            total_price: runHours * (pricePerHour || 0),
+            total_price: runHours * rate,
             status: "confirmed",
             players: player ? [player] : [],
           });
@@ -483,7 +497,11 @@ const handleConfirm = async () => {
           <h2 className="text-xl font-bold mb-4">Price Breakdown</h2>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">{playerCount} player{playerCount > 1 ? "s" : ""} × {numberOfHours} hour{numberOfHours > 1 ? "s" : ""} × ₹{pricePerHour}/hr</span>
+              <span className="text-gray-600">
+                {distinctPrices.size === 1
+                  ? `${playerCount} player${playerCount > 1 ? "s" : ""} × ${numberOfHours} hour${numberOfHours > 1 ? "s" : ""} × ₹${uniformRate}/hr`
+                  : "Priced per system (rates vary by machine)"}
+              </span>
               <span className="font-semibold">₹{totalPrice}</span>
             </div>
             <div className="flex justify-between text-gray-500">

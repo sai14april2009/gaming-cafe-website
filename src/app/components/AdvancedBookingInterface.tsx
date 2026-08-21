@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import { supabase } from "../../supabase";
 import { toLocalDateString } from "../utils/date";
 import { findHourGaps } from "../utils/cafeHours";
+import { effectiveSystemPrice } from "../utils/pricing";
 import { ClosedSlotMarker } from "./ClosedSlotMarker";
 
 interface AdvancedBookingInterfaceProps {
@@ -259,7 +260,24 @@ export function AdvancedBookingInterface({
       0
     );
 
-  const getTotalPrice = (): number => getSelectedCount() * pricePerHour;
+  // Sum per system: each system's selected slots priced at its effective rate
+  // (its own price, or the cafe default when unset). Mixed-price selections total
+  // correctly instead of using one flat rate.
+  const getTotalPrice = (): number =>
+    bookingStates.reduce((total, state) => {
+      const sys = getSystemInfo(state.systemId);
+      const rate = effectiveSystemPrice(sys?.pricePerHour, pricePerHour);
+      const selected = state.slots.filter((slot) => slot.status === "selected").length;
+      return total + selected * rate;
+    }, 0);
+
+  // Do all shown systems share one effective price? Drives whether the group
+  // summary can show a single "× ₹rate" line or must say "priced per system".
+  const distinctPrices = new Set(
+    systems.map((s) => effectiveSystemPrice(s.pricePerHour, pricePerHour))
+  );
+  const uniformRate =
+    distinctPrices.size === 1 ? [...distinctPrices][0] : pricePerHour;
 
   const handleProceedToBooking = () => {
     const bookings = bookingStates
@@ -407,7 +425,13 @@ export function AdvancedBookingInterface({
             return (
               <div key={bookingState.systemId} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
                 <div className="mb-4">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">{system.name}</h3>
+                  <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mb-2">
+                    <h3 className="text-lg font-bold text-gray-900">{system.name}</h3>
+                    <span className="inline-flex items-baseline gap-0.5 text-sm font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
+                      ₹{effectiveSystemPrice(system.pricePerHour, pricePerHour)}
+                      <span className="text-xs font-normal text-blue-400">/hr</span>
+                    </span>
+                  </div>
                   {system.type === "PC" ? (
                     <div className="text-sm text-gray-600 space-y-1">
                       {system.gpu && <div className="flex items-center gap-2"><Monitor className="w-4 h-4 text-gray-500" /><span>{system.gpu}</span></div>}
@@ -477,7 +501,9 @@ export function AdvancedBookingInterface({
               <div className="text-3xl font-bold">₹{getTotalPrice()}</div>
               {partySize === "group" && (
                 <div className="text-xs opacity-80 mt-1">
-                  {numberOfFriends} people × {numberOfHours} hours × ₹{pricePerHour}/hour
+                  {distinctPrices.size === 1
+                    ? `${numberOfFriends} people × ${numberOfHours} hours × ₹${uniformRate}/hour`
+                    : "Priced per system — total reflects each machine's rate"}
                 </div>
               )}
             </div>

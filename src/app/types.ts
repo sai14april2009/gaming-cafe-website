@@ -8,4 +8,6 @@ export interface GamingSystem {
   ram?: string;
   storage?: string;
   console?: string;
+  // Per-system hourly price; null/undefined means "inherit the cafe default".
+  pricePerHour?: number | null;
 }

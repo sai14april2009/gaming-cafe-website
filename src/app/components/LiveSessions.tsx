@@ -3,6 +3,7 @@ import { supabase } from "../../supabase";
 import { Button } from "./ui/button";
 import { Square, Play } from "lucide-react";
 import { toLocalDateString } from "../utils/date";
+import { effectiveSystemPrice } from "../utils/pricing";
 
 interface LiveSessionsProps {
   cafeId: string;
@@ -23,6 +24,7 @@ interface WalkInSession {
 interface GamingSystem {
   id: string;
   name: string;
+  price_per_hour: number | null;
 }
 
 interface OnlineBooking {
@@ -77,7 +79,7 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
 
     const [{ data: sessionsData }, { data: systemsData }, { data: bookingsData }] = await Promise.all([
       supabase.from("walk_in_sessions").select("*").eq("cafe_id", cafeId).in("status", ["active", "scheduled"]).eq("session_date", today),
-      supabase.from("gaming_systems").select("id, name").eq("cafe_id", cafeId),
+      supabase.from("gaming_systems").select("id, name, price_per_hour").eq("cafe_id", cafeId),
       supabase.from("bookings").select("*").eq("cafe_id", cafeId).eq("booking_date", today).eq("status", "confirmed"),
     ]);
     setSessions(sessionsData || []);
@@ -139,8 +141,13 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
     return Math.min(100, Math.max(0, Math.round(((nowMinutes() - startMin) / total) * 100)));
   };
 
-  const calculatePrice = (slots: number[]) => {
+  const calculatePrice = (slots: number[], systemId: string) => {
     if (slots.length === 0) return 0;
+    // This system's rate (its own price, or the cafe default).
+    const rate = effectiveSystemPrice(
+      systems.find((s) => s.id === systemId)?.price_per_hour,
+      pricePerHour
+    );
     const sorted = [...slots].sort((a, b) => a - b);
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     let total = 0;
@@ -149,7 +156,7 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
       const minutesPlayed = i === 0
         ? slotEndMinutes - Math.max(currentMinutes, slot * 60)
         : 60;
-      total += (minutesPlayed / 60) * pricePerHour;
+      total += (minutesPlayed / 60) * rate;
     });
     return Math.round(total * 100) / 100;
   };
@@ -163,7 +170,7 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
       const startH = parseInt(b.start_time.split(":")[0]);
       return b.system_id === session.system_id && startH === session.end_time;
     }) || null;
-    const amountToCollect = calculatePrice(session.slots);
+    const amountToCollect = calculatePrice(session.slots, session.system_id);
     setNotice({
       emoji: "⏰",
       title: "Session Complete!",

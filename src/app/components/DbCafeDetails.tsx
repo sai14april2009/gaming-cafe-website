@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import { supabase } from "../../supabase";
 import { gameImages } from "../data/gameImages";
 import { hoursForUniformSchedule, CafeHoursSchedule } from "../utils/cafeHours";
+import { effectiveSystemPrice, minSystemPrice } from "../utils/pricing";
 import { AdvancedBookingInterface } from "./AdvancedBookingInterface";
 import { useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
@@ -34,6 +35,7 @@ interface DbGamingSystem {
   cpu: string | null;
   ram: string | null;
   console: string | null;
+  price_per_hour: number | null;
 }
 
 export function DbCafeDetails() {
@@ -65,7 +67,7 @@ export function DbCafeDetails() {
         const [{ data: systemsData }, { data: hoursData }] = await Promise.all([
           supabase
             .from("gaming_systems")
-            .select("id, cafe_id, name, type, gpu, cpu, ram, console")
+            .select("id, cafe_id, name, type, gpu, cpu, ram, console, price_per_hour")
             .eq("cafe_id", id),
           // MVP: all 7 day rows are identical, so any one row defines the schedule.
           supabase
@@ -109,9 +111,21 @@ export function DbCafeDetails() {
         console: s.console || undefined,
         monitor: undefined,
         storage: undefined,
+        pricePerHour: s.price_per_hour,
       })),
     [systems]
   );
+
+  // Lowest effective price across this cafe's systems, for the "from ₹X" header.
+  const fromPrice = minSystemPrice(
+    systems.map((s) => s.price_per_hour),
+    cafe?.price_per_hour ?? 0
+  );
+  // Whether systems have more than one distinct price, so we can say "from ₹X".
+  const pricesVary =
+    new Set(
+      systems.map((s) => effectiveSystemPrice(s.price_per_hour, cafe?.price_per_hour ?? 0))
+    ).size > 1;
 
   // Bookable full-hour slot starts, resolved from cafe_hours via the calendar-day model
   // (handles midnight-crossing schedules). Falls back to a sane default while the
@@ -131,8 +145,12 @@ export function DbCafeDetails() {
 const handleBookingComplete = (bookings: any) => {
     const selectedSystemIds = bookings.map((b: any) => b.systemId);
     const selectedSystems = convertedSystems.filter((s) => selectedSystemIds.includes(s.id));
-    const totalHours = bookings.reduce((sum: number, b: any) => sum + b.timeSlots.length, 0);
-    const totalPrice = totalHours * (cafe?.price_per_hour || 0);
+    // Total is summed per system — each booking's hours are priced at that system's
+    // effective rate (its own price, or the cafe default when unset).
+    const totalPrice = bookings.reduce((sum: number, b: any) => {
+      const sys = convertedSystems.find((s) => s.id === b.systemId);
+      return sum + b.timeSlots.length * effectiveSystemPrice(sys?.pricePerHour, cafe?.price_per_hour || 0);
+    }, 0);
 
     // Inject cafeId into each booking object
     const bookingsWithCafe = bookings.map((b: any) => ({
@@ -214,7 +232,8 @@ const handleBookingComplete = (bookings: any) => {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               <div>
                 <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-3xl font-bold text-blue-600">₹{cafe.price_per_hour}</span>
+                  {pricesVary && <span className="text-sm font-medium text-gray-500">from</span>}
+                  <span className="text-3xl font-bold text-blue-600">₹{fromPrice}</span>
                   <span className="text-gray-600">per hour</span>
                 </div>
               </div>

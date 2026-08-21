@@ -30,6 +30,7 @@ interface Sys {
   cpu: string;
   ram: string;
   console_name: string;
+  price: string; // optional per-system price; blank = cafe default
 }
 
 interface FormState {
@@ -302,6 +303,11 @@ function StepSystems({
                   <span className="font-medium text-gray-400">Console </span>{s.console_name}
                 </span>
               )}
+              {s.price.trim() !== "" && (
+                <span className="text-xs px-2 py-0.5 bg-blue-50 border border-blue-100 rounded-md text-blue-600 font-medium">
+                  ₹{s.price}/hr
+                </span>
+              )}
             </div>
           </div>
           <button
@@ -384,6 +390,19 @@ function StepSystems({
               />
             </div>
           )}
+
+          <div>
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">
+              Price / hour (₹) — optional
+            </label>
+            <input
+              type="number" min="0" step="1"
+              value={newSys.price}
+              onChange={(e) => setNewSys((p) => ({ ...p, price: e.target.value }))}
+              placeholder="Leave blank to use the cafe default"
+              className="reg-input"
+            />
+          </div>
 
           <div className="flex gap-2 pt-1">
             <button
@@ -521,7 +540,7 @@ export function RegisterCafe({ onRegistered }: { onRegistered: () => void }) {
   const [systems, setSystems] = useState<Sys[]>([]);
   const [addSys, setAddSys] = useState(false);
   const [newSys, setNewSys] = useState<Omit<Sys, "id">>({
-    name: "", type: "PC", gpu: "", cpu: "", ram: "", console_name: "",
+    name: "", type: "PC", gpu: "", cpu: "", ram: "", console_name: "", price: "",
   });
 
   const set = (f: string, v: string) => setForm((p) => ({ ...p, [f]: v }));
@@ -549,7 +568,7 @@ export function RegisterCafe({ onRegistered }: { onRegistered: () => void }) {
   const addSystem = () => {
     if (!newSys.name.trim()) return;
     setSystems((p) => [...p, { ...newSys, id: crypto.randomUUID() }]);
-    setNewSys({ name: "", type: "PC", gpu: "", cpu: "", ram: "", console_name: "" });
+    setNewSys({ name: "", type: "PC", gpu: "", cpu: "", ram: "", console_name: "", price: "" });
     setAddSys(false);
   };
 
@@ -605,6 +624,8 @@ export function RegisterCafe({ onRegistered }: { onRegistered: () => void }) {
           cpu: s.type === "PC" ? s.cpu || null : null,
           ram: s.type === "PC" ? s.ram || null : null,
           console: s.type === "Console" ? s.console_name || null : null,
+          // Blank per-system price = inherit the cafe default (stored NULL).
+          price_per_hour: s.price.trim() === "" ? null : parseFloat(s.price),
         }))
       );
       if (sysErr) console.warn("gaming_systems seed failed:", sysErr.message);

@@ -11,6 +11,7 @@ import {
 import { Input } from "./ui/input";
 import { supabase } from "../../supabase";
 import { CafeMap, MapCafe } from "./CafeMap";
+import { effectiveSystemPrice, minSystemPrice } from "../utils/pricing";
 
 /* ── Types ── */
 
@@ -36,6 +37,7 @@ interface DbSystem {
   cpu: string | null;
   ram: string | null;
   console: string | null;
+  price_per_hour: number | null;
 }
 
 /* ── Hero slides ── */
@@ -240,6 +242,14 @@ function CafeCard({ cafe, cafeSystems, delay, distanceKm }: {
   const highlightGpu = cafeSystems.find((s) => s.gpu)?.gpu;
   const highlightConsole = cafeSystems.find((s) => s.console)?.console;
 
+  // Cheapest effective rate across this cafe's systems; "from" when rates differ.
+  const displayPrice = minSystemPrice(
+    cafeSystems.map((s) => s.price_per_hour),
+    cafe.price_per_hour
+  );
+  const pricesVary =
+    new Set(cafeSystems.map((s) => effectiveSystemPrice(s.price_per_hour, cafe.price_per_hour))).size > 1;
+
   return (
     <Link
       ref={cardRef}
@@ -275,7 +285,8 @@ function CafeCard({ cafe, cafeSystems, delay, distanceKm }: {
             </div>
           </div>
           <div className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-1.5 text-right flex-shrink-0">
-            <span className="font-bold text-base text-gray-900">₹{cafe.price_per_hour}</span>
+            {pricesVary && <span className="text-[10px] text-gray-500 block -mb-0.5">from</span>}
+            <span className="font-bold text-base text-gray-900">₹{displayPrice}</span>
             <span className="text-[10px] text-gray-500 block -mt-0.5">/hour</span>
           </div>
         </div>
@@ -377,7 +388,7 @@ export function BrowseCafes() {
           .eq("is_approved", true),
         supabase
           .from("gaming_systems")
-          .select("id, cafe_id, name, type, gpu, cpu, ram, console"),
+          .select("id, cafe_id, name, type, gpu, cpu, ram, console, price_per_hour"),
       ]);
       if (cafesData) setDbCafes(cafesData as DbCafe[]);
       if (sysData) setSystems(sysData as DbSystem[]);
@@ -454,11 +465,13 @@ export function BrowseCafes() {
       systemTypeFilter === "all" ||
       (systemTypeFilter === "pc" && cafeSys.some((s) => s.type === "PC")) ||
       (systemTypeFilter === "console" && cafeSys.some((s) => s.type === "Console"));
+    // Filter on the cafe's cheapest effective rate — matches the "from ₹X" shown on the card.
+    const cafePrice = minSystemPrice(cafeSys.map((s) => s.price_per_hour), cafe.price_per_hour);
     const matchesPrice =
       priceFilter === "all" ||
-      (priceFilter === "under100" && cafe.price_per_hour < 100) ||
-      (priceFilter === "100to300" && cafe.price_per_hour >= 100 && cafe.price_per_hour <= 300) ||
-      (priceFilter === "over300" && cafe.price_per_hour > 300);
+      (priceFilter === "under100" && cafePrice < 100) ||
+      (priceFilter === "100to300" && cafePrice >= 100 && cafePrice <= 300) ||
+      (priceFilter === "over300" && cafePrice > 300);
     return matchesSearch && matchesCity && matchesType && matchesPrice;
   });
 
@@ -479,7 +492,7 @@ export function BrowseCafes() {
       city: c.city,
       latitude: c.latitude as number,
       longitude: c.longitude as number,
-      price_per_hour: c.price_per_hour,
+      price_per_hour: minSystemPrice(systemsForCafe(c.id).map((s) => s.price_per_hour), c.price_per_hour),
       distanceKm: distances[c.id] != null ? distances[c.id] / 1000 : null,
     }));
 
