@@ -165,7 +165,7 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - ✅ Review section overhaul — verified-booker gate, 5 category sub-ratings, threaded replies, "Cafe Owner" reply badge (2026-07-26, see Section 10)
 - 🔲 Photos in reviews (deferred — needs Supabase Storage)
 - ✅ RevenueStats — excludes cancelled from revenue totals; fixed UTC upcoming-count bug; shows cancelled in recent list (2026-07-24)
-- ✅ Per-system pricing — each gaming system can set its own hourly rate; blank inherits the cafe default (2026-08-21, see Section 4)
+- ✅ Per-system pricing — each system sets its own hourly rate (**required** when adding a system); shown as a `₹low–₹high` range where systems differ (2026-08-21, see Section 4)
 - 🔲 Image upload for cafe cover (currently URL paste only)
 - ~~🔲 Buffer system implementation (Smart Transition Buffer)~~ **CANCELLED (2026-08-11) — see Rule 8**
 - ✅ Filter in booking interface (PC/Console + Has-Free-Slots) — shipped 2026-08-18 (`fb196633`); GPU filter still Phase 2
@@ -369,6 +369,20 @@ Customer-facing UI pass. All shipped + pushed; Vercel auto-deploys from main.
   (draggable pin + address autocomplete). New deps: `leaflet`, `@types/leaflet`,
   `leaflet.markercluster`, `@types/leaflet.markercluster`.
 
+### RLS is per-command — a missing policy fails SILENTLY (added 2026-08-21)
+
+A table's SELECT/INSERT/UPDATE/DELETE policies are independent. A missing one does **not** 403 —
+the write just affects **0 rows with no error**, so the UI silently reverts on refetch.
+`gaming_systems` had owner SELECT/INSERT/DELETE but **no UPDATE**, so per-system price edits
+silently reverted until migration `gaming_systems_owner_update_policy` (2026-08-21).
+
+- **Rule:** every owner-write path needs its own policy for that command, AND the client must
+  `.select()` after the write and treat 0 rows as "blocked" (see `handleSavePrice`,
+  `handleCancelBooking`, `handleCancelReservation`).
+- **Verify a policy** by role-simulating in the Supabase MCP, then running the write and
+  checking the row changed (revert after):
+  `select set_config('request.jwt.claims', json_build_object('sub', <owner_uuid>, 'role','authenticated')::text, true);`
+
 ### Per-system pricing (shipped 2026-08-21, commit `f0c72b04`)
 
 Each gaming system can carry its own hourly rate instead of one flat cafe price.
@@ -397,6 +411,13 @@ Each gaming system can carry its own hourly rate instead of one flat cafe price.
   survives, mixed-price total, all-default matches the old flat rate); live (one system set to
   ₹500 → detail header showed "from ₹300", then reverted). `bookings.total_price` already
   stores the computed amount, so `RevenueStats` needed no change.
+- **Follow-ups (same day)**: price is now **required** when adding a system (SystemsManager
+  form + RegisterCafe wizard, Add disabled until filled); the cafe **default-price field was
+  removed from `CafeEditor`** (the `cafes.price_per_hour` column stays as the silent fallback,
+  just no longer editable — `CafeEditor.handleSave` no longer writes it); price display is a
+  **`₹low–₹high` range** (`minSystemPrice`/`maxSystemPrice`), not "from ₹X", on cafe cards,
+  detail header, map pins + popups. The inline edit badge still allows blank→NULL (clears back
+  to the fallback). Editing needed a new RLS UPDATE policy — see the per-command RLS gotcha above.
 
 ### Midnight-crossing schedule fix — FIXED (2026-07-29 → 2026-08-01)
 
