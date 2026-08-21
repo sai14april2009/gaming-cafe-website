@@ -627,13 +627,23 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
   const handleSavePrice = async (system: GamingSystemRow) => {
     setSavingPrice(true);
     const value = priceInput.trim() === "" ? null : parseFloat(priceInput);
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("gaming_systems")
       .update({ price_per_hour: value })
-      .eq("id", system.id);
+      .eq("id", system.id)
+      .select();
     setSavingPrice(false);
     if (error) {
       alert(`Could not update the price: ${error.message}`);
+      return;
+    }
+    // 0 rows + no error = the update was blocked by Row-Level Security. Surface it
+    // instead of silently reverting to the old price on the next refetch.
+    if (!data || data.length === 0) {
+      alert(
+        "Could not update the price — the change was blocked (0 rows changed), " +
+        "usually a Row-Level Security permission issue. The price is unchanged."
+      );
       return;
     }
     setEditingPriceId(null);
