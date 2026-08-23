@@ -323,7 +323,7 @@ const handleBookingComplete = (bookings: any) => {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setShowHourSelection(false)}>Back</Button>
+                <Button variant="outline" className="flex-1" onClick={() => { setShowHourSelection(false); setPartySize(null); }}>Back</Button>
                 <Button className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700"
                   onClick={() => setShowAdvancedBooking(true)}>Continue to Booking</Button>
               </div>
@@ -333,7 +333,7 @@ const handleBookingComplete = (bookings: any) => {
               <h2 className="text-2xl font-bold mb-6">Select Party Size</h2>
               {!partySize ? (
                 <div className="grid md:grid-cols-2 gap-4 mb-4">
-                  <button onClick={() => { if (!user) { navigate("/login", { state: { returnTo: `/cafe/db/${id}` } }); return; } setPartySize("solo"); }} className="party-card p-6 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50">
+                  <button onClick={() => { if (!user) { navigate("/login", { state: { returnTo: `/cafe/db/${id}` } }); return; } setPartySize("solo"); setShowHourSelection(true); }} className="party-card p-6 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50">
                     <div className="text-4xl mb-2">🎮</div>
                     <div className="font-semibold">Playing Solo</div>
                     <div className="text-sm text-gray-600 mt-1">Just me</div>
