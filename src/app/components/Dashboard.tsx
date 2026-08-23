@@ -17,10 +17,14 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "details" | "systems" | "live" | "bookings">("overview");
 
+  // Depend on user?.id, not the whole user object. Supabase swaps in a fresh user
+  // object on every background token refresh (same person, new reference); keying on
+  // the stable id stops those refreshes from re-running fetchCafe → setLoading(true),
+  // which would unmount an in-progress RegisterCafe wizard and wipe its state.
   useEffect(() => {
     if (!user) return;
     fetchCafe();
-  }, [user]);
+  }, [user?.id]);
 
   const fetchCafe = async () => {
     setLoading(true);
