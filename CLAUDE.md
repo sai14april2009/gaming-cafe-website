@@ -44,7 +44,7 @@ The codebase used to have two parallel implementations of cafe browsing/booking 
 There are no `.sql` files or a `supabase/` migrations directory checked in; the schema only exists as inferred from `supabase.from(...)` calls scattered across components. Known tables and key columns (grep for `.from("<table>")` to find all usages before changing shape):
 
 - `profiles` — `id` (= auth user id), `email`, `full_name`, `role` (`"owner"` gates `/dashboard`; anything else is a regular customer)
-- `cafes` — `owner_id`, `name`, `description`, `city`, `address`, `phone`, `email`, `price_per_hour`, `image_url`, `is_approved`, `amenities` (array), `games` (array), `latitude`, `longitude` (nullable doubles; geocoded from the address on register/edit), `location` (PostGIS `geography(Point,4326)`, **generated always** from lng/lat — never write it directly, only write lat/lng). Nearby search goes through the `nearby_cafes(p_lat, p_lng, p_radius_m, p_limit)` RPC (see Section 13), NOT a direct distance query. `price_per_hour` is now the **cafe DEFAULT / fallback** — the effective price is per-system (`gaming_systems.price_per_hour` overrides it; NULL there inherits this). See per-system pricing below.
+- `cafes` — `owner_id`, `name`, `description`, `city`, `address`, `phone`, `email`, `price_per_hour`, `image_url`, `is_approved`, `amenities` (array), `games` (array), `gallery_images` (text[], default `{}`, up to 10 image URLs — added 2026-08-24), `latitude`, `longitude` (nullable doubles; geocoded from the address on register/edit), `location` (PostGIS `geography(Point,4326)`, **generated always** from lng/lat — never write it directly, only write lat/lng). Nearby search goes through the `nearby_cafes(p_lat, p_lng, p_radius_m, p_limit)` RPC (see Section 13), NOT a direct distance query. `price_per_hour` is now the **cafe DEFAULT / fallback** — the effective price is per-system (`gaming_systems.price_per_hour` overrides it; NULL there inherits this). See per-system pricing below.
 - `cafe_hours` — `cafe_id`, `day_of_week` (0-6), `open_time`/`close_time` (`"HH:MM"` strings) — the hours source of truth (see the midnight-crossing fix entry in Section 4). Replaces the legacy `cafes.opening_time`/`closing_time` columns, dropped 2026-08-01.
 - `gaming_systems` — `cafe_id`, `name`, `type` (`"PC" | "Console"`), `gpu`, `cpu`, `ram`, `console`, `price_per_hour` (nullable numeric, `>= 0`; **NULL = inherit the cafe's `price_per_hour` default**). Per-system pricing added 2026-08-21. All price math goes through `effectiveSystemPrice(systemPrice, cafeDefault)` / `minSystemPrice(...)` in `src/app/utils/pricing.ts` — never read `price_per_hour` raw for a total, or NULL systems price at 0.
 - `bookings` — `id`, `user_id` (NOT NULL), `cafe_id`, `system_id`, `booking_date`, `start_time`/`end_time` (`"HH:MM"`), `num_people`, `total_price`, `status` (`"confirmed"` is the only status filtered on), `players` (JSON array of `{name, phone}`), `cancellation_reason` (nullable)
@@ -163,10 +163,11 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - ✅ My Bookings page for customers (/my-bookings) (2026-07-24)
 - ✅ Edit/delete own review (customer) (2026-07-25)
 - ✅ Review section overhaul — verified-booker gate, 5 category sub-ratings, threaded replies, "Cafe Owner" reply badge (2026-07-26, see Section 10)
-- 🔲 Photos in reviews (deferred — needs Supabase Storage)
+- ✅ Photos in reviews via URL (up to 5 per review) — shipped 2026-08-24 (`6abbcca6`); file upload via Supabase Storage still deferred
 - ✅ RevenueStats — excludes cancelled from revenue totals; fixed UTC upcoming-count bug; shows cancelled in recent list (2026-07-24)
 - ✅ Per-system pricing — each system sets its own hourly rate (**required** when adding a system); shown as a `₹low–₹high` range where systems differ (2026-08-21, see Section 4)
-- 🔲 Image upload for cafe cover (currently URL paste only)
+- ✅ Cafe gallery images via URL (up to 10) — shipped 2026-08-24 (`6abbcca6`); displayed as grid on cafe detail page
+- 🔲 Image upload for cafe cover/gallery (currently URL paste only — needs Supabase Storage)
 - ~~🔲 Buffer system implementation (Smart Transition Buffer)~~ **CANCELLED (2026-08-11) — see Rule 8**
 - ✅ Filter in booking interface (PC/Console + Has-Free-Slots) — shipped 2026-08-18 (`fb196633`); GPU filter still Phase 2
 - ✅ Homepage filters (system type PC/Console + price range chips) — shipped 2026-08-18 (`fb196633`)
@@ -220,7 +221,7 @@ return 0 rows.
 - `cafe_hours` — columns: `id, cafe_id, day_of_week (0-6), open_time, close_time`. Added 2026-07-29 in the midnight-crossing fix (migration `cafe_hours_schema_and_migration`); is now the sole hours source — the legacy `cafes.opening_time`/`closing_time` columns were dropped 2026-08-01 (migration `drop_legacy_cafes_hours_columns`).
 - `gaming_systems` — columns include `price_per_hour` (nullable numeric, `>= 0`; NULL inherits `cafes.price_per_hour`). Added 2026-08-21 (migration `add_price_per_hour_to_gaming_systems`) for per-system pricing.
 - `bookings` — columns: `id, user_id (NOT NULL as of 2026-07-24), cafe_id, system_id, booking_date, start_time, end_time, num_people, total_price, status, players, cancellation_reason, created_at`
-- `reviews` — columns: `id, cafe_id, user_id, user_name, rating, comment, created_at, rating_systems, rating_internet, rating_cleanliness, rating_staff, rating_value` (the 5 nullable category sub-ratings added 2026-07-26; overall `rating` = rounded avg of the filled ones). INSERT gated to verified bookers via `has_visited_cafe()`; SELECT/UPDATE/DELETE author-scoped. See Section 10.
+- `reviews` — columns: `id, cafe_id, user_id, user_name, rating, comment, created_at, rating_systems, rating_internet, rating_cleanliness, rating_staff, rating_value, images` (text[], default `{}`, up to 5 image URLs — added 2026-08-24). (The 5 nullable category sub-ratings added 2026-07-26; overall `rating` = rounded avg of the filled ones). INSERT gated to verified bookers via `has_visited_cafe()`; SELECT/UPDATE/DELETE author-scoped. See Section 10.
 - `review_replies` — columns: `id, review_id (FK→reviews ON DELETE CASCADE), user_id, user_name, comment, created_at`. Flat 2-level threading (review→replies). Added 2026-07-26. SELECT public; INSERT by verified booker of the review's cafe OR that cafe's owner; UPDATE/DELETE author-scoped. See Section 10.
 - `repair_slots` — columns: `id, system_id, cafe_id, repair_date, start_hour, end_hour, reason, created_at`
 - `walk_in_sessions` — columns: `id, system_id, cafe_id, status (scheduled/active/ended), slots (integer[]), session_date, start_time, end_time, started_at, ended_at, created_at, customer_name, customer_phone, note` (the last three nullable, added 2026-07-27 for owner-created grid reservations — migration `walk_in_sessions_reservation_fields`)
@@ -1046,7 +1047,7 @@ persisted afterward.
 
 ### What's deferred / rejected
 
-- **Photos in reviews** — requires Supabase Storage bucket + upload + moderation.
+- ~~**Photos in reviews**~~ **DONE (URL-based, 2026-08-24, `6abbcca6`).** Up to 5 image URLs per review, displayed as clickable thumbnails. File upload via Supabase Storage still deferred.
   Deferred until Storage is set up (a whole other decision).
 - **Helpful votes, sort/filter, keyword chips** — rejected for now. All require
   review volume (>20/cafe) to earn their keep. Revisit post-launch.
