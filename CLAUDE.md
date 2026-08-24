@@ -36,7 +36,7 @@ There is no `.env.example` in the repo — check with the user for local credent
 The codebase used to have two parallel implementations of cafe browsing/booking — a static mock path and a Supabase-backed path. **The mock path was removed 2026-07-29** (commit `a263e907`, "Delete demo-only mock pages"): `CafeCard.tsx`, `CafeDetails.tsx`, `FilterByHardware.tsx`, `GamingSystemSelector.tsx`, `ReviewsSection.tsx`, `SearchByGame.tsx` were deleted, along with the `/games`, `/hardware`, and `/cafe/:id` routes and the tab nav strip in `Root.tsx` that linked to them. A catch-all `NotFound.tsx` route was added.
 
 - **Current (only) path**: `BrowseCafes` (the homepage) and `Db*`-prefixed components (`DbCafeDetails`, `DbReviewsSection`) plus the owner-dashboard components (`Dashboard`, `CafeEditor`, `SystemsManager`, `LiveSessions`, `RepairSlotsManager`, `RevenueStats`, `RegisterCafe`, `AdminApprovals`) all query Supabase tables directly with `supabase.from(...)`. Cafe detail lives at `/cafe/db/:id` → `DbCafeDetails`.
-- `mockData.ts` was deleted entirely in Stage 2 (commit `60e3ebdd`). Shared types (`GamingSystem`) now live in `src/app/types.ts`; the `gameImages` lookup moved to `src/app/data/gameImages.ts`.
+- `mockData.ts` was deleted entirely in Stage 2 (commit `60e3ebdd`). Shared types (`GamingSystem`) now live in `src/app/types.ts`; `src/app/data/gameImages.ts` exports `fetchGameImage()` which queries the Steam search proxy for real cover art (replaced the static Unsplash map 2026-08-24, commit `ecedfeab`). `SteamGameImage.tsx` wraps it as a React component with loading/error states.
 - `AdvancedBookingInterface` is fed a converted list of systems (using the `GamingSystem` shape from `src/app/types.ts`) and always queries `bookings`/`repair_slots`/`walk_in_sessions` live from Supabase to compute slot availability.
 
 ### Supabase schema (inferred — no migrations/SQL in repo)
@@ -574,11 +574,11 @@ covered; the column is no longer half-populated.
   from `GamingSystem` in `src/app/types.ts`, deleted the supporting `BookingStatus` and `TimeSlot`
   types, and removed the two placeholder lines from `DbCafeDetails.tsx`'s `convertedSystems` useMemo.
   15 lines deleted, 0 added.
-- **Replace hardcoded `gameImages` map with live cover art** — `src/app/data/gameImages.ts`
-  is a static game-name → Unsplash-stock-photo lookup; could instead query the existing
-  Steam search proxy (`api/steam-search.ts`) for real cover art per game. **Trigger:** a real
-  café complains thumbnails don't match the actual games, OR the Steam proxy is being
-  touched for another reason anyway.
+- ~~**Replace hardcoded `gameImages` map with live cover art**~~ **DONE (ecedfeab, 2026-08-24)** —
+  static 25-entry Unsplash map replaced by `fetchGameImage()` which hits `/api/steam-search`,
+  extracts the first result's app ID, and returns Steam's 460×215 header capsule URL. Results
+  cached in a module-level `Map`. New `SteamGameImage` component handles loading skeleton,
+  image display, and fallback `Gamepad2` icon on miss. `DbCafeDetails` updated to use it.
 
 ---
 
