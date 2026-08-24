@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, Fragment } from "react";
 import { supabase } from "../../supabase";
 import { Button } from "./ui/button";
-import { Trash2, Plus, Pencil } from "lucide-react";
+import { Trash2, Plus, Pencil, SlidersHorizontal } from "lucide-react";
 import { toLocalDateString } from "../utils/date";
 import { findSlotConflicts } from "../utils/slotConflicts";
 import { hoursForUniformSchedule, findHourGaps, CafeHoursSchedule } from "../utils/cafeHours";
@@ -137,6 +137,11 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [priceInput, setPriceInput] = useState("");
   const [savingPrice, setSavingPrice] = useState(false);
+
+  // Filter bar — status + type filters for large cafes (10+ systems).
+  const [statusFilter, setStatusFilter] = useState<"all" | "free-now" | "occupied" | "free-at">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "PC" | "Console">("all");
+  const [freeAtHour, setFreeAtHour] = useState<number | null>(null);
 
   // Clock tick
   useEffect(() => {
@@ -277,6 +282,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
   // can't leak across days.
   const selectDate = (dateStr: string) => {
     setSelectedDate(dateStr);
+    if (dateStr !== toToday() && (statusFilter === "free-now" || statusFilter === "occupied")) setStatusFilter("all");
     setWalkInSystemId(null);
     setSelectedWalkInSlots([]);
     setConsecutiveWarning(null);
@@ -679,6 +685,24 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
 
   if (loading) return <div className="text-center py-8 text-gray-500">Loading systems...</div>;
 
+  // ponytail: O(systems × slots) per render, fine for <50 systems; index if perf matters
+  const filteredSystems = systems.filter((system) => {
+    if (system.id === walkInSystemId) return true;
+    if (typeFilter !== "all" && system.type !== typeFilter) return false;
+    if (statusFilter === "free-now" && isToday) {
+      const h = now.getHours();
+      return todaySlots.includes(h) && getSlotStatus(system.id, h) === "available";
+    }
+    if (statusFilter === "occupied" && isToday) {
+      const h = now.getHours();
+      return todaySlots.includes(h) && getSlotStatus(system.id, h) !== "available";
+    }
+    if (statusFilter === "free-at" && freeAtHour !== null) {
+      return todaySlots.includes(freeAtHour) && getSlotStatus(system.id, freeAtHour) === "available";
+    }
+    return true;
+  });
+
   return (
     <div className="space-y-6">
 
@@ -940,7 +964,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
       {/* Systems Grid */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Gaming Systems ({systems.length})</h2>
+          <h2 className="text-xl font-bold">Gaming Systems ({filteredSystems.length !== systems.length ? `${filteredSystems.length} of ${systems.length}` : systems.length})</h2>
           <Button onClick={() => setShowForm(!showForm)}
             className="bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700 gap-2">
             <Plus className="w-4 h-4" /> Add System
@@ -985,6 +1009,54 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
             Starting a live walk-in is only available on today's schedule.
           </div>
         )}
+
+        {/* Filter bar */}
+        <div className="bg-white rounded-xl shadow-md p-3 mb-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <button onClick={() => { setStatusFilter("all"); setFreeAtHour(null); }}
+              className={`filter-chip px-3 py-1 rounded-full text-xs font-medium transition-all ${statusFilter === "all" ? "bg-blue-600 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+              All
+            </button>
+            {isToday && (
+              <>
+                <button onClick={() => { setStatusFilter("free-now"); setFreeAtHour(null); }}
+                  className={`filter-chip px-3 py-1 rounded-full text-xs font-medium transition-all ${statusFilter === "free-now" ? "bg-emerald-600 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                  🟢 Free Now
+                </button>
+                <button onClick={() => { setStatusFilter("occupied"); setFreeAtHour(null); }}
+                  className={`filter-chip px-3 py-1 rounded-full text-xs font-medium transition-all ${statusFilter === "occupied" ? "bg-orange-600 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                  🔴 In Use
+                </button>
+              </>
+            )}
+            <button onClick={() => setStatusFilter("free-at")}
+              className={`filter-chip px-3 py-1 rounded-full text-xs font-medium transition-all ${statusFilter === "free-at" ? "bg-blue-600 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+              🕐 Free at…
+            </button>
+            {statusFilter === "free-at" && (
+              <select value={freeAtHour ?? ""} onChange={(e) => setFreeAtHour(e.target.value ? parseInt(e.target.value) : null)}
+                className="px-2 py-1 border border-gray-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Pick hour</option>
+                {todaySlots.filter((h) => !isToday || h > now.getHours()).map((h) => (
+                  <option key={h} value={h}>{formatHour(h)}</option>
+                ))}
+              </select>
+            )}
+            <div className="w-px h-5 bg-gray-300 mx-1" />
+            {(["all", "PC", "Console"] as const).map((val) => (
+              <button key={val} onClick={() => setTypeFilter(val)}
+                className={`filter-chip px-3 py-1 rounded-full text-xs font-medium transition-all ${typeFilter === val ? "bg-blue-600 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                {val === "all" ? "All Types" : val === "PC" ? "🖥️ PC" : "🎮 Console"}
+              </button>
+            ))}
+            {filteredSystems.length !== systems.length && (
+              <span className="ml-auto text-xs text-gray-500">
+                {filteredSystems.length} of {systems.length}
+              </span>
+            )}
+          </div>
+        </div>
 
         {/* Add System Form */}
         {showForm && (
@@ -1040,7 +1112,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
 
         {/* System Cards with Slot Grid */}
         <div className="space-y-4">
-          {systems.map((system) => {
+          {filteredSystems.map((system) => {
             const isSelecting = walkInSystemId === system.id;
             const check = isSelecting && selectedWalkInSlots.length > 0
               ? canStartWalkIn(system.id, selectedWalkInSlots)
