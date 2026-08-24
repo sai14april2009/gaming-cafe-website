@@ -13,23 +13,30 @@ export const GPU_GROUPS: HardwareGroup[] = [
     label: "NVIDIA GeForce",
     items: [
       // RTX 50
-      "NVIDIA RTX 5090", "NVIDIA RTX 5080", "NVIDIA RTX 5070 Ti", "NVIDIA RTX 5070", "NVIDIA RTX 5060 Ti", "NVIDIA RTX 5060",
+      "NVIDIA RTX 5090", "NVIDIA RTX 5080", "NVIDIA RTX 5070 Ti", "NVIDIA RTX 5070", "NVIDIA RTX 5060 Ti", "NVIDIA RTX 5060", "NVIDIA RTX 5050",
       // RTX 40
       "NVIDIA RTX 4090", "NVIDIA RTX 4080 Super", "NVIDIA RTX 4080", "NVIDIA RTX 4070 Ti Super", "NVIDIA RTX 4070 Ti",
       "NVIDIA RTX 4070 Super", "NVIDIA RTX 4070", "NVIDIA RTX 4060 Ti", "NVIDIA RTX 4060",
       // RTX 30
       "NVIDIA RTX 3090 Ti", "NVIDIA RTX 3090", "NVIDIA RTX 3080 Ti", "NVIDIA RTX 3080", "NVIDIA RTX 3070 Ti",
       "NVIDIA RTX 3070", "NVIDIA RTX 3060 Ti", "NVIDIA RTX 3060", "NVIDIA RTX 3050",
-      // RTX 20 / GTX 16
-      "NVIDIA RTX 2080 Ti", "NVIDIA RTX 2070", "NVIDIA RTX 2060", "NVIDIA GTX 1660 Super", "NVIDIA GTX 1650",
+      // RTX 20
+      "NVIDIA RTX 2080 Ti", "NVIDIA RTX 2080 Super", "NVIDIA RTX 2070 Super", "NVIDIA RTX 2070", "NVIDIA RTX 2060 Super", "NVIDIA RTX 2060",
+      // GTX 16 / 10 — still the budget-cafe workhorse across India, China, Korea
+      "NVIDIA GTX 1660 Ti", "NVIDIA GTX 1660 Super", "NVIDIA GTX 1660", "NVIDIA GTX 1650 Super", "NVIDIA GTX 1650",
+      "NVIDIA GTX 1080 Ti", "NVIDIA GTX 1080", "NVIDIA GTX 1070 Ti", "NVIDIA GTX 1070", "NVIDIA GTX 1060", "NVIDIA GTX 1050 Ti",
     ],
   },
   {
     label: "AMD Radeon",
     items: [
-      "AMD Radeon RX 9070 XT", "AMD Radeon RX 9070",
+      "AMD Radeon RX 9070 XT", "AMD Radeon RX 9070", "AMD Radeon RX 9060 XT", "AMD Radeon RX 9060",
       "AMD Radeon RX 7900 XTX", "AMD Radeon RX 7900 XT", "AMD Radeon RX 7800 XT", "AMD Radeon RX 7700 XT",
-      "AMD Radeon RX 7600", "AMD Radeon RX 6950 XT", "AMD Radeon RX 6800 XT", "AMD Radeon RX 6700 XT", "AMD Radeon RX 6600",
+      "AMD Radeon RX 7600 XT", "AMD Radeon RX 7600",
+      "AMD Radeon RX 6950 XT", "AMD Radeon RX 6800 XT", "AMD Radeon RX 6750 XT", "AMD Radeon RX 6700 XT",
+      "AMD Radeon RX 6650 XT", "AMD Radeon RX 6600 XT", "AMD Radeon RX 6600", "AMD Radeon RX 6500 XT",
+      // Polaris — still common in budget venues
+      "AMD Radeon RX 590", "AMD Radeon RX 580", "AMD Radeon RX 570",
     ],
   },
   {
@@ -46,9 +53,24 @@ export const CPU_GROUPS: HardwareGroup[] = [
   {
     label: "Intel Core (14th–12th gen)",
     items: [
-      "Intel Core i9-14900K", "Intel Core i7-14700K", "Intel Core i5-14600K", "Intel Core i5-14400",
-      "Intel Core i9-13900K", "Intel Core i7-13700K", "Intel Core i5-13600K", "Intel Core i5-13400",
-      "Intel Core i9-12900K", "Intel Core i7-12700K", "Intel Core i5-12600K", "Intel Core i5-12400",
+      "Intel Core i9-14900K", "Intel Core i7-14700K", "Intel Core i5-14600K", "Intel Core i5-14400F", "Intel Core i5-14400",
+      "Intel Core i9-13900K", "Intel Core i7-13700K", "Intel Core i5-13600K", "Intel Core i5-13400F", "Intel Core i5-13400",
+      "Intel Core i9-12900K", "Intel Core i7-12700K", "Intel Core i5-12600K", "Intel Core i5-12400F", "Intel Core i5-12400",
+    ],
+  },
+  {
+    label: "Intel Core (11th–8th gen)",
+    items: [
+      "Intel Core i7-11700K", "Intel Core i5-11600K", "Intel Core i5-11400F",
+      "Intel Core i9-10900K", "Intel Core i7-10700K", "Intel Core i5-10600K", "Intel Core i5-10400F",
+      "Intel Core i7-9700K", "Intel Core i5-9600K", "Intel Core i5-9400F",
+      "Intel Core i7-8700K", "Intel Core i5-8400",
+    ],
+  },
+  {
+    label: "Intel Core (7th gen & older)",
+    items: [
+      "Intel Core i7-7700K", "Intel Core i5-7500", "Intel Core i5-6600", "Intel Core i5-6500", "Intel Core i5-4590",
     ],
   },
   {
@@ -67,7 +89,15 @@ export const CPU_GROUPS: HardwareGroup[] = [
   {
     label: "AMD Ryzen 5000 (Zen 3)",
     items: [
-      "AMD Ryzen 9 5950X", "AMD Ryzen 9 5900X", "AMD Ryzen 7 5800X3D", "AMD Ryzen 7 5800X", "AMD Ryzen 5 5600X",
+      "AMD Ryzen 9 5950X", "AMD Ryzen 9 5900X", "AMD Ryzen 7 5800X3D", "AMD Ryzen 7 5800X", "AMD Ryzen 7 5700X",
+      "AMD Ryzen 5 5600X", "AMD Ryzen 5 5600", "AMD Ryzen 5 5500",
+    ],
+  },
+  {
+    label: "AMD Ryzen 3000/2000 (Zen 2 / Zen+)",
+    items: [
+      "AMD Ryzen 9 3900X", "AMD Ryzen 7 3700X", "AMD Ryzen 5 3600X", "AMD Ryzen 5 3600", "AMD Ryzen 5 3500",
+      "AMD Ryzen 7 2700X", "AMD Ryzen 5 2600",
     ],
   },
 ];
