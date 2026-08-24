@@ -46,6 +46,8 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
     close_time: "",
     image_url: cafe.image_url || "",
   });
+  const [galleryImages, setGalleryImages] = useState<string[]>(cafe.gallery_images || []);
+  const [newGalleryUrl, setNewGalleryUrl] = useState("");
   const [amenities, setAmenities] = useState<string[]>(cafe.amenities || []);
   const [games, setGames] = useState<string[]>(cafe.games || []);
   const [customAmenity, setCustomAmenity] = useState("");
@@ -180,6 +182,7 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
         // is per-system in the Gaming Systems tab. The stored value is left untouched so
         // any legacy system with no own price still resolves.
         image_url: form.image_url,
+        gallery_images: galleryImages,
         amenities,
         games,
         latitude: coords.lat,
@@ -298,6 +301,47 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
         <label className="text-sm font-medium text-gray-700 mb-1 block">Cover Image URL</label>
         <input type="text" value={form.image_url} onChange={(e) => handleChange("image_url", e.target.value)}
           className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+      </div>
+
+      {/* Gallery Images (up to 10) */}
+      <div>
+        <label className="text-sm font-medium text-gray-700 mb-1 block">
+          Gallery Images ({galleryImages.length}/10)
+        </label>
+        <p className="text-xs text-gray-500 mb-2">Add up to 10 image URLs to showcase your cafe.</p>
+        {galleryImages.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+            {galleryImages.map((url, i) => (
+              <div key={i} className="relative group rounded-lg overflow-hidden aspect-video bg-gray-100">
+                <img src={url} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).src = ""; (e.target as HTMLImageElement).alt = "Failed to load"; }} />
+                <button type="button" onClick={() => setGalleryImages((prev) => prev.filter((_, j) => j !== i))}
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {galleryImages.length < 10 && (
+          <div className="flex gap-2">
+            <input type="text" value={newGalleryUrl} onChange={(e) => setNewGalleryUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && newGalleryUrl.trim()) {
+                  e.preventDefault();
+                  setGalleryImages((prev) => [...prev, newGalleryUrl.trim()]);
+                  setNewGalleryUrl("");
+                }
+              }}
+              placeholder="Paste image URL..."
+              className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-sm" />
+            <Button type="button" variant="outline" disabled={!newGalleryUrl.trim()}
+              onClick={() => { setGalleryImages((prev) => [...prev, newGalleryUrl.trim()]); setNewGalleryUrl(""); }}
+              className="gap-1">
+              <Plus className="w-4 h-4" /> Add
+            </Button>
+          </div>
+        )}
       </div>
 
       <div>

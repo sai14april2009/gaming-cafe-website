@@ -39,6 +39,7 @@ interface Review {
   rating_cleanliness: number | null;
   rating_staff: number | null;
   rating_value: number | null;
+  images: string[];
 }
 
 interface Reply {
@@ -176,6 +177,8 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
   const [showForm, setShowForm] = useState(false);
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [comment, setComment] = useState("");
+  const [reviewImages, setReviewImages] = useState<string[]>([]);
+  const [newImageUrl, setNewImageUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -273,6 +276,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
         user_name: profile?.full_name || user.email || "Anonymous",
         rating: overall,
         comment: comment.trim(),
+        images: reviewImages,
         ...ratingsToColumns(ratings),
       })
       .select();
@@ -293,6 +297,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
     setShowForm(false);
     setComment("");
     setRatings({});
+    setReviewImages([]);
   };
 
   // --- edit / delete own review ---------------------------------------------
@@ -531,6 +536,45 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
             placeholder="Share your experience at this cafe..."
             className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 resize-none mt-2"
           />
+          {/* Image URLs (up to 5) */}
+          <div className="mt-3">
+            <label className="text-sm font-medium text-gray-600 mb-1 block">
+              Photos ({reviewImages.length}/5) <span className="text-gray-400 font-normal">— optional</span>
+            </label>
+            {reviewImages.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {reviewImages.map((url, i) => (
+                  <div key={i} className="relative group w-20 h-20 rounded-lg overflow-hidden bg-gray-100">
+                    <img src={url} alt={`Review photo ${i + 1}`} className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => setReviewImages((prev) => prev.filter((_, j) => j !== i))}
+                      className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs">
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {reviewImages.length < 5 && (
+              <div className="flex gap-2">
+                <input type="text" value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newImageUrl.trim()) {
+                      e.preventDefault();
+                      setReviewImages((prev) => [...prev, newImageUrl.trim()]);
+                      setNewImageUrl("");
+                    }
+                  }}
+                  placeholder="Paste image URL..."
+                  className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-sm" />
+                <button type="button" disabled={!newImageUrl.trim()}
+                  onClick={() => { setReviewImages((prev) => [...prev, newImageUrl.trim()]); setNewImageUrl(""); }}
+                  className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 disabled:text-gray-400">
+                  + Add
+                </button>
+              </div>
+            )}
+          </div>
+
           {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
           <div className="flex gap-2 mt-4">
             <Button
@@ -647,6 +691,18 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                     )}
 
                     <p className="text-gray-700 leading-relaxed">{review.comment}</p>
+
+                    {/* Review images */}
+                    {review.images?.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {review.images.map((url: string, i: number) => (
+                          <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                            className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 block hover:opacity-90 transition-opacity">
+                            <img src={url} alt={`Review photo ${i + 1}`} className="w-full h-full object-cover" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Actions */}
                     <div className="flex flex-wrap gap-4 mt-3">

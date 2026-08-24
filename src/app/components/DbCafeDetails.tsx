@@ -21,6 +21,7 @@ interface DbCafe {
   email: string;
   price_per_hour: number;
   image_url: string | null;
+  gallery_images: string[];
   is_approved: boolean;
   amenities: string[];
   games: string[];
@@ -219,6 +220,20 @@ const handleBookingComplete = (bookings: any) => {
           )}
         </div>
       </div>
+
+      {/* Gallery */}
+      {cafe.gallery_images?.length > 0 && (
+        <div className="animate-in max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8" style={{"--stagger": 0.5} as React.CSSProperties}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+            {cafe.gallery_images.map((url: string, i: number) => (
+              <div key={i} className="rounded-lg overflow-hidden aspect-video bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity">
+                <img src={url} alt={`${cafe.name} gallery ${i + 1}`} className="w-full h-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         {/* Header */}
