@@ -170,7 +170,7 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - ~~🔲 Buffer system implementation (Smart Transition Buffer)~~ **CANCELLED (2026-08-11) — see Rule 8**
 - ✅ Filter in booking interface (PC/Console + Has-Free-Slots) — shipped 2026-08-18 (`fb196633`); GPU filter still Phase 2
 - ✅ Homepage filters (system type PC/Console + price range chips) — shipped 2026-08-18 (`fb196633`)
-- 🔲 Filter in Gaming Systems tab (owner dashboard: Free now / Occupied now / Free at X time) — Phase 2
+- ✅ Filter in Gaming Systems tab (owner dashboard: Free Now / In Use / Free at X time + PC/Console type) — shipped 2026-08-24 (`b0fa33d4`)
 - 🔲 Hardware autocomplete + case-insensitive FilterByHardware
 - 🔲 Custom SMTP (Resend/SendGrid) before real users
 - ✅ Mobile responsiveness — homepage + customer booking flow made responsive 2026-08-18 (`873ea087`); owner dashboard not yet audited
@@ -673,12 +673,13 @@ as authoritative.
 Current live tab order (`Dashboard.tsx:64–70`):
 `Overview | Cafe Details | Gaming Systems | 🔴 Live Now | Booking History`
 
-**DEFERRED — Phase 2 filter bar** (`[Free Now] [Occupied Now] [Free at time]` in
-Gaming Systems tab). Was already labeled "not now" in the original spec. Deferring
-deliberately because we're pre-launch with 2 systems on the test cafe; the filter
-has no way to be meaningfully verified at this scale. **Concrete unstuck trigger:**
-revisit when a live cafe has 10 or more systems, OR when an owner is actually
-observed needing to filter to find something. **Do not build speculatively.**
+**SHIPPED — Filter bar** (`b0fa33d4`, 2026-08-24). Status filters (All / 🟢 Free
+Now / 🔴 In Use / 🕐 Free at [hour]) + type filters (All / PC / Console). Free Now
+and In Use are today-only (auto-reset on day switch). "Free at" has an hour dropdown
+and works on any day in the 7-day picker. Header shows "X of Y" when filtered.
+Active walk-in selection stays visible regardless of filter. Verified with Nexus LAN
+Arena's 11 systems (8 PC + 3 Console). Originally deferred as Phase 2; shipped after
+seed data gave 5 cafes with 10+ systems each.
 
 ---
 
