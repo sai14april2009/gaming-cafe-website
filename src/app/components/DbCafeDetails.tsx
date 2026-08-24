@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router";
 import { MapPin, Clock, Phone, Mail, ArrowLeft, Star, Coffee, Gamepad2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { supabase } from "../../supabase";
-import { gameImages } from "../data/gameImages";
+import { SteamGameImage } from "./SteamGameImage";
 import { hoursForUniformSchedule, CafeHoursSchedule } from "../utils/cafeHours";
 import { effectiveSystemPrice, minSystemPrice, maxSystemPrice } from "../utils/pricing";
 import { AdvancedBookingInterface } from "./AdvancedBookingInterface";
@@ -277,11 +277,7 @@ const handleBookingComplete = (bookings: any) => {
               {cafe.games.map((game) => (
                 <div key={game} className="game-card flex flex-col overflow-hidden rounded-lg border-2 border-gray-200">
                   <div className="w-full h-24 overflow-hidden bg-gray-100 flex items-center justify-center">
-  {gameImages[game] ? (
-    <img src={gameImages[game]} alt={game} className="w-full h-full object-cover" />
-  ) : (
-    <Gamepad2 className="w-8 h-8 text-gray-400" />
-  )}
+  <SteamGameImage game={game} />
 </div>
                   <div className="p-2 bg-white"><span className="text-sm font-medium">{game}</span></div>
                 </div>
