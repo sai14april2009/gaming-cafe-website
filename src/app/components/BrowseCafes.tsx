@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router";
 import {
   Search, SlidersHorizontal, Star, MapPin, Monitor, Gamepad2,
@@ -369,6 +369,9 @@ export function BrowseCafes() {
   const [selectedCity, setSelectedCity] = useState<string>("all");
   const [systemTypeFilter, setSystemTypeFilter] = useState<"all" | "pc" | "console">("all");
   const [priceFilter, setPriceFilter] = useState<"all" | "under100" | "100to300" | "over300">("all");
+  const [hardwareFilter, setHardwareFilter] = useState("");
+  const [hwDropdownOpen, setHwDropdownOpen] = useState(false);
+  const hwRef = useRef<HTMLDivElement>(null);
   const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [distances, setDistances] = useState<Record<string, number>>({}); // cafe id -> metres
   const [locating, setLocating] = useState(false);
@@ -382,6 +385,29 @@ export function BrowseCafes() {
   const heroRef = useRef<HTMLDivElement>(null);
   const gridRef = useScrollReveal(dbCafes.length);
   useHeroParallax(heroRef);
+
+  // All unique GPU/console values for autocomplete suggestions
+  const allHardware = useMemo(() => {
+    const set = new Set<string>();
+    systems.forEach((s) => {
+      if (s.gpu) set.add(s.gpu);
+      if (s.console) set.add(s.console);
+    });
+    return Array.from(set).sort();
+  }, [systems]);
+
+  const hwSuggestions = hardwareFilter.length >= 1
+    ? allHardware.filter((h) => h.toLowerCase().includes(hardwareFilter.toLowerCase())).slice(0, 8)
+    : [];
+
+  // Close hardware dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (hwRef.current && !hwRef.current.contains(e.target as Node)) setHwDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   /* Fetch cafes + gaming systems */
   useEffect(() => {
@@ -477,7 +503,16 @@ export function BrowseCafes() {
       (priceFilter === "under100" && cafePrice < 100) ||
       (priceFilter === "100to300" && cafePrice >= 100 && cafePrice <= 300) ||
       (priceFilter === "over300" && cafePrice > 300);
-    return matchesSearch && matchesCity && matchesType && matchesPrice;
+    const matchesHardware =
+      !hardwareFilter ||
+      cafeSys.some((s) => {
+        const hw = hardwareFilter.toLowerCase();
+        return (s.gpu && s.gpu.toLowerCase().includes(hw)) ||
+               (s.cpu && s.cpu.toLowerCase().includes(hw)) ||
+               (s.ram && s.ram.toLowerCase().includes(hw)) ||
+               (s.console && s.console.toLowerCase().includes(hw));
+      });
+    return matchesSearch && matchesCity && matchesType && matchesPrice && matchesHardware;
   });
 
   // When the visitor has shared location, sort nearest-first (cafes without a distance
@@ -680,6 +715,32 @@ export function BrowseCafes() {
               {label}
             </button>
           ))}
+          <div className="w-px h-6 bg-gray-200 self-center mx-1" />
+          <span className="text-xs font-medium text-gray-500 self-center mr-1">Hardware:</span>
+          <div className="relative" ref={hwRef}>
+            <input
+              type="text"
+              value={hardwareFilter}
+              onChange={(e) => { setHardwareFilter(e.target.value); setHwDropdownOpen(true); }}
+              onFocus={() => hardwareFilter.length >= 1 && setHwDropdownOpen(true)}
+              placeholder="e.g. RTX 4070, PS5..."
+              className="px-3 py-1.5 rounded-full text-xs border border-gray-200 bg-gray-50 focus:outline-none focus:border-blue-400 w-40"
+            />
+            {hardwareFilter && (
+              <button onClick={() => { setHardwareFilter(""); setHwDropdownOpen(false); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
+            )}
+            {hwDropdownOpen && hwSuggestions.length > 0 && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-y-auto max-h-48">
+                {hwSuggestions.map((hw) => (
+                  <button key={hw} onClick={() => { setHardwareFilter(hw); setHwDropdownOpen(false); }}
+                    className="w-full px-3 py-2 text-left text-xs hover:bg-blue-50 transition-colors">
+                    {hw}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
