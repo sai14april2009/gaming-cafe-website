@@ -59,7 +59,7 @@ Cafe owners can start ad-hoc "walk-in" sessions for a system from the dashboard 
 
 ### UI components
 
-`src/app/components/ui/` is a shadcn/ui-style primitives library (Radix UI + Tailwind, `class-variance-authority` for variants) — treat these as generated/vendored building blocks, not app logic. `src/app/components/figma/ImageWithFallback.tsx` is a Figma-Make-specific image component. Styling is Tailwind v4 (`@tailwindcss/vite` plugin, config-less — tokens live in `src/styles/theme.css`/`globals.css`).
+`src/app/components/ui/` is a shadcn/ui-style primitives library (Radix UI + Tailwind, `class-variance-authority` for variants) — treat these as generated/vendored building blocks, not app logic. (The Figma-Make `figma/ImageWithFallback.tsx` component was deleted 2026-08-24, commit `4f8ebeae` — it had zero imports; the `figma:asset` resolver plugin in `vite.config.ts` is unrelated and stays.) Styling is Tailwind v4 (`@tailwindcss/vite` plugin, config-less — tokens live in `src/styles/theme.css`/`globals.css`).
 
 ## Notes from the Figma Make scaffold
 
@@ -172,7 +172,7 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - ✅ Filter in booking interface (PC/Console + Has-Free-Slots) — shipped 2026-08-18 (`fb196633`); GPU filter still Phase 2
 - ✅ Homepage filters (system type PC/Console + price range chips) — shipped 2026-08-18 (`fb196633`)
 - ✅ Filter in Gaming Systems tab (owner dashboard: Free Now / In Use / Free at X time + PC/Console type) — shipped 2026-08-24 (`b0fa33d4`)
-- 🔲 Hardware autocomplete + case-insensitive FilterByHardware
+- ✅ Hardware autocomplete + case-insensitive hardware filter — shipped 2026-08-24 (`5b834624`, `ae48f54e`); homepage GPU/console filter + brand-grouped `HardwareCombobox` on the Add-System form (see Section 14)
 - 🔲 Custom SMTP (Resend/SendGrid) before real users
 - ✅ Mobile responsiveness — homepage + customer booking flow made responsive 2026-08-18 (`873ea087`); owner dashboard not yet audited
 - 🔲 Customer data collection (name, phone, email, city) for analytics — Phase 2
@@ -1256,3 +1256,49 @@ marker plots, 2 price pins + OSM tiles load, zero console errors. `npm run build
 IP geolocation (passive city guess, no prompt); "recommended for you" (needs booking volume);
 Google/Mapbox upgrade if Nominatim accuracy proves insufficient at scale. Owner-dashboard map
 not built (out of scope — customer-facing only).
+
+---
+
+## 14. HARDWARE AUTOCOMPLETE + FILTER (shipped 2026-08-24)
+
+Two related surfaces, both built on one curated hardware list. Goal: kill owner typos when
+adding a system, and let customers filter cafes by hardware — without locking either to a fixed
+enum (freeform is always allowed).
+
+### Curated list — `src/app/data/hardwareOptions.ts`
+- Exports a `HardwareGroup` interface (`{ label, items }`) and four brand-grouped arrays:
+  `GPU_GROUPS` (NVIDIA GeForce / AMD Radeon / Intel Arc), `CPU_GROUPS` (Intel Core Ultra /
+  14th–12th / 11th–8th / 7th-and-older; AMD Ryzen 9000/7000/5000/3000-2000), `RAM_GROUPS`
+  (DDR5 / DDR4), `CONSOLE_GROUPS` (PlayStation / Xbox / Nintendo / Handheld PC).
+- **Scope is real-café-grounded, not exhaustive** (`3d1d1f59`): expanded from a new-hardware-only
+  list to cover the budget/older tiers that India/China/Korea cafes actually run — Pascal GTX 10
+  series, full GTX 16, RX 590/580/570 Polaris, Intel i5-6600 (still the #1 CPU in Korean PC bangs
+  per Statista Dec 2024) and the i5-10400F/11400F F-chips common in Chinese wangba, AMD Zen 2
+  (3600/3500). Deliberately excludes workstation cards, DDR3, laptop GPU variants. ~41 GPUs / 32
+  Intel + 32 AMD CPUs / 17 RAM / 14 consoles. The `*_GROUPS` are the only export — the old
+  computed flat `*_OPTIONS` exports were deleted 2026-08-24 (`4f8ebeae`) as dead code.
+
+### `HardwareCombobox.tsx` (new, `ae48f54e`) — the Add-System input
+Brand-grouped autocomplete replacing the raw GPU/CPU/RAM/Console `<input>`s in **both**
+`SystemsManager` (dashboard Add-System form) and `RegisterCafe` (onboarding wizard). Props:
+`{ value, onChange, groups, placeholder, className }`.
+- Case-insensitive substring match with bold match highlighting; section headers per group.
+- Full keyboard nav (↑/↓ move + auto-scroll into view, Enter picks, Esc closes, Tab commits),
+  checkmark on the exact current value, clear (✕) button, empty-state hint that freeform still
+  saves as-is, footer hint when the value is custom.
+- ARIA-1.2 combobox (`role="combobox"`, `aria-expanded`/`-controls`/`-activedescendant`, `role=
+  "option"`, `aria-selected`), `useId()` for collision-free ids (GPU+CPU+RAM render together).
+- **Never restricts input** — anything typed is kept; presets only prevent typos for common parts.
+- Design (Emil Kowalski rules): dropdown scales from `transform-origin: top` via `@keyframes
+  hwPanelIn` (`scale(0.97)→1`, 180ms `cubic-bezier(0.23,1,0.32,1)`, never `scale(0)`); clear
+  button `active:scale-95`; `prefers-reduced-motion` disables all animation.
+
+### Homepage hardware filter (`5b834624`) — `BrowseCafes`
+Autocomplete filter chip alongside the existing type/price filters. Collects unique GPU/console
+values across all systems (`allHardware` useMemo), suggests case-insensitively, and filters
+`filteredCafes` by case-insensitive substring match against each system's gpu/cpu/ram/console
+fields. Clear button + click-outside handler. (GPU-only display; full spec filter is Phase 2.)
+
+### Unrelated fix bundled same day
+`CafeEditor` game-search dropdown was clipping at the bottom of the page — changed to open
+**upward** (`bottom-full mb-1` instead of `mt-1`), commit `244fca1b`.
