@@ -138,10 +138,3 @@ export const CONSOLE_GROUPS: HardwareGroup[] = [
     items: ["Steam Deck OLED", "Steam Deck", "ASUS ROG Ally X", "ASUS ROG Ally", "Lenovo Legion Go"],
   },
 ];
-
-// Legacy flat exports — kept as computed values so old imports still work if any exist.
-// New code should use the *_GROUPS versions.
-export const GPU_OPTIONS = GPU_GROUPS.flatMap((g) => g.items);
-export const CPU_OPTIONS = CPU_GROUPS.flatMap((g) => g.items);
-export const RAM_OPTIONS = RAM_GROUPS.flatMap((g) => g.items);
-export const CONSOLE_OPTIONS = CONSOLE_GROUPS.flatMap((g) => g.items);
