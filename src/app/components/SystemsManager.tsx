@@ -8,7 +8,7 @@ import { hoursForUniformSchedule, findHourGaps, CafeHoursSchedule } from "../uti
 import { ClosedSlotMarker } from "./ClosedSlotMarker";
 import { effectiveSystemPrice } from "../utils/pricing";
 import { HardwareCombobox } from "./HardwareCombobox";
-import { GPU_OPTIONS, CPU_OPTIONS, RAM_OPTIONS, CONSOLE_OPTIONS } from "../data/hardwareOptions";
+import { GPU_GROUPS, CPU_GROUPS, RAM_GROUPS, CONSOLE_GROUPS } from "../data/hardwareOptions";
 
 interface SystemsManagerProps {
   cafeId: string;
@@ -1082,22 +1082,22 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
               <div className="grid grid-cols-3 gap-4">
                 <div><label className="text-sm font-medium text-gray-700 mb-1 block">GPU</label>
                   <HardwareCombobox value={form.gpu} onChange={(v) => setForm({ ...form, gpu: v })}
-                    options={GPU_OPTIONS} placeholder="NVIDIA RTX 4090"
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" /></div>
+                    groups={GPU_GROUPS} placeholder="NVIDIA RTX 4090"
+                    className="w-full px-4 py-2 pr-8 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" /></div>
                 <div><label className="text-sm font-medium text-gray-700 mb-1 block">CPU</label>
                   <HardwareCombobox value={form.cpu} onChange={(v) => setForm({ ...form, cpu: v })}
-                    options={CPU_OPTIONS} placeholder="Intel Core i9"
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" /></div>
+                    groups={CPU_GROUPS} placeholder="Intel Core i9"
+                    className="w-full px-4 py-2 pr-8 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" /></div>
                 <div><label className="text-sm font-medium text-gray-700 mb-1 block">RAM</label>
                   <HardwareCombobox value={form.ram} onChange={(v) => setForm({ ...form, ram: v })}
-                    options={RAM_OPTIONS} placeholder="64GB DDR5"
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" /></div>
+                    groups={RAM_GROUPS} placeholder="64GB DDR5"
+                    className="w-full px-4 py-2 pr-8 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" /></div>
               </div>
             ) : (
               <div><label className="text-sm font-medium text-gray-700 mb-1 block">Console</label>
                 <HardwareCombobox value={form.console} onChange={(v) => setForm({ ...form, console: v })}
-                  options={CONSOLE_OPTIONS} placeholder="PS5 / Xbox Series X"
-                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" /></div>
+                  groups={CONSOLE_GROUPS} placeholder="PS5 / Xbox Series X"
+                  className="w-full px-4 py-2 pr-8 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" /></div>
             )}
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Price per hour (₹) *</label>

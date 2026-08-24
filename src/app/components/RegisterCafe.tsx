@@ -5,7 +5,7 @@ import { crossesMidnight } from "../utils/cafeHours";
 import { geocodeAddress } from "../utils/geocode";
 import { LocationPicker } from "./LocationPicker";
 import { HardwareCombobox } from "./HardwareCombobox";
-import { GPU_OPTIONS, CPU_OPTIONS, RAM_OPTIONS, CONSOLE_OPTIONS } from "../data/hardwareOptions";
+import { GPU_GROUPS, CPU_GROUPS, RAM_GROUPS, CONSOLE_GROUPS } from "../data/hardwareOptions";
 import {
   Store, MapPin, Clock, IndianRupee, Monitor, Gamepad2,
   ArrowRight, ArrowLeft, Plus, Trash2, Check, Sparkles,
@@ -364,18 +364,18 @@ function StepSystems({
           {newSys.type === "PC" ? (
             <div className="grid grid-cols-3 gap-3">
               {([
-                ["GPU", "gpu", "RTX 4070 Ti", GPU_OPTIONS],
-                ["CPU", "cpu", "i7-13700K", CPU_OPTIONS],
-                ["RAM", "ram", "32GB DDR5", RAM_OPTIONS],
-              ] as const).map(([label, key, ph, opts]) => (
+                ["GPU", "gpu", "RTX 4070 Ti", GPU_GROUPS],
+                ["CPU", "cpu", "i7-13700K", CPU_GROUPS],
+                ["RAM", "ram", "32GB DDR5", RAM_GROUPS],
+              ] as const).map(([label, key, ph, grps]) => (
                 <div key={key}>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">{label}</label>
                   <HardwareCombobox
                     value={(newSys as any)[key]}
                     onChange={(v) => setNewSys((p) => ({ ...p, [key]: v }))}
-                    options={opts as unknown as string[]}
+                    groups={grps}
                     placeholder={ph}
-                    className="reg-input !text-xs !py-2.5"
+                    className="reg-input !text-xs !py-2.5 !pr-8"
                   />
                 </div>
               ))}
@@ -386,9 +386,9 @@ function StepSystems({
               <HardwareCombobox
                 value={newSys.console_name}
                 onChange={(v) => setNewSys((p) => ({ ...p, console_name: v }))}
-                options={CONSOLE_OPTIONS}
+                groups={CONSOLE_GROUPS}
                 placeholder="PS5, Xbox Series X, Nintendo Switch..."
-                className="reg-input"
+                className="reg-input !pr-8"
               />
             </div>
           )}
