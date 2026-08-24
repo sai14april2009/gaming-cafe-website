@@ -67,7 +67,7 @@ Cafe owners can start ad-hoc "walk-in" sessions for a system from the dashboard 
 - Do not add `.css`, `.tsx`, or `.ts` to `assetsInclude` in `vite.config.ts`.
 # GameOrbit / GameSpot — Project Brain
 *Paste this entire file at the start of any new chat so the AI has full context immediately.*
-*Last updated: 2026-08-21*
+*Last updated: 2026-08-24*
 
 ---
 
@@ -188,6 +188,23 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 
 **Supabase project ID:** zvgfmjzrnzallkwgrgqb
 **Admin emails (hardcoded):** srisaikumar.ojjela@gmail.com, sai14april2009@gmail.com, alekhya.ojjela@gmail.com
+
+### Seed data (added 2026-08-24)
+
+5 fake cafes registered via the normal owner flow and admin-approved, all in Pune.
+Everything is fake except the cafe address/area names. All owner passwords: `123456`.
+
+| # | Cafe | Owner account | Area | Systems | Price range | Hours |
+|---|------|---------------|------|---------|-------------|-------|
+| 1 | Nexus LAN Arena | cafe1@gmail.com | Baner | 11 (8 PC + 3 Console) | ₹80–150 | 10:00–23:00 |
+| 2 | Frag Point Arena | cafe2@gmail.com | Kothrud | 12 (8 PC + 4 Console) | ₹70–140 | 11:00–23:00 |
+| 3 | Respawn Gaming Lounge | cafe3@gmail.com | Hinjewadi | 11 (8 PC + 3 Console) | ₹90–170 | 10:00–01:00 |
+| 4 | Pixel Bunker | cafe4@gmail.com | Viman Nagar | 10 (7 PC + 3 Console) | ₹60–120 | 11:00–00:00 |
+| 5 | Hexa Esports Hub | cafe5@gmail.com | Wakad | 11 (8 PC + 3 Console) | ₹80–150 | 09:00–02:00 |
+
+55 total gaming systems with varied specs (RTX 3060–4090, PS5/Xbox/Switch consoles).
+Cover images are Unsplash URLs (free, no auth). Phones are placeholder `+91 90000 0000X`.
+All geocoded and pinned on the map via LocationPicker.
 
 **Security (as of 2026-07-23):** Availability is now **secure by default**. Customer data
 (names/phones in `bookings.players`) is **no longer exposed** — the `bookings` table is locked
@@ -478,7 +495,7 @@ depending on the exact minutes involved. Fixed across three stages, all live:
 - **Exclusion constraint only covers `status = 'confirmed'`** — ending or cancelling a booking releases its slot from the DB-level guard. Low impact today (past hours are filtered from the grid), but relevant if booking editing is added.
 - ~~Mock demo data ships alongside real data~~ **Stage 1 DONE (2026-07-29, commit `a263e907`).**
   The homepage (`BrowseCafes`) no longer shows any mock cafés — it's purely Supabase-backed
-  (currently 1 real café, TESTUSER7). `mockData.ts` itself was **not** deleted in Stage 1 — it
+  (currently 6 cafés: TESTUSER7 + 5 seed cafes added 2026-08-24, see "Seed data" above). `mockData.ts` itself was **not** deleted in Stage 1 — it
   still exported shared types (`GamingSystem`, etc.) and `gameImages` consumed by the DB path.
   **Stage 2 (2026-08-06, commit `60e3ebdd`) finished the job:** `GamingSystem`/`BookingStatus`/
   `TimeSlot` moved verbatim into `src/app/types.ts`, `gameImages` moved verbatim into
