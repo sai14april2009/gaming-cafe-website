@@ -4,6 +4,8 @@ import { supabase } from "../../supabase";
 import { crossesMidnight } from "../utils/cafeHours";
 import { geocodeAddress } from "../utils/geocode";
 import { LocationPicker } from "./LocationPicker";
+import { HardwareCombobox } from "./HardwareCombobox";
+import { GPU_OPTIONS, CPU_OPTIONS, RAM_OPTIONS, CONSOLE_OPTIONS } from "../data/hardwareOptions";
 import {
   Store, MapPin, Clock, IndianRupee, Monitor, Gamepad2,
   ArrowRight, ArrowLeft, Plus, Trash2, Check, Sparkles,
@@ -362,16 +364,16 @@ function StepSystems({
           {newSys.type === "PC" ? (
             <div className="grid grid-cols-3 gap-3">
               {([
-                ["GPU", "gpu", "RTX 4070 Ti"],
-                ["CPU", "cpu", "i7-13700K"],
-                ["RAM", "ram", "32GB DDR5"],
-              ] as const).map(([label, key, ph]) => (
+                ["GPU", "gpu", "RTX 4070 Ti", GPU_OPTIONS],
+                ["CPU", "cpu", "i7-13700K", CPU_OPTIONS],
+                ["RAM", "ram", "32GB DDR5", RAM_OPTIONS],
+              ] as const).map(([label, key, ph, opts]) => (
                 <div key={key}>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">{label}</label>
-                  <input
-                    type="text"
+                  <HardwareCombobox
                     value={(newSys as any)[key]}
-                    onChange={(e) => setNewSys((p) => ({ ...p, [key]: e.target.value }))}
+                    onChange={(v) => setNewSys((p) => ({ ...p, [key]: v }))}
+                    options={opts as unknown as string[]}
                     placeholder={ph}
                     className="reg-input !text-xs !py-2.5"
                   />
@@ -381,10 +383,10 @@ function StepSystems({
           ) : (
             <div>
               <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Console Model</label>
-              <input
-                type="text"
+              <HardwareCombobox
                 value={newSys.console_name}
-                onChange={(e) => setNewSys((p) => ({ ...p, console_name: e.target.value }))}
+                onChange={(v) => setNewSys((p) => ({ ...p, console_name: v }))}
+                options={CONSOLE_OPTIONS}
                 placeholder="PS5, Xbox Series X, Nintendo Switch..."
                 className="reg-input"
               />
