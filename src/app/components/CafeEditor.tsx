@@ -354,7 +354,7 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
             {searchLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />}
           </div>
           {showDropdown && steamResults.length > 0 && (
-            <div className="absolute z-50 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg overflow-y-auto max-h-64">
+            <div className="absolute z-50 w-full bottom-full mb-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg overflow-y-auto max-h-64">
               {steamResults.map((game) => (
                 <button key={game.id} onClick={() => addGame(game.name)}
                   className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-cyan-50 transition-colors text-left">
