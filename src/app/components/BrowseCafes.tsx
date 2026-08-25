@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router";
 import {
-  Search, SlidersHorizontal, Star, MapPin, Monitor, Gamepad2,
+  SlidersHorizontal, Star, MapPin, Monitor, Gamepad2,
   Cpu, Zap, ChevronRight, Flame, Trophy, Swords, Target,
   Users, Wifi, Shield, Navigation, Loader2, Map as MapIcon,
   ShieldCheck, Timer, IndianRupee, Radio, Wrench, MessageSquare,
   BarChart3, CalendarClock, MousePointerClick, XCircle, CheckCircle2,
-  ArrowRight,
+  ArrowRight, X,
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { supabase } from "../../supabase";
 import { CafeMap, MapCafe } from "./CafeMap";
 import { effectiveSystemPrice, minSystemPrice, maxSystemPrice } from "../utils/pricing";
+import { searchAddresses, type AddressSuggestion } from "../utils/geocode";
 
 /* ── Types ── */
 
@@ -365,8 +366,13 @@ function CafeCard({ cafe, cafeSystems, delay, distanceKm }: {
 /* ── Main Component ── */
 
 export function BrowseCafes() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCity, setSelectedCity] = useState<string>("all");
+  const [locationQuery, setLocationQuery] = useState("");
+  const [locationSuggestions, setLocationSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showLocDropdown, setShowLocDropdown] = useState(false);
+  const [searchingLocation, setSearchingLocation] = useState(false);
+  const [selectedLocationLabel, setSelectedLocationLabel] = useState("");
+  const locSearchRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [systemTypeFilter, setSystemTypeFilter] = useState<"all" | "pc" | "console">("all");
   const [priceFilter, setPriceFilter] = useState<"all" | "under100" | "100to300" | "over300">("all");
   const [hardwareFilter, setHardwareFilter] = useState("");
@@ -448,10 +454,72 @@ export function BrowseCafes() {
 
   /* Helpers */
   const systemsForCafe = (cafeId: string) => systems.filter((s) => s.cafe_id === cafeId);
-  const cities = ["all", ...Array.from(new Set(dbCafes.map((c) => c.city)))];
 
-  /* Locate the visitor (opt-in) and rank cafes by real distance via the nearby_cafes RPC.
-     The city dropdown stays the default path — this only runs if they tap the button. */
+  /* ── Shared: geocode a point → nearby_cafes RPC → distance sort ── */
+  const applyLocationSort = async (loc: { lat: number; lng: number }) => {
+    setUserLoc(loc);
+    const { data } = await supabase.rpc("nearby_cafes", {
+      p_lat: loc.lat,
+      p_lng: loc.lng,
+      p_radius_m: 2_000_000,
+      p_limit: 200,
+    });
+    const map: Record<string, number> = {};
+    (data || []).forEach((r: { id: string; distance_m: number }) => {
+      map[r.id] = r.distance_m;
+    });
+    setDistances(map);
+  };
+
+  /* ── Location search: debounced autocomplete from Nominatim ── */
+  const handleLocationInput = (value: string) => {
+    setLocationQuery(value);
+    setSelectedLocationLabel("");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (value.trim().length < 3) {
+      setLocationSuggestions([]);
+      setShowLocDropdown(false);
+      return;
+    }
+    setSearchingLocation(true);
+    debounceRef.current = setTimeout(async () => {
+      const results = await searchAddresses(value);
+      setLocationSuggestions(results);
+      setShowLocDropdown(results.length > 0);
+      setSearchingLocation(false);
+    }, 350);
+  };
+
+  const pickLocationSuggestion = async (s: AddressSuggestion) => {
+    setLocationQuery(s.label);
+    setSelectedLocationLabel(s.label);
+    setShowLocDropdown(false);
+    setLocationSuggestions([]);
+    setLocating(true);
+    setLocError("");
+    await applyLocationSort({ lat: s.lat, lng: s.lng });
+    setLocating(false);
+  };
+
+  const clearLocationSearch = () => {
+    setLocationQuery("");
+    setSelectedLocationLabel("");
+    setLocationSuggestions([]);
+    setShowLocDropdown(false);
+    setUserLoc(null);
+    setDistances({});
+  };
+
+  // Close location dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (locSearchRef.current && !locSearchRef.current.contains(e.target as Node)) setShowLocDropdown(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  /* Locate via GPS (opt-in shortcut — same as Airbnb's "Use current location") */
   const useMyLocation = () => {
     if (!navigator.geolocation) {
       setLocError("Location isn't available on this device. Pick your city instead.");
@@ -462,18 +530,9 @@ export function BrowseCafes() {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setUserLoc(loc);
-        const { data } = await supabase.rpc("nearby_cafes", {
-          p_lat: loc.lat,
-          p_lng: loc.lng,
-          p_radius_m: 2_000_000, // wide net so every cafe gets a distance; nearest sort to top
-          p_limit: 200,
-        });
-        const map: Record<string, number> = {};
-        (data || []).forEach((r: { id: string; distance_m: number }) => {
-          map[r.id] = r.distance_m;
-        });
-        setDistances(map);
+        setSelectedLocationLabel("My location");
+        setLocationQuery("My location");
+        await applyLocationSort(loc);
         setLocating(false);
       },
       () => {
@@ -485,18 +544,11 @@ export function BrowseCafes() {
   };
 
   const filteredCafes = dbCafes.filter((cafe) => {
-    const q = searchQuery.toLowerCase();
-    const matchesSearch =
-      cafe.name.toLowerCase().includes(q) ||
-      cafe.address.toLowerCase().includes(q) ||
-      cafe.city.toLowerCase().includes(q);
-    const matchesCity = selectedCity === "all" || cafe.city === selectedCity;
     const cafeSys = systemsForCafe(cafe.id);
     const matchesType =
       systemTypeFilter === "all" ||
       (systemTypeFilter === "pc" && cafeSys.some((s) => s.type === "PC")) ||
       (systemTypeFilter === "console" && cafeSys.some((s) => s.type === "Console"));
-    // Filter on the cafe's cheapest effective rate — matches the "from ₹X" shown on the card.
     const cafePrice = minSystemPrice(cafeSys.map((s) => s.price_per_hour), cafe.price_per_hour);
     const matchesPrice =
       priceFilter === "all" ||
@@ -512,7 +564,7 @@ export function BrowseCafes() {
                (s.ram && s.ram.toLowerCase().includes(hw)) ||
                (s.console && s.console.toLowerCase().includes(hw));
       });
-    return matchesSearch && matchesCity && matchesType && matchesPrice && matchesHardware;
+    return matchesType && matchesPrice && matchesHardware;
   });
 
   // When the visitor has shared location, sort nearest-first (cafes without a distance
@@ -655,32 +707,51 @@ export function BrowseCafes() {
         ))}
       </div>
 
-      {/* ── Search and Filters ── */}
+      {/* ── Location Search + Filters ── */}
       <div className="animate-in bg-white rounded-xl shadow-md p-6 mb-8 search-glow transition-shadow" style={{ "--stagger": 3 } as React.CSSProperties}>
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <div className="flex flex-col md:flex-row gap-3">
+          {/* Airbnb-style location combobox */}
+          <div className="flex-1 relative" ref={locSearchRef}>
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             <Input
               type="text"
-              placeholder="Search by cafe name or location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              role="combobox"
+              aria-expanded={showLocDropdown}
+              aria-autocomplete="list"
+              placeholder="Where do you want to play? (city, area, landmark...)"
+              value={locationQuery}
+              onChange={(e) => handleLocationInput(e.target.value)}
+              onFocus={() => locationSuggestions.length > 0 && setShowLocDropdown(true)}
+              className="pl-10 pr-20"
             />
-          </div>
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-5 h-5 text-gray-400 flex-shrink-0" />
-            <select
-              value={selectedCity}
-              onChange={(e) => setSelectedCity(e.target.value)}
-              className="flex-1 md:flex-none px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {cities.map((city) => (
-                <option key={city} value={city}>
-                  {city === "all" ? "All Cities" : city}
-                </option>
-              ))}
-            </select>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {searchingLocation && <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />}
+              {selectedLocationLabel && (
+                <button onClick={clearLocationSearch}
+                  className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Clear location">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+              <button onClick={useMyLocation} disabled={locating}
+                className="p-1 rounded-full hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
+                title="Use my current location">
+                {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+              </button>
+            </div>
+            {/* Location suggestions dropdown */}
+            {showLocDropdown && locationSuggestions.length > 0 && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                <div className="px-3 py-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Locations</div>
+                {locationSuggestions.map((s, i) => (
+                  <button key={i} onClick={() => pickLocationSuggestion(s)}
+                    className="w-full px-3 py-2.5 text-left text-sm hover:bg-blue-50 transition-colors flex items-center gap-3 border-t border-gray-50">
+                    <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    <span className="truncate">{s.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -744,40 +815,32 @@ export function BrowseCafes() {
         </div>
       </div>
 
-      {/* ── Results count with live indicator ── */}
-      <div className="animate-in flex items-center justify-between mb-4" style={{ "--stagger": 4 } as React.CSSProperties}>
-        <p className="text-gray-600 font-medium">
-          {filteredCafes.length} {filteredCafes.length === 1 ? "cafe" : "cafes"} found
-        </p>
-        <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full">
-          <span className="live-dot" />
-          <Zap className="w-3 h-3 text-green-500" />
-          Real-time availability
+      {/* ── Results count + controls ── */}
+      <div className="animate-in flex flex-wrap items-center justify-between gap-2 mb-4" style={{ "--stagger": 4 } as React.CSSProperties}>
+        <div className="flex items-center gap-3">
+          <p className="text-gray-600 font-medium">
+            {filteredCafes.length} {filteredCafes.length === 1 ? "cafe" : "cafes"} found
+          </p>
+          {hasDistances && (
+            <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium bg-emerald-50 px-2.5 py-1 rounded-full">
+              <span className="live-dot" /> Sorted by distance{selectedLocationLabel ? ` from ${selectedLocationLabel.split(",")[0]}` : ""}
+            </span>
+          )}
+          {locError && <span className="text-xs text-amber-600">{locError}</span>}
         </div>
-      </div>
-
-      {/* ── Location controls ── */}
-      <div className="animate-in flex flex-wrap items-center gap-2 mb-4" style={{ "--stagger": 4 } as React.CSSProperties}>
-        <button
-          onClick={useMyLocation}
-          disabled={locating}
-          className="filter-chip flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
-        >
-          {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
-          {userLoc ? "Update my location" : "Use my location"}
-        </button>
-        <button
-          onClick={() => setShowMap((v) => !v)}
-          className="filter-chip flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
-        >
-          <MapIcon className="w-4 h-4" /> {showMap ? "Hide map" : "Show map"}
-        </button>
-        {hasDistances && (
-          <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
-            <span className="live-dot" /> Sorted by distance from you
-          </span>
-        )}
-        {locError && <span className="text-xs text-amber-600">{locError}</span>}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowMap((v) => !v)}
+            className="filter-chip flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
+          >
+            <MapIcon className="w-4 h-4" /> {showMap ? "Hide map" : "Show map"}
+          </button>
+          <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full">
+            <span className="live-dot" />
+            <Zap className="w-3 h-3 text-green-500" />
+            Real-time availability
+          </div>
+        </div>
       </div>
 
       {/* ── Map panel ── */}
@@ -809,8 +872,8 @@ export function BrowseCafes() {
       {filteredCafes.length === 0 && (
         <div className="text-center py-16">
           <Gamepad2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg font-medium">No cafes found matching your criteria</p>
-          <p className="text-gray-400 text-sm mt-1">Try a different search or city filter</p>
+          <p className="text-gray-500 text-lg font-medium">No cafes found matching your filters</p>
+          <p className="text-gray-400 text-sm mt-1">Try a different location or adjust your filters</p>
         </div>
       )}
 
