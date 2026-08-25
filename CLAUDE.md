@@ -173,6 +173,7 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - ✅ Homepage filters (system type PC/Console + price range chips) — shipped 2026-08-18 (`fb196633`)
 - ✅ Filter in Gaming Systems tab (owner dashboard: Free Now / In Use / Free at X time + PC/Console type) — shipped 2026-08-24 (`b0fa33d4`)
 - ✅ Hardware autocomplete + case-insensitive hardware filter — shipped 2026-08-24 (`5b834624`, `ae48f54e`); homepage GPU/console filter + brand-grouped `HardwareCombobox` on the Add-System form (see Section 14)
+- ✅ Airbnb-style location search — shipped 2026-08-26 (`e51cf469`, `edc077e7`); geocode-based combobox replaces text-match search + city dropdown; progressive word-drop fallback for Nominatim misses (see Section 13)
 - 🔲 Custom SMTP (Resend/SendGrid) before real users
 - ✅ Mobile responsiveness — homepage + customer booking flow made responsive 2026-08-18 (`873ea087`); owner dashboard not yet audited
 - 🔲 Customer data collection (name, phone, email, city) for analytics — Phase 2
@@ -1234,12 +1235,36 @@ Migrations applied (not in repo — schema is inferred; recorded here):
   (Photon is autocomplete-optimized, no key) if suggestion latency/quality becomes a problem at
   volume. Not urgent.
 
-### Customer side (Phase 2 — `BrowseCafes`)
-- **City dropdown = default** (unchanged). **`📍 Use my location`** button → `navigator.
-  geolocation.getCurrentPosition` (opt-in, one prompt) → `nearby_cafes` RPC → `distances` map
-  (`id → metres`) → list re-sorted nearest-first, distance badge on each `CafeCard`
-  ("1.2 km" / "800 m"). Graceful fallback text if the visitor denies or it's unsupported.
-- **`src/app/components/CafeMap.tsx`** — **vanilla Leaflet** (dep: `leaflet` + `@types/leaflet`;
+### Customer side (`BrowseCafes`)
+
+#### Airbnb-style location search (shipped 2026-08-26, commits `e51cf469` + `edc077e7`)
+**Replaced the city dropdown + text-match search with a geocode-first location combobox** —
+the Airbnb/Booking.com pattern. The old approach text-matched against cafe names/addresses/
+cities, so "Pune Railway Station" returned 0 results even though cafes in Pune exist nearby.
+The new approach: any text → geocode → lat/lng → `nearby_cafes` RPC → all cafes sorted by
+distance. No text matching against cafe names at all — location-first, like Airbnb.
+
+- **Search bar** — `MapPin` icon, debounced (350ms) autocomplete via `searchAddresses()` →
+  dropdown of geocoded suggestions (up to 6). Picking one calls `applyLocationSort()` →
+  `nearby_cafes` RPC (2,000 km radius, limit 200) → `distances` map → list re-sorted
+  nearest-first, distance badge on each `CafeCard` ("1.2 km" / "800 m"). Inline `📍` GPS
+  button (opt-in, one prompt) reuses the same `applyLocationSort`. Inline `✕` clear button
+  resets all location state.
+- **City dropdown removed** — no longer needed; the geocode combobox subsumes it. Searching
+  "Pune" geocodes to Pune's center and sorts all cafes by distance from there.
+- **"Sorted by distance from {location}"** badge shown when a location is active.
+- **Progressive word-drop fallback** (`edc077e7`) — Nominatim (free, OSM-based) can't resolve
+  institution/acronym names (e.g. "DIAT Khadakwasla Pune" — DIAT = Defence Institute of
+  Advanced Technology). `searchAddresses()` now drops leading words and retries: full query →
+  0 results → "Khadakwasla Pune" → results found. Handles the common pattern of users typing
+  a building/institution name before a known area. `ponytail:` comment marks the ceiling —
+  swap to Google Places ($2.83/1000 req) if quality matters more than cost.
+- **No new files, no new deps, no new RPCs** — reuses existing `searchAddresses()`,
+  `nearby_cafes` RPC, `distances` state, and `CafeMap`. Filter logic (type/price/hardware)
+  unchanged; only the search/sort input changed.
+
+#### Map (`CafeMap.tsx`)
+- **Vanilla Leaflet** (dep: `leaflet` + `@types/leaflet`;
   **no `react-leaflet`**, no Mapbox, no token). OSM tiles, **Airbnb-style price pins** (`₹60`
   pills via `L.divIcon` — divIcons sidestep the Leaflet-marker-asset-in-Vite bug), a cyan "You
   are here" marker, auto `fitBounds`, popups (name/city/price/distance), and `onSelect` →
@@ -1247,10 +1272,15 @@ Migrations applied (not in repo — schema is inferred; recorded here):
   page scroll. Rebuilds only when the plotted point set or user location changes (keyed
   signature). Map panel is shown by default (`showMap`), toggle to hide.
 
-### Verified (dev, real data)
-Both existing cafés backfilled to Nanded City, Pune (`18.4598, 73.7851`). From central Pune the
-RPC + UI both report **≈10.1 km** (DB `distance_m 10105`), badges render, list sorts, the "you"
-marker plots, 2 price pins + OSM tiles load, zero console errors. `npm run build` clean.
+### Verified
+- **Phase 1 (dev, real data):** Both existing cafés backfilled to Nanded City, Pune
+  (`18.4598, 73.7851`). From central Pune the RPC + UI both report **≈10.1 km** (DB
+  `distance_m 10105`), badges render, list sorts, the "you" marker plots, 2 price pins + OSM
+  tiles load, zero console errors. `npm run build` clean.
+- **Location search (production, 2026-08-26):** "diat khadakwasla pune" → word-drop fires
+  (full query 0 results → "khadakwasla pune" 2 results) → dropdown shows 2 Khadakwasla
+  suggestions → pick → "Sorted by distance from Khadakwasla" badge, "2.5 km" on nearest cafe,
+  all 7 cafes visible with distance badges. Verified on gaming-cafe-website.vercel.app.
 
 ### Deferred (Phase 3)
 IP geolocation (passive city guess, no prompt); "recommended for you" (needs booking volume);
