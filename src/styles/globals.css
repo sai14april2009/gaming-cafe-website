@@ -657,4 +657,15 @@ a[class*="rounded"]:hover {
   .success-pop { animation: none; opacity: 1; }
   .reg-preview-card:hover, .reg-sys-card:hover { transform: none; box-shadow: none; }
   .reg-back-btn:hover { transform: none; }
+  .animate-dropdown { animation: none; }
+}
+
+/* ── Location dropdown (Emil: origin-aware scale, strong ease-out) ── */
+@keyframes dropdown-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-dropdown {
+  transform-origin: top center;
+  animation: dropdown-in 180ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }

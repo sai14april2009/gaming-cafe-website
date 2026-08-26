@@ -721,7 +721,7 @@ export function BrowseCafes() {
               placeholder="Where do you want to play? (city, area, landmark...)"
               value={locationQuery}
               onChange={(e) => handleLocationInput(e.target.value)}
-              onFocus={() => locationSuggestions.length > 0 && setShowLocDropdown(true)}
+              onFocus={() => setShowLocDropdown(true)}
               className="pl-10 pr-20"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -734,22 +734,35 @@ export function BrowseCafes() {
                 </button>
               )}
               <button onClick={useMyLocation} disabled={locating}
-                className="p-1 rounded-full hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
-                title="Use my current location">
-                {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+                className="p-1.5 rounded-full hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-all active:scale-95"
+                title="Use my current location"
+                aria-label="Use my current location">
+                {locating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Navigation className="w-5 h-5" />}
               </button>
             </div>
             {/* Location suggestions dropdown */}
-            {showLocDropdown && locationSuggestions.length > 0 && (
-              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                <div className="px-3 py-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Locations</div>
-                {locationSuggestions.map((s, i) => (
-                  <button key={i} onClick={() => pickLocationSuggestion(s)}
-                    className="w-full px-3 py-2.5 text-left text-sm hover:bg-blue-50 transition-colors flex items-center gap-3 border-t border-gray-50">
-                    <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="truncate">{s.label}</span>
-                  </button>
-                ))}
+            {showLocDropdown && !selectedLocationLabel && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden animate-dropdown">
+                {/* Always show "Use current location" — the Airbnb pattern */}
+                <button onClick={useMyLocation} disabled={locating}
+                  className="w-full px-3 py-3 text-left text-sm hover:bg-blue-50 transition-colors flex items-center gap-3 font-medium text-blue-600">
+                  {locating
+                    ? <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />
+                    : <Navigation className="w-5 h-5 flex-shrink-0" />}
+                  <span>Use current location</span>
+                </button>
+                {locationSuggestions.length > 0 && (
+                  <>
+                    <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider border-t border-gray-100">Locations</div>
+                    {locationSuggestions.map((s, i) => (
+                      <button key={i} onClick={() => pickLocationSuggestion(s)}
+                        className="w-full px-3 py-2.5 text-left text-sm hover:bg-blue-50 transition-colors flex items-center gap-3 border-t border-gray-50">
+                        <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span className="truncate">{s.label}</span>
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </div>
