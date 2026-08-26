@@ -175,7 +175,7 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - ✅ Hardware autocomplete + case-insensitive hardware filter — shipped 2026-08-24 (`5b834624`, `ae48f54e`); homepage GPU/console filter + brand-grouped `HardwareCombobox` on the Add-System form (see Section 14)
 - ✅ Airbnb-style location search — shipped 2026-08-26 (`e51cf469`, `edc077e7`); geocode-based combobox replaces text-match search + city dropdown; progressive word-drop fallback for Nominatim misses (see Section 13)
 - 🔲 Custom SMTP (Resend/SendGrid) before real users
-- ✅ Mobile responsiveness — homepage + customer booking flow made responsive 2026-08-18 (`873ea087`); owner dashboard not yet audited
+- ✅ Mobile responsiveness — homepage + customer booking flow 2026-08-18 (`873ea087`); owner dashboard 2026-08-26 (`03fac8af`)
 - 🔲 Customer data collection (name, phone, email, city) for analytics — Phase 2
 - 🔲 Marketing campaign feature for café owners — Phase 2
 
@@ -380,8 +380,10 @@ Customer-facing UI pass. All shipped + pushed; Vercel auto-deploys from main.
     `min-w-[92px] sm:min-w-[120px]`; compact date strip; `px-4 sm:px-6` section paddings.
   - `BrowseCafes`: city dropdown `flex-1 md:flex-none` (fills width when search block stacks).
   - Verified in prod: at true 375px viewport homepage + cafe-detail have zero horizontal
-    overflow; new responsive classes confirmed live in the deployed DOM. Owner dashboard NOT
-    yet made responsive (out of scope — see Section 3).
+    overflow; new responsive classes confirmed live in the deployed DOM.
+- **Owner dashboard mobile** (`03fac8af`, 2026-08-26) — `Dashboard.tsx`, `SystemsManager.tsx`,
+  `LiveSessions.tsx`: compact tab bar, single-column forms, stacking card headers + action
+  buttons, compact date picker. All `sm:`-guarded, desktop unchanged. Same pattern as customer pass.
 - **Nearby cafes system** (2026-08-20) — full end-to-end build; see Section 13 for complete
   documentation. New files: `api/geocode.ts` (Nominatim proxy), `src/app/utils/geocode.ts`,
   `src/app/components/CafeMap.tsx` (Leaflet + markerClusterGroup), `src/app/components/LocationPicker.tsx`
@@ -554,9 +556,8 @@ covered; the column is no longer half-populated.
 - RevenueStats: exclude cancelled from revenue, fix upcoming count
 - Image upload for cafe cover
 - Custom SMTP
-- ~~Mobile responsiveness~~ **DONE (customer-facing) 2026-08-18** (`873ea087`) — homepage + booking
-  flow. Owner dashboard (`Dashboard`/`SystemsManager`/`LiveSessions`) still desktop-only; audit
-  when an owner actually manages from a phone.
+- ~~Mobile responsiveness~~ **DONE 2026-08-18 + 2026-08-26** — customer-facing (`873ea087`),
+  owner dashboard (`03fac8af`). All surfaces responsive.
 - ~~Remove mock café data path~~ **DONE — Stage 1 (2026-07-29, `a263e907`)** — mock components/
   routes deleted, homepage purely Supabase-backed. **Stage 2 (2026-08-06, `60e3ebdd`)** —
   `mockData.ts` deleted entirely; see the Important backlog entry above.
@@ -1249,7 +1250,8 @@ distance. No text matching against cafe names at all — location-first, like Ai
   `nearby_cafes` RPC (2,000 km radius, limit 200) → `distances` map → list re-sorted
   nearest-first, distance badge on each `CafeCard` ("1.2 km" / "800 m"). Inline `📍` GPS
   button (opt-in, one prompt) reuses the same `applyLocationSort`. Inline `✕` clear button
-  resets all location state.
+  resets all location state. **"Use current location" appears as the first dropdown item on
+  focus** (Airbnb pattern, `da9e0147`) — always discoverable, not just the inline icon.
 - **City dropdown removed** — no longer needed; the geocode combobox subsumes it. Searching
   "Pune" geocodes to Pune's center and sorts all cafes by distance from there.
 - **"Sorted by distance from {location}"** badge shown when a location is active.
