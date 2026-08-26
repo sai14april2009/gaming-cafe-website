@@ -965,10 +965,10 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
 
       {/* Systems Grid */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Gaming Systems ({filteredSystems.length !== systems.length ? `${filteredSystems.length} of ${systems.length}` : systems.length})</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <h2 className="text-lg sm:text-xl font-bold">Gaming Systems ({filteredSystems.length !== systems.length ? `${filteredSystems.length} of ${systems.length}` : systems.length})</h2>
           <Button onClick={() => setShowForm(!showForm)}
-            className="bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700 gap-2">
+            className="bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700 gap-2 w-full sm:w-auto">
             <Plus className="w-4 h-4" /> Add System
           </Button>
         </div>
@@ -986,7 +986,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                 <button
                   key={dateStr}
                   onClick={() => selectDate(dateStr)}
-                  className={`flex-shrink-0 px-5 py-3 flex flex-col items-center justify-center min-w-[84px] transition-all ${
+                  className={`flex-shrink-0 px-3 sm:px-5 py-2.5 sm:py-3 flex flex-col items-center justify-center min-w-[64px] sm:min-w-[84px] transition-all ${
                     isSelected ? "bg-blue-600 text-white" : "bg-white text-gray-700 hover:bg-gray-50"
                   } ${index !== 0 ? "border-l border-gray-200" : ""}`}
                 >
@@ -1045,7 +1045,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                 ))}
               </select>
             )}
-            <div className="w-px h-5 bg-gray-300 mx-1" />
+            <div className="hidden sm:block w-px h-5 bg-gray-300 mx-1" />
             {(["all", "PC", "Console"] as const).map((val) => (
               <button key={val} onClick={() => setTypeFilter(val)}
                 className={`filter-chip px-3 py-1 rounded-full text-xs font-medium transition-all ${typeFilter === val ? "bg-blue-600 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
@@ -1063,7 +1063,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
         {/* Add System Form */}
         {showForm && (
           <div className="bg-white rounded-xl shadow-md p-6 space-y-4 mb-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">System Name</label>
                 <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -1079,7 +1079,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
               </div>
             </div>
             {form.type === "PC" ? (
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div><label className="text-sm font-medium text-gray-700 mb-1 block">GPU</label>
                   <HardwareCombobox value={form.gpu} onChange={(v) => setForm({ ...form, gpu: v })}
                     groups={GPU_GROUPS} placeholder="NVIDIA RTX 4090"
@@ -1141,13 +1141,13 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
               && selectedWalkInSlots[0] === now.getHours();
 
             return (
-              <div key={system.id} className="bg-white rounded-xl shadow-md p-5 border-2 border-gray-200">
+              <div key={system.id} className="bg-white rounded-xl shadow-md p-4 sm:p-5 border-2 border-gray-200">
                 {/* System header */}
-                <div className="flex justify-between items-start mb-4">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-4">
                   <div>
                     <h3 className="font-bold text-gray-900 text-lg">{system.name}</h3>
                     {system.type === "PC" ? (
-                      <div className="text-xs text-gray-500 mt-0.5 space-x-2">
+                      <div className="text-xs text-gray-500 mt-0.5 flex flex-wrap gap-x-2">
                         {system.gpu && <span>{system.gpu}</span>}
                         {system.cpu && <span>• {system.cpu}</span>}
                         {system.ram && <span>• {system.ram}</span>}
@@ -1156,7 +1156,7 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                       <p className="text-xs text-gray-500 mt-0.5">{system.console} — Console</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                     {editingPriceId === system.id ? (
                       <div className="flex items-center gap-1">
                         <span className="text-sm text-gray-500">₹</span>

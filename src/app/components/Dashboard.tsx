@@ -102,7 +102,7 @@ export function Dashboard() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{cafe.name}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{cafe.name}</h1>
             <div className="flex items-center gap-2 mt-1.5">
               {cafe.is_approved ? (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
@@ -131,7 +131,7 @@ export function Dashboard() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`relative flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                className={`relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
                   isActive
                     ? "bg-blue-600 text-white shadow-md"
                     : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"

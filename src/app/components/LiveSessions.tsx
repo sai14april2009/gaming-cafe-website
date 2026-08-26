@@ -457,10 +457,10 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
           if (item.kind === "walkin") {
             const session = item.session;
             return (
-              <div key={`walkin-${session.id}`} className={`bg-white rounded-xl shadow-md p-5 border-2 ${
+              <div key={`walkin-${session.id}`} className={`bg-white rounded-xl shadow-md p-4 sm:p-5 border-2 ${
                 session.status === "active" ? "border-orange-400" : "border-yellow-400"
               }`}>
-                <div className="flex justify-between items-start mb-3">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-0 mb-3">
                   <div>
                     <h3 className="font-bold text-gray-900">{getSystemName(session.system_id)}</h3>
                     <p className="text-xs text-gray-500 mt-0.5">
@@ -488,7 +488,7 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
                         style={{ width: `${getProgressPercent(session)}%` }}
                       />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <button onClick={() => handleAddHour(session)}
                         className="flex-1 text-sm py-2 border-2 border-orange-400 text-orange-600 rounded-lg hover:bg-orange-50 font-semibold">
                         + Add 1 Hour
@@ -520,8 +520,8 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
           const endH = parseInt(b.end_time.split(":")[0]);
           const customer = b.players?.[0];
           return (
-            <div key={`online-${b.id}`} className="bg-white rounded-xl shadow-md p-5 border-2 border-blue-400">
-              <div className="flex justify-between items-start mb-3">
+            <div key={`online-${b.id}`} className="bg-white rounded-xl shadow-md p-4 sm:p-5 border-2 border-blue-400">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-0 mb-3">
                 <div>
                   <h3 className="font-bold text-gray-900">{getSystemName(b.system_id)}</h3>
                   <p className="text-xs text-gray-500 mt-0.5">
@@ -548,7 +548,7 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
                   style={{ width: `${getBookingProgressPercent(b)}%` }}
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button onClick={() => handleAddBookingHour(b)}
                   className="flex-1 text-sm py-2 border-2 border-blue-400 text-blue-600 rounded-lg hover:bg-blue-50 font-semibold">
                   + Add 1 Hour
