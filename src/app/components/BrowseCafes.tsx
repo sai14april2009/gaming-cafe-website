@@ -966,7 +966,7 @@ export function BrowseCafes() {
             {/* Calendar-card date strip (matches booking interface) */}
             <div className="flex border-b border-slate-700/60 overflow-x-auto">
               {dayOptions.map((d, i) => (
-                <button key={d.offset} onClick={() => { setFilterDay(d.offset); setAvailableCafeIds(null); }}
+                <button key={d.offset} onClick={() => { setFilterDay(d.offset); setFilterHours([]); setAvailableCafeIds(null); }}
                   className={`flex-shrink-0 px-3 sm:px-5 py-2.5 sm:py-3 flex flex-col items-center justify-center min-w-[60px] sm:min-w-[80px] transition-all ${
                     filterDay === d.offset ? "bg-cyan-500 text-slate-900" : "text-slate-300 hover:bg-slate-700/60"
                   } ${i !== 0 ? "border-l border-slate-700/60" : ""}`}>
