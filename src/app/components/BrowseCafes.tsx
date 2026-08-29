@@ -705,6 +705,7 @@ export function BrowseCafes() {
   const SlideIcon = slide.icon;
 
   return (
+    <>
     <div className="browse-bg min-h-screen">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
@@ -1235,7 +1236,9 @@ export function BrowseCafes() {
       </div>
     </div>
 
-    {/* ── Games Popup ── */}
+    </div>
+
+    {/* ── Games Popup (outside browse-bg to avoid fixed-position breakage) ── */}
     {showGamesPopup && (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setShowGamesPopup(false)}>
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm smart-filter-backdrop" />
@@ -1306,7 +1309,7 @@ export function BrowseCafes() {
       </div>
     )}
 
-    {/* ── Hardware Popup ── */}
+    {/* ── Hardware Popup (outside browse-bg to avoid fixed-position breakage) ── */}
     {showHardwarePopup && (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setShowHardwarePopup(false)}>
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm smart-filter-backdrop" />
@@ -1402,6 +1405,6 @@ export function BrowseCafes() {
       </div>
     )}
 
-    </div>
+    </>
   );
 }
