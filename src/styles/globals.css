@@ -444,28 +444,33 @@ a[class*="rounded"]:hover {
 }
 .filter-chip:active { transform: scale(0.95); }
 
-/* Search bar animated gradient glow */
+/* Search bar animated gradient glow — box-shadow approach (no filter:blur, GPU-friendly) */
 .search-glow {
-  position: relative;
-  overflow: visible;
-}
-.search-glow::before {
-  content: "";
-  position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  background: conic-gradient(from 0deg, #06b6d4, #a855f7, #10b981, #06b6d4);
-  opacity: 0.45;
-  filter: blur(10px);
-  z-index: -1;
   animation: search-glow-pulse 3s ease-in-out infinite;
+  box-shadow:
+    0 0 15px 2px rgba(6, 182, 212, 0.15),
+    0 0 30px 5px rgba(168, 85, 247, 0.1),
+    0 0 45px 8px rgba(16, 185, 129, 0.08);
 }
 @keyframes search-glow-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.65; }
+  0%, 100% {
+    box-shadow:
+      0 0 15px 2px rgba(6, 182, 212, 0.15),
+      0 0 30px 5px rgba(168, 85, 247, 0.1),
+      0 0 45px 8px rgba(16, 185, 129, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 0 20px 4px rgba(6, 182, 212, 0.25),
+      0 0 40px 8px rgba(168, 85, 247, 0.18),
+      0 0 60px 12px rgba(16, 185, 129, 0.12);
+  }
 }
-.search-glow:focus-within::before {
-  opacity: 0.8;
+.search-glow:focus-within {
+  box-shadow:
+    0 0 25px 5px rgba(6, 182, 212, 0.3),
+    0 0 50px 10px rgba(168, 85, 247, 0.2),
+    0 0 70px 15px rgba(16, 185, 129, 0.15);
 }
 /* Gradient heading text */
 .search-heading-gradient {
@@ -475,7 +480,7 @@ a[class*="rounded"]:hover {
   background-clip: text;
 }
 @media (prefers-reduced-motion: reduce) {
-  .search-glow::before { animation: none; opacity: 0.4; filter: blur(8px); }
+  .search-glow { animation: none; }
 }
 
 /* ── Register Cafe wizard ── */
