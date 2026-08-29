@@ -1008,8 +1008,10 @@ export function BrowseCafes() {
                   </button>
                 )}
                 {availableCafeIds !== null && (
-                  <span className="text-xs text-emerald-400 font-medium ml-auto">
-                    {availableCafeIds.length} {availableCafeIds.length === 1 ? "cafe" : "cafes"} available
+                  <span className="text-sm font-semibold ml-auto flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span className="text-emerald-400">{availableCafeIds.length}</span>
+                    <span className="text-slate-400">of {dbCafes.length} {dbCafes.length === 1 ? "cafe" : "cafes"} available</span>
                   </span>
                 )}
               </div>
