@@ -501,13 +501,16 @@ export function BrowseCafes() {
     return Array.from(set).sort((a, b) => a - b);
   }, [cafeHoursMap]);
 
-  // 7-day strip
+  // 7-day strip (calendar-card format matching booking interface)
   const dayOptions = useMemo(() =>
     Array.from({ length: 7 }, (_, i) => {
       const d = new Date(); d.setDate(d.getDate() + i);
       return {
         offset: i,
         label: i === 0 ? "Today" : i === 1 ? "Tomorrow" : d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric" }),
+        day: d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
+        dateNum: d.getDate(),
+        month: d.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
       };
     }), []);
 
@@ -959,51 +962,57 @@ export function BrowseCafes() {
 
         {/* ── Time Slots Panel (expandable) ── */}
         {showTimePanel && (
-          <div className="mt-3 p-4 bg-slate-800/90 backdrop-blur-sm rounded-xl border border-cyan-500/20 shadow-lg shadow-cyan-500/5 animate-dropdown">
-            {/* Day strip */}
-            <div className="flex gap-1.5 overflow-x-auto pb-3 mb-3 border-b border-slate-700/60">
-              {dayOptions.map((d) => (
+          <div className="mt-3 bg-slate-800/90 backdrop-blur-sm rounded-xl border border-cyan-500/20 shadow-lg shadow-cyan-500/5 animate-dropdown overflow-hidden">
+            {/* Calendar-card date strip (matches booking interface) */}
+            <div className="flex border-b border-slate-700/60 overflow-x-auto">
+              {dayOptions.map((d, i) => (
                 <button key={d.offset} onClick={() => { setFilterDay(d.offset); setAvailableCafeIds(null); }}
-                  className={`filter-chip px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                    filterDay === d.offset ? "bg-cyan-500 text-slate-900 shadow-sm shadow-cyan-500/30" : "bg-slate-700/60 text-slate-300 hover:bg-slate-600/60"
-                  }`}>
-                  {d.label}
+                  className={`flex-shrink-0 px-3 sm:px-5 py-2.5 sm:py-3 flex flex-col items-center justify-center min-w-[60px] sm:min-w-[80px] transition-all ${
+                    filterDay === d.offset ? "bg-cyan-500 text-slate-900" : "text-slate-300 hover:bg-slate-700/60"
+                  } ${i !== 0 ? "border-l border-slate-700/60" : ""}`}>
+                  <div className="text-[11px] sm:text-xs font-semibold">{d.day}</div>
+                  <div className="text-xl sm:text-2xl font-bold my-0.5">{d.dateNum}</div>
+                  <div className="text-[10px] sm:text-xs font-medium opacity-80">{d.month}</div>
                 </button>
               ))}
             </div>
-            {/* Hour chips */}
-            <div className="flex flex-wrap gap-2 mb-3">
-              {allHours.length === 0 && <p className="text-xs text-slate-500">Loading hours…</p>}
-              {allHours.map((h) => {
-                const label = `${h % 12 || 12}:00 ${h < 12 ? "AM" : "PM"}`;
-                const selected = filterHours.includes(h);
-                return (
-                  <button key={h} onClick={() => toggleFilterHour(h)}
-                    className={`filter-chip px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                      selected ? "bg-cyan-500 text-slate-900 shadow-sm shadow-cyan-500/30" : "bg-slate-700/50 text-slate-300 hover:bg-cyan-500/10 border border-slate-600/60"
-                    }`}>
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-            {/* Actions */}
-            <div className="flex items-center gap-2">
-              <button onClick={applyTimeFilter} disabled={filterHours.length === 0 || checkingAvailability}
-                className="px-4 py-2 bg-cyan-500 text-slate-900 text-sm font-semibold rounded-lg hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center gap-2 shadow-sm shadow-cyan-500/30">
-                {checkingAvailability ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                {checkingAvailability ? "Checking…" : "Find available cafes"}
-              </button>
-              {(filterHours.length > 0 || availableCafeIds !== null) && (
-                <button onClick={clearTimeFilter} className="px-3 py-2 text-sm text-slate-400 hover:text-white transition-colors">
-                  Clear
+            {/* Slot grid (booking-interface style) */}
+            <div className="p-4">
+              <div className="flex flex-wrap gap-2 mb-4">
+                {allHours.length === 0 && <p className="text-xs text-slate-500">Loading hours…</p>}
+                {allHours.map((h) => {
+                  const label = `${h % 12 || 12}:00 ${h < 12 ? "AM" : "PM"}`;
+                  const selected = filterHours.includes(h);
+                  return (
+                    <button key={h} onClick={() => toggleFilterHour(h)}
+                      className={`filter-chip min-w-[90px] sm:min-w-[110px] px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all border ${
+                        selected
+                          ? "bg-cyan-500/20 text-cyan-300 border-cyan-500 shadow-sm shadow-cyan-500/20"
+                          : "bg-transparent text-slate-300 border-slate-600/60 hover:border-cyan-500/40 hover:text-cyan-300"
+                      }`}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Actions */}
+              <div className="flex items-center gap-2">
+                <button onClick={applyTimeFilter} disabled={filterHours.length === 0 || checkingAvailability}
+                  className="px-4 py-2 bg-cyan-500 text-slate-900 text-sm font-semibold rounded-lg hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center gap-2 shadow-sm shadow-cyan-500/30">
+                  {checkingAvailability ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  {checkingAvailability ? "Checking…" : "Find available cafes"}
                 </button>
-              )}
-              {availableCafeIds !== null && (
-                <span className="text-xs text-emerald-400 font-medium ml-auto">
-                  {availableCafeIds.length} {availableCafeIds.length === 1 ? "cafe" : "cafes"} available
-                </span>
-              )}
+                {(filterHours.length > 0 || availableCafeIds !== null) && (
+                  <button onClick={clearTimeFilter} className="px-3 py-2 text-sm text-slate-400 hover:text-white transition-colors">
+                    Clear
+                  </button>
+                )}
+                {availableCafeIds !== null && (
+                  <span className="text-xs text-emerald-400 font-medium ml-auto">
+                    {availableCafeIds.length} {availableCafeIds.length === 1 ? "cafe" : "cafes"} available
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}
