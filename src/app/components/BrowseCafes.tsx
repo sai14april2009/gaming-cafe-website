@@ -6,13 +6,16 @@ import {
   Users, Wifi, Shield, Navigation, Loader2, Map as MapIcon,
   ShieldCheck, Timer, IndianRupee, Radio, Wrench, MessageSquare,
   BarChart3, CalendarClock, MousePointerClick, XCircle, CheckCircle2,
-  ArrowRight, X,
+  ArrowRight, X, Clock, Search, Check,
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { supabase } from "../../supabase";
 import { CafeMap, MapCafe } from "./CafeMap";
 import { effectiveSystemPrice, minSystemPrice, maxSystemPrice } from "../utils/pricing";
 import { searchAddresses, type AddressSuggestion } from "../utils/geocode";
+import { SteamGameImage } from "./SteamGameImage";
+import { hoursForUniformSchedule, type CafeHoursSchedule } from "../utils/cafeHours";
+import { toLocalDateString } from "../utils/date";
 
 /* ── Types ── */
 
@@ -27,7 +30,23 @@ interface DbCafe {
   is_approved: boolean;
   latitude: number | null;
   longitude: number | null;
+  games: string[] | null;
 }
+
+interface CafeHoursRow {
+  cafe_id: string;
+  day_of_week: number;
+  open_time: string;
+  close_time: string;
+}
+
+/* Powerful hardware that gets a glow animation in the filter */
+const POWERFUL_HW = new Set([
+  "RTX 4090", "RTX 4080", "RTX 4080 SUPER", "RTX 4070 Ti SUPER", "RTX 4070 Ti",
+  "RX 7900 XTX", "RX 7900 XT",
+  "PS5 Pro", "PS5",
+  "Xbox Series X",
+]);
 
 interface DbSystem {
   id: string;
@@ -384,25 +403,49 @@ export function BrowseCafes() {
   const [heroIdx, setHeroIdx] = useState(0);
   const [heroDir, setHeroDir] = useState<"enter" | "exit">("enter");
 
+  /* Smart filters */
+  const [showTimePanel, setShowTimePanel] = useState(false);
+  const [showGamesPopup, setShowGamesPopup] = useState(false);
+  const [showHardwarePopup, setShowHardwarePopup] = useState(false);
+  const [filterDay, setFilterDay] = useState(0); // 0=today, 1=tomorrow…
+  const [filterHours, setFilterHours] = useState<number[]>([]);
+  const [cafeHoursMap, setCafeHoursMap] = useState<Record<string, CafeHoursSchedule>>({});
+  const [availableCafeIds, setAvailableCafeIds] = useState<string[] | null>(null);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
+  const [selectedGames, setSelectedGames] = useState<string[]>([]);
+  const [selectedHardware, setSelectedHardware] = useState<string[]>([]);
+  const [gameSearchQuery, setGameSearchQuery] = useState("");
+
   const heroRef = useRef<HTMLDivElement>(null);
   const gridRef = useScrollReveal(dbCafes.length);
   useHeroParallax(heroRef);
 
   // All unique GPU/console values for autocomplete suggestions
-  /* Fetch cafes + gaming systems */
+  /* Fetch cafes + gaming systems + cafe hours */
   useEffect(() => {
     (async () => {
-      const [{ data: cafesData }, { data: sysData }] = await Promise.all([
+      const [{ data: cafesData }, { data: sysData }, { data: hoursData }] = await Promise.all([
         supabase
           .from("cafes")
-          .select("id, name, description, city, address, price_per_hour, image_url, is_approved, latitude, longitude")
+          .select("id, name, description, city, address, price_per_hour, image_url, is_approved, latitude, longitude, games")
           .eq("is_approved", true),
         supabase
           .from("gaming_systems")
           .select("id, cafe_id, name, type, gpu, cpu, ram, console, price_per_hour"),
+        supabase
+          .from("cafe_hours")
+          .select("cafe_id, day_of_week, open_time, close_time"),
       ]);
       if (cafesData) setDbCafes(cafesData as DbCafe[]);
       if (sysData) setSystems(sysData as DbSystem[]);
+      if (hoursData) {
+        // MVP: uniform schedule, so any day_of_week row works — take the first per cafe
+        const map: Record<string, CafeHoursSchedule> = {};
+        (hoursData as CafeHoursRow[]).forEach((r) => {
+          if (!map[r.cafe_id]) map[r.cafe_id] = { open_time: r.open_time, close_time: r.close_time };
+        });
+        setCafeHoursMap(map);
+      }
     })();
   }, []);
 
@@ -428,6 +471,102 @@ export function BrowseCafes() {
 
   /* Helpers */
   const systemsForCafe = (cafeId: string) => systems.filter((s) => s.cafe_id === cafeId);
+
+  /* ── Smart filter: computed lists ── */
+  const allGames = useMemo(() => {
+    const set = new Set<string>();
+    dbCafes.forEach((c) => (c.games || []).forEach((g) => set.add(g)));
+    return Array.from(set).sort();
+  }, [dbCafes]);
+
+  const allHardware = useMemo(() => {
+    const gpus = new Set<string>();
+    const consoles = new Set<string>();
+    systems.forEach((s) => {
+      if (s.gpu) gpus.add(s.gpu);
+      if (s.console) consoles.add(s.console);
+    });
+    return {
+      gpus: Array.from(gpus).sort(),
+      consoles: Array.from(consoles).sort(),
+    };
+  }, [systems]);
+
+  // Union of all cafe operating hours (for the time picker display)
+  const allHours = useMemo(() => {
+    const set = new Set<number>();
+    Object.values(cafeHoursMap).forEach((sched) => {
+      hoursForUniformSchedule(sched).forEach((h) => set.add(h));
+    });
+    return Array.from(set).sort((a, b) => a - b);
+  }, [cafeHoursMap]);
+
+  // 7-day strip
+  const dayOptions = useMemo(() =>
+    Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() + i);
+      return {
+        offset: i,
+        label: i === 0 ? "Today" : i === 1 ? "Tomorrow" : d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric" }),
+      };
+    }), []);
+
+  const applyTimeFilter = async () => {
+    if (filterHours.length === 0) { setAvailableCafeIds(null); return; }
+    setCheckingAvailability(true);
+    const dateObj = new Date(); dateObj.setDate(dateObj.getDate() + filterDay);
+    const dateStr = toLocalDateString(dateObj);
+    const allSystemIds = systems.map((s) => s.id);
+
+    const [{ data: bookedSlots }, { data: walkIns }, { data: repairs }] = await Promise.all([
+      supabase.rpc("get_booked_slots", { p_system_ids: allSystemIds, p_date: dateStr }),
+      supabase.from("walk_in_sessions")
+        .select("system_id, start_time, end_time, status")
+        .in("system_id", allSystemIds).eq("session_date", dateStr).in("status", ["scheduled", "active"]),
+      supabase.from("repair_slots")
+        .select("system_id, start_hour, end_hour")
+        .in("system_id", allSystemIds).eq("repair_date", dateStr),
+    ]);
+
+    // Build occupied: system_id → Set<hour>
+    const occ: Record<string, Set<number>> = {};
+    const mark = (sid: string, h: number) => { if (!occ[sid]) occ[sid] = new Set(); occ[sid].add(h); };
+    (bookedSlots || []).forEach((b: any) => {
+      const s = parseInt(b.start_time.split(":")[0]), e = parseInt(b.end_time.split(":")[0]);
+      for (let h = s; h < e; h++) mark(b.system_id, h);
+    });
+    (walkIns || []).forEach((w: any) => { for (let h = w.start_time; h < w.end_time; h++) mark(w.system_id, h); });
+    (repairs || []).forEach((r: any) => { for (let h = r.start_hour; h < r.end_hour; h++) mark(r.system_id, h); });
+
+    // Cafe passes if any system has ALL selected hours free AND within operating hours
+    const passed: string[] = [];
+    for (const cafe of dbCafes) {
+      const sched = cafeHoursMap[cafe.id];
+      const cafeHrs = sched ? new Set(hoursForUniformSchedule(sched)) : new Set<number>();
+      const cafeSys = systems.filter((s) => s.cafe_id === cafe.id);
+      const hasFree = cafeSys.some((sys) =>
+        filterHours.every((h) => cafeHrs.has(h) && !occ[sys.id]?.has(h))
+      );
+      if (hasFree) passed.push(cafe.id);
+    }
+    setAvailableCafeIds(passed);
+    setCheckingAvailability(false);
+  };
+
+  const clearTimeFilter = () => {
+    setFilterHours([]); setAvailableCafeIds(null); setShowTimePanel(false);
+  };
+
+  const toggleFilterHour = (h: number) =>
+    setFilterHours((prev) => prev.includes(h) ? prev.filter((x) => x !== h) : [...prev, h].sort((a, b) => a - b));
+
+  const toggleGame = (g: string) =>
+    setSelectedGames((prev) => prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]);
+
+  const toggleHardware = (hw: string) =>
+    setSelectedHardware((prev) => prev.includes(hw) ? prev.filter((x) => x !== hw) : [...prev, hw]);
+
+  const isPowerful = (hw: string) => Array.from(POWERFUL_HW).some((p) => hw.includes(p));
 
   /* ── Shared: geocode a point → nearby_cafes RPC → distance sort ── */
   const applyLocationSort = async (loc: { lat: number; lng: number }) => {
@@ -520,10 +659,21 @@ export function BrowseCafes() {
   const filteredCafes = dbCafes.filter((cafe) => {
     const cafeSys = systemsForCafe(cafe.id);
     const cafePrice = minSystemPrice(cafeSys.map((s) => s.price_per_hour), cafe.price_per_hour);
-    return priceFilter === "all" ||
+    const matchesPrice = priceFilter === "all" ||
       (priceFilter === "under100" && cafePrice < 100) ||
       (priceFilter === "100to300" && cafePrice >= 100 && cafePrice <= 300) ||
       (priceFilter === "over300" && cafePrice > 300);
+    const matchesTime = availableCafeIds === null || availableCafeIds.includes(cafe.id);
+    const matchesGames = selectedGames.length === 0 ||
+      selectedGames.some((g) => (cafe.games || []).includes(g));
+    const matchesHardware = selectedHardware.length === 0 ||
+      cafeSys.some((s) =>
+        selectedHardware.some((hw) => {
+          const l = hw.toLowerCase();
+          return (s.gpu?.toLowerCase().includes(l)) || (s.console?.toLowerCase().includes(l));
+        })
+      );
+    return matchesPrice && matchesTime && matchesGames && matchesHardware;
   });
 
   // When the visitor has shared location, sort nearest-first (cafes without a distance
@@ -726,6 +876,135 @@ export function BrowseCafes() {
             )}
           </div>
         </div>
+
+        {/* ── Smart filter cards ── */}
+        <div className="grid grid-cols-3 gap-3 mt-5">
+          {/* Time Slots */}
+          <button
+            onClick={() => { setShowTimePanel((v) => !v); setShowGamesPopup(false); setShowHardwarePopup(false); }}
+            className={`smart-filter-card group relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+              showTimePanel || availableCafeIds !== null
+                ? "border-blue-500 bg-blue-50 shadow-md"
+                : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm"
+            }`}
+          >
+            <div className={`p-2.5 rounded-xl transition-colors ${availableCafeIds !== null ? "bg-blue-100" : "bg-gray-100 group-hover:bg-blue-50"}`}>
+              <Clock className={`w-5 h-5 ${availableCafeIds !== null ? "text-blue-600" : "text-gray-500 group-hover:text-blue-500"}`} />
+            </div>
+            <span className="text-sm font-semibold text-gray-800">Time Slots</span>
+            <span className="text-[11px] text-gray-500 leading-tight text-center">
+              {availableCafeIds !== null
+                ? `${dayOptions[filterDay].label}, ${filterHours.map((h) => `${h % 12 || 12}${h < 12 ? "AM" : "PM"}`).join(", ")}`
+                : "Any time"}
+            </span>
+            {availableCafeIds !== null && (
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center smart-filter-badge">
+                {filterHours.length}
+              </span>
+            )}
+          </button>
+
+          {/* Games */}
+          <button
+            onClick={() => { setShowGamesPopup(true); setShowTimePanel(false); setShowHardwarePopup(false); }}
+            className={`smart-filter-card group relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+              selectedGames.length > 0
+                ? "border-purple-500 bg-purple-50 shadow-md"
+                : "border-gray-200 bg-white hover:border-purple-300 hover:shadow-sm"
+            }`}
+          >
+            <div className={`p-2.5 rounded-xl transition-colors ${selectedGames.length > 0 ? "bg-purple-100" : "bg-gray-100 group-hover:bg-purple-50"}`}>
+              <Gamepad2 className={`w-5 h-5 ${selectedGames.length > 0 ? "text-purple-600" : "text-gray-500 group-hover:text-purple-500"}`} />
+            </div>
+            <span className="text-sm font-semibold text-gray-800">Games</span>
+            <span className="text-[11px] text-gray-500 leading-tight text-center truncate max-w-full">
+              {selectedGames.length > 0
+                ? selectedGames.length === 1 ? selectedGames[0] : `${selectedGames[0]} +${selectedGames.length - 1}`
+                : "All games"}
+            </span>
+            {selectedGames.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-bold flex items-center justify-center smart-filter-badge">
+                {selectedGames.length}
+              </span>
+            )}
+          </button>
+
+          {/* Hardware */}
+          <button
+            onClick={() => { setShowHardwarePopup(true); setShowTimePanel(false); setShowGamesPopup(false); }}
+            className={`smart-filter-card group relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+              selectedHardware.length > 0
+                ? "border-emerald-500 bg-emerald-50 shadow-md"
+                : "border-gray-200 bg-white hover:border-emerald-300 hover:shadow-sm"
+            }`}
+          >
+            <div className={`p-2.5 rounded-xl transition-colors ${selectedHardware.length > 0 ? "bg-emerald-100" : "bg-gray-100 group-hover:bg-emerald-50"}`}>
+              <Cpu className={`w-5 h-5 ${selectedHardware.length > 0 ? "text-emerald-600" : "text-gray-500 group-hover:text-emerald-500"}`} />
+            </div>
+            <span className="text-sm font-semibold text-gray-800">Hardware</span>
+            <span className="text-[11px] text-gray-500 leading-tight text-center truncate max-w-full">
+              {selectedHardware.length > 0
+                ? selectedHardware.length === 1 ? selectedHardware[0] : `${selectedHardware[0]} +${selectedHardware.length - 1}`
+                : "Any specs"}
+            </span>
+            {selectedHardware.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center smart-filter-badge">
+                {selectedHardware.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* ── Time Slots Panel (expandable) ── */}
+        {showTimePanel && (
+          <div className="mt-3 p-4 bg-white rounded-xl border border-blue-200 shadow-sm animate-dropdown">
+            {/* Day strip */}
+            <div className="flex gap-1.5 overflow-x-auto pb-3 mb-3 border-b border-gray-100">
+              {dayOptions.map((d) => (
+                <button key={d.offset} onClick={() => { setFilterDay(d.offset); setAvailableCafeIds(null); }}
+                  className={`filter-chip px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                    filterDay === d.offset ? "bg-blue-600 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}>
+                  {d.label}
+                </button>
+              ))}
+            </div>
+            {/* Hour chips */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {allHours.length === 0 && <p className="text-xs text-gray-400">Loading hours…</p>}
+              {allHours.map((h) => {
+                const label = `${h % 12 || 12}:00 ${h < 12 ? "AM" : "PM"}`;
+                const selected = filterHours.includes(h);
+                return (
+                  <button key={h} onClick={() => toggleFilterHour(h)}
+                    className={`filter-chip px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      selected ? "bg-blue-600 text-white shadow-sm" : "bg-gray-50 text-gray-600 hover:bg-blue-50 border border-gray-200"
+                    }`}>
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <button onClick={applyTimeFilter} disabled={filterHours.length === 0 || checkingAvailability}
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center gap-2">
+                {checkingAvailability ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                {checkingAvailability ? "Checking…" : "Find available cafes"}
+              </button>
+              {(filterHours.length > 0 || availableCafeIds !== null) && (
+                <button onClick={clearTimeFilter} className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                  Clear
+                </button>
+              )}
+              {availableCafeIds !== null && (
+                <span className="text-xs text-emerald-600 font-medium ml-auto">
+                  {availableCafeIds.length} {availableCafeIds.length === 1 ? "cafe" : "cafes"} available
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Filter chips — price only */}
         <div className="flex flex-wrap gap-2 mt-4">
@@ -955,6 +1234,174 @@ export function BrowseCafes() {
         </div>
       </div>
     </div>
+
+    {/* ── Games Popup ── */}
+    {showGamesPopup && (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setShowGamesPopup(false)}>
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm smart-filter-backdrop" />
+        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col smart-filter-popup" onClick={(e) => e.stopPropagation()}>
+          {/* Header */}
+          <div className="flex items-center justify-between p-5 border-b border-gray-100">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-purple-100">
+                <Gamepad2 className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">Choose Games</h3>
+                <p className="text-xs text-gray-500">{selectedGames.length > 0 ? `${selectedGames.length} selected` : "Select games to filter cafes"}</p>
+              </div>
+            </div>
+            <button onClick={() => setShowGamesPopup(false)} className="p-2 rounded-lg hover:bg-gray-100 transition-colors active:scale-95">
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+          {/* Search */}
+          <div className="px-5 pt-4 pb-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input type="text" value={gameSearchQuery} onChange={(e) => setGameSearchQuery(e.target.value)}
+                placeholder="Search games..." className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-100" />
+            </div>
+          </div>
+          {/* Game grid */}
+          <div className="flex-1 overflow-y-auto px-5 pb-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+              {allGames
+                .filter((g) => !gameSearchQuery || g.toLowerCase().includes(gameSearchQuery.toLowerCase()))
+                .map((game, i) => {
+                  const sel = selectedGames.includes(game);
+                  return (
+                    <button key={game} onClick={() => toggleGame(game)}
+                      className={`game-filter-card relative flex flex-col overflow-hidden rounded-xl border-2 transition-all text-left ${
+                        sel ? "border-purple-500 shadow-md ring-2 ring-purple-200" : "border-gray-200 hover:border-purple-300 hover:shadow-sm"
+                      }`}
+                      style={{ "--card-delay": `${i * 30}ms` } as React.CSSProperties}>
+                      <div className="w-full h-20 overflow-hidden bg-gray-100 flex items-center justify-center">
+                        <SteamGameImage game={game} />
+                      </div>
+                      <div className="p-2.5 bg-white flex items-center gap-2">
+                        <span className="text-xs font-semibold text-gray-800 truncate flex-1">{game}</span>
+                        {sel && <Check className="w-4 h-4 text-purple-600 flex-shrink-0" />}
+                      </div>
+                      {sel && <div className="absolute inset-0 bg-purple-500/10 pointer-events-none" />}
+                    </button>
+                  );
+                })}
+            </div>
+            {allGames.length === 0 && (
+              <p className="text-center text-gray-400 text-sm py-8">No games listed by any cafe yet</p>
+            )}
+          </div>
+          {/* Footer */}
+          {selectedGames.length > 0 && (
+            <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+              <button onClick={() => setSelectedGames([])} className="text-sm text-gray-500 hover:text-gray-700 transition-colors">Clear all</button>
+              <button onClick={() => setShowGamesPopup(false)}
+                className="px-5 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition-all active:scale-95">
+                Show {filteredCafes.length} {filteredCafes.length === 1 ? "cafe" : "cafes"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+
+    {/* ── Hardware Popup ── */}
+    {showHardwarePopup && (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setShowHardwarePopup(false)}>
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm smart-filter-backdrop" />
+        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col smart-filter-popup" onClick={(e) => e.stopPropagation()}>
+          {/* Header */}
+          <div className="flex items-center justify-between p-5 border-b border-gray-100">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-emerald-100">
+                <Cpu className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">Choose Hardware</h3>
+                <p className="text-xs text-gray-500">{selectedHardware.length > 0 ? `${selectedHardware.length} selected` : "Filter cafes by specs"}</p>
+              </div>
+            </div>
+            <button onClick={() => setShowHardwarePopup(false)} className="p-2 rounded-lg hover:bg-gray-100 transition-colors active:scale-95">
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+          {/* Hardware list */}
+          <div className="flex-1 overflow-y-auto px-5 pb-5">
+            {/* GPUs */}
+            {allHardware.gpus.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2.5 flex items-center gap-1.5">
+                  <Monitor className="w-3.5 h-3.5" /> Graphics Cards
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {allHardware.gpus.map((gpu) => {
+                    const sel = selectedHardware.includes(gpu);
+                    const powerful = isPowerful(gpu);
+                    return (
+                      <button key={gpu} onClick={() => toggleHardware(gpu)}
+                        className={`hw-chip px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                          sel
+                            ? "bg-emerald-600 text-white shadow-sm"
+                            : powerful
+                              ? "bg-gradient-to-r from-emerald-50 to-cyan-50 text-emerald-700 border border-emerald-200 hover:border-emerald-400 hw-powerful"
+                              : "bg-gray-50 text-gray-600 border border-gray-200 hover:border-emerald-300"
+                        }`}>
+                        {powerful && !sel && <Zap className="w-3 h-3 text-amber-500" />}
+                        {sel && <Check className="w-3 h-3" />}
+                        {gpu}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {/* Consoles */}
+            {allHardware.consoles.length > 0 && (
+              <div className="mt-5">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2.5 flex items-center gap-1.5">
+                  <Gamepad2 className="w-3.5 h-3.5" /> Consoles
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {allHardware.consoles.map((con) => {
+                    const sel = selectedHardware.includes(con);
+                    const powerful = isPowerful(con);
+                    return (
+                      <button key={con} onClick={() => toggleHardware(con)}
+                        className={`hw-chip px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                          sel
+                            ? "bg-emerald-600 text-white shadow-sm"
+                            : powerful
+                              ? "bg-gradient-to-r from-emerald-50 to-cyan-50 text-emerald-700 border border-emerald-200 hover:border-emerald-400 hw-powerful"
+                              : "bg-gray-50 text-gray-600 border border-gray-200 hover:border-emerald-300"
+                        }`}>
+                        {powerful && !sel && <Zap className="w-3 h-3 text-amber-500" />}
+                        {sel && <Check className="w-3 h-3" />}
+                        {con}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {allHardware.gpus.length === 0 && allHardware.consoles.length === 0 && (
+              <p className="text-center text-gray-400 text-sm py-8">No hardware data available</p>
+            )}
+          </div>
+          {/* Footer */}
+          {selectedHardware.length > 0 && (
+            <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+              <button onClick={() => setSelectedHardware([])} className="text-sm text-gray-500 hover:text-gray-700 transition-colors">Clear all</button>
+              <button onClick={() => setShowHardwarePopup(false)}
+                className="px-5 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-all active:scale-95">
+                Show {filteredCafes.length} {filteredCafes.length === 1 ? "cafe" : "cafes"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+
     </div>
   );
 }
