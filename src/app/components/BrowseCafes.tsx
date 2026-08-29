@@ -817,7 +817,7 @@ export function BrowseCafes() {
       </div>
 
       {/* ── Location Search + Filters ── */}
-      <div className="animate-in bg-white rounded-xl shadow-md p-6 mb-8 search-glow transition-shadow" style={{ "--stagger": 3 } as React.CSSProperties}>
+      <div className="animate-in bg-slate-900/90 backdrop-blur-sm rounded-xl shadow-lg shadow-slate-900/50 border border-slate-700/60 p-6 mb-8 search-glow transition-shadow" style={{ "--stagger": 3 } as React.CSSProperties}>
         <div className="flex flex-col md:flex-row gap-3">
           {/* Airbnb-style location combobox */}
           <div className="flex-1 relative" ref={locSearchRef}>
@@ -837,7 +837,7 @@ export function BrowseCafes() {
               {searchingLocation && <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />}
               {selectedLocationLabel && (
                 <button onClick={clearLocationSearch}
-                  className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="p-1 rounded-full hover:bg-slate-700/60 text-slate-400 hover:text-white transition-colors"
                   title="Clear location">
                   <X className="w-4 h-4" />
                 </button>
@@ -851,10 +851,10 @@ export function BrowseCafes() {
             </div>
             {/* Location suggestions dropdown */}
             {showLocDropdown && !selectedLocationLabel && (
-              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden animate-dropdown">
+              <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-600/60 rounded-xl shadow-xl shadow-black/30 overflow-hidden animate-dropdown">
                 {/* Always show "Use current location" — the Airbnb pattern */}
                 <button onClick={useMyLocation} disabled={locating}
-                  className="w-full px-3 py-3 text-left text-sm hover:bg-blue-50 transition-colors flex items-center gap-3 font-medium text-blue-600">
+                  className="w-full px-3 py-3 text-left text-sm hover:bg-cyan-500/10 transition-colors flex items-center gap-3 font-medium text-cyan-400">
                   {locating
                     ? <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />
                     : <Navigation className="w-5 h-5 flex-shrink-0" />}
@@ -862,11 +862,11 @@ export function BrowseCafes() {
                 </button>
                 {locationSuggestions.length > 0 && (
                   <>
-                    <div className="px-3 py-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider border-t border-gray-100">Locations</div>
+                    <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-wider border-t border-slate-700/60">Locations</div>
                     {locationSuggestions.map((s, i) => (
                       <button key={i} onClick={() => pickLocationSuggestion(s)}
-                        className="w-full px-3 py-2.5 text-left text-sm hover:bg-blue-50 transition-colors flex items-center gap-3 border-t border-gray-50">
-                        <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        className="w-full px-3 py-2.5 text-left text-sm text-slate-200 hover:bg-cyan-500/10 transition-colors flex items-center gap-3 border-t border-slate-700/40">
+                        <MapPin className="w-4 h-4 text-slate-500 flex-shrink-0" />
                         <span className="truncate">{s.label}</span>
                       </button>
                     ))}
@@ -882,23 +882,23 @@ export function BrowseCafes() {
           {/* Time Slots */}
           <button
             onClick={() => { setShowTimePanel((v) => !v); setShowGamesPopup(false); setShowHardwarePopup(false); }}
-            className={`smart-filter-card group relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+            className={`smart-filter-card group relative flex flex-col items-center gap-2 p-4 rounded-xl border transition-all cursor-pointer ${
               showTimePanel || availableCafeIds !== null
-                ? "border-blue-500 bg-blue-50 shadow-md"
-                : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-sm"
+                ? "border-cyan-500/60 bg-slate-800 shadow-lg shadow-cyan-500/10"
+                : "border-slate-700/60 bg-slate-800/80 hover:border-cyan-500/40 hover:shadow-lg hover:shadow-cyan-500/5"
             }`}
           >
-            <div className={`p-2.5 rounded-xl transition-colors ${availableCafeIds !== null ? "bg-blue-100" : "bg-gray-100 group-hover:bg-blue-50"}`}>
-              <Clock className={`w-5 h-5 ${availableCafeIds !== null ? "text-blue-600" : "text-gray-500 group-hover:text-blue-500"}`} />
+            <div className={`p-2.5 rounded-xl transition-colors ${availableCafeIds !== null ? "bg-cyan-500/20" : "bg-slate-700/60 group-hover:bg-cyan-500/10"}`}>
+              <Clock className={`w-5 h-5 ${availableCafeIds !== null ? "text-cyan-400" : "text-slate-400 group-hover:text-cyan-400"}`} />
             </div>
-            <span className="text-sm font-semibold text-gray-800">Time Slots</span>
-            <span className="text-[11px] text-gray-500 leading-tight text-center">
+            <span className="text-sm font-semibold text-white">Time Slots</span>
+            <span className="text-[11px] text-slate-400 leading-tight text-center">
               {availableCafeIds !== null
                 ? `${dayOptions[filterDay].label}, ${filterHours.map((h) => `${h % 12 || 12}${h < 12 ? "AM" : "PM"}`).join(", ")}`
                 : "Any time"}
             </span>
             {availableCafeIds !== null && (
-              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center smart-filter-badge">
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-cyan-500 text-slate-900 text-[10px] font-bold flex items-center justify-center smart-filter-badge">
                 {filterHours.length}
               </span>
             )}
@@ -907,23 +907,23 @@ export function BrowseCafes() {
           {/* Games */}
           <button
             onClick={() => { setShowGamesPopup(true); setShowTimePanel(false); setShowHardwarePopup(false); }}
-            className={`smart-filter-card group relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+            className={`smart-filter-card group relative flex flex-col items-center gap-2 p-4 rounded-xl border transition-all cursor-pointer ${
               selectedGames.length > 0
-                ? "border-purple-500 bg-purple-50 shadow-md"
-                : "border-gray-200 bg-white hover:border-purple-300 hover:shadow-sm"
+                ? "border-purple-500/60 bg-slate-800 shadow-lg shadow-purple-500/10"
+                : "border-slate-700/60 bg-slate-800/80 hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-500/5"
             }`}
           >
-            <div className={`p-2.5 rounded-xl transition-colors ${selectedGames.length > 0 ? "bg-purple-100" : "bg-gray-100 group-hover:bg-purple-50"}`}>
-              <Gamepad2 className={`w-5 h-5 ${selectedGames.length > 0 ? "text-purple-600" : "text-gray-500 group-hover:text-purple-500"}`} />
+            <div className={`p-2.5 rounded-xl transition-colors ${selectedGames.length > 0 ? "bg-purple-500/20" : "bg-slate-700/60 group-hover:bg-purple-500/10"}`}>
+              <Gamepad2 className={`w-5 h-5 ${selectedGames.length > 0 ? "text-purple-400" : "text-slate-400 group-hover:text-purple-400"}`} />
             </div>
-            <span className="text-sm font-semibold text-gray-800">Games</span>
-            <span className="text-[11px] text-gray-500 leading-tight text-center truncate max-w-full">
+            <span className="text-sm font-semibold text-white">Games</span>
+            <span className="text-[11px] text-slate-400 leading-tight text-center truncate max-w-full">
               {selectedGames.length > 0
                 ? selectedGames.length === 1 ? selectedGames[0] : `${selectedGames[0]} +${selectedGames.length - 1}`
                 : "All games"}
             </span>
             {selectedGames.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-bold flex items-center justify-center smart-filter-badge">
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-purple-500 text-white text-[10px] font-bold flex items-center justify-center smart-filter-badge">
                 {selectedGames.length}
               </span>
             )}
@@ -932,23 +932,23 @@ export function BrowseCafes() {
           {/* Hardware */}
           <button
             onClick={() => { setShowHardwarePopup(true); setShowTimePanel(false); setShowGamesPopup(false); }}
-            className={`smart-filter-card group relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+            className={`smart-filter-card group relative flex flex-col items-center gap-2 p-4 rounded-xl border transition-all cursor-pointer ${
               selectedHardware.length > 0
-                ? "border-emerald-500 bg-emerald-50 shadow-md"
-                : "border-gray-200 bg-white hover:border-emerald-300 hover:shadow-sm"
+                ? "border-emerald-500/60 bg-slate-800 shadow-lg shadow-emerald-500/10"
+                : "border-slate-700/60 bg-slate-800/80 hover:border-emerald-500/40 hover:shadow-lg hover:shadow-emerald-500/5"
             }`}
           >
-            <div className={`p-2.5 rounded-xl transition-colors ${selectedHardware.length > 0 ? "bg-emerald-100" : "bg-gray-100 group-hover:bg-emerald-50"}`}>
-              <Cpu className={`w-5 h-5 ${selectedHardware.length > 0 ? "text-emerald-600" : "text-gray-500 group-hover:text-emerald-500"}`} />
+            <div className={`p-2.5 rounded-xl transition-colors ${selectedHardware.length > 0 ? "bg-emerald-500/20" : "bg-slate-700/60 group-hover:bg-emerald-500/10"}`}>
+              <Cpu className={`w-5 h-5 ${selectedHardware.length > 0 ? "text-emerald-400" : "text-slate-400 group-hover:text-emerald-400"}`} />
             </div>
-            <span className="text-sm font-semibold text-gray-800">Hardware</span>
-            <span className="text-[11px] text-gray-500 leading-tight text-center truncate max-w-full">
+            <span className="text-sm font-semibold text-white">Hardware</span>
+            <span className="text-[11px] text-slate-400 leading-tight text-center truncate max-w-full">
               {selectedHardware.length > 0
                 ? selectedHardware.length === 1 ? selectedHardware[0] : `${selectedHardware[0]} +${selectedHardware.length - 1}`
                 : "Any specs"}
             </span>
             {selectedHardware.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center smart-filter-badge">
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center smart-filter-badge">
                 {selectedHardware.length}
               </span>
             )}
@@ -957,13 +957,13 @@ export function BrowseCafes() {
 
         {/* ── Time Slots Panel (expandable) ── */}
         {showTimePanel && (
-          <div className="mt-3 p-4 bg-white rounded-xl border border-blue-200 shadow-sm animate-dropdown">
+          <div className="mt-3 p-4 bg-slate-800/90 backdrop-blur-sm rounded-xl border border-cyan-500/20 shadow-lg shadow-cyan-500/5 animate-dropdown">
             {/* Day strip */}
-            <div className="flex gap-1.5 overflow-x-auto pb-3 mb-3 border-b border-gray-100">
+            <div className="flex gap-1.5 overflow-x-auto pb-3 mb-3 border-b border-slate-700/60">
               {dayOptions.map((d) => (
                 <button key={d.offset} onClick={() => { setFilterDay(d.offset); setAvailableCafeIds(null); }}
                   className={`filter-chip px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                    filterDay === d.offset ? "bg-blue-600 text-white shadow-sm" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    filterDay === d.offset ? "bg-cyan-500 text-slate-900 shadow-sm shadow-cyan-500/30" : "bg-slate-700/60 text-slate-300 hover:bg-slate-600/60"
                   }`}>
                   {d.label}
                 </button>
@@ -971,14 +971,14 @@ export function BrowseCafes() {
             </div>
             {/* Hour chips */}
             <div className="flex flex-wrap gap-2 mb-3">
-              {allHours.length === 0 && <p className="text-xs text-gray-400">Loading hours…</p>}
+              {allHours.length === 0 && <p className="text-xs text-slate-500">Loading hours…</p>}
               {allHours.map((h) => {
                 const label = `${h % 12 || 12}:00 ${h < 12 ? "AM" : "PM"}`;
                 const selected = filterHours.includes(h);
                 return (
                   <button key={h} onClick={() => toggleFilterHour(h)}
                     className={`filter-chip px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                      selected ? "bg-blue-600 text-white shadow-sm" : "bg-gray-50 text-gray-600 hover:bg-blue-50 border border-gray-200"
+                      selected ? "bg-cyan-500 text-slate-900 shadow-sm shadow-cyan-500/30" : "bg-slate-700/50 text-slate-300 hover:bg-cyan-500/10 border border-slate-600/60"
                     }`}>
                     {label}
                   </button>
@@ -988,17 +988,17 @@ export function BrowseCafes() {
             {/* Actions */}
             <div className="flex items-center gap-2">
               <button onClick={applyTimeFilter} disabled={filterHours.length === 0 || checkingAvailability}
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center gap-2">
+                className="px-4 py-2 bg-cyan-500 text-slate-900 text-sm font-semibold rounded-lg hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center gap-2 shadow-sm shadow-cyan-500/30">
                 {checkingAvailability ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 {checkingAvailability ? "Checking…" : "Find available cafes"}
               </button>
               {(filterHours.length > 0 || availableCafeIds !== null) && (
-                <button onClick={clearTimeFilter} className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                <button onClick={clearTimeFilter} className="px-3 py-2 text-sm text-slate-400 hover:text-white transition-colors">
                   Clear
                 </button>
               )}
               {availableCafeIds !== null && (
-                <span className="text-xs text-emerald-600 font-medium ml-auto">
+                <span className="text-xs text-emerald-400 font-medium ml-auto">
                   {availableCafeIds.length} {availableCafeIds.length === 1 ? "cafe" : "cafes"} available
                 </span>
               )}
@@ -1008,15 +1008,15 @@ export function BrowseCafes() {
 
         {/* Filter chips — price only */}
         <div className="flex flex-wrap gap-2 mt-4">
-          <span className="text-xs font-medium text-gray-500 self-center mr-1">Price:</span>
+          <span className="text-xs font-medium text-slate-400 self-center mr-1">Price:</span>
           {([["all", "Any"], ["under100", "Under ₹100"], ["100to300", "₹100–300"], ["over300", "₹300+"]] as const).map(([val, label]) => (
             <button
               key={val}
               onClick={() => setPriceFilter(val)}
               className={`filter-chip px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 priceFilter === val
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-cyan-500 text-slate-900 shadow-sm shadow-cyan-500/30"
+                  : "bg-slate-700/60 text-slate-300 hover:bg-slate-600/60"
               }`}
             >
               {label}
@@ -1041,11 +1041,11 @@ export function BrowseCafes() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowMap((v) => !v)}
-            className="filter-chip flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
+            className="filter-chip flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800/80 border border-slate-600/60 text-slate-200 text-sm font-semibold hover:bg-slate-700/60 transition-colors"
           >
             <MapIcon className="w-4 h-4" /> {showMap ? "Hide map" : "Show map"}
           </button>
-          <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full">
+          <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/60 border border-slate-700/40 px-3 py-1.5 rounded-full">
             <span className="live-dot" />
             <Zap className="w-3 h-3 text-green-500" />
             Real-time availability
@@ -1239,28 +1239,28 @@ export function BrowseCafes() {
     {showGamesPopup && (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setShowGamesPopup(false)}>
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm smart-filter-backdrop" />
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col smart-filter-popup" onClick={(e) => e.stopPropagation()}>
+        <div className="relative bg-slate-900 border border-slate-700/60 rounded-2xl shadow-2xl shadow-purple-500/10 w-full max-w-2xl max-h-[80vh] flex flex-col smart-filter-popup" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
-          <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div className="flex items-center justify-between p-5 border-b border-slate-700/60">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-purple-100">
-                <Gamepad2 className="w-5 h-5 text-purple-600" />
+              <div className="p-2 rounded-xl bg-purple-500/20">
+                <Gamepad2 className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900">Choose Games</h3>
-                <p className="text-xs text-gray-500">{selectedGames.length > 0 ? `${selectedGames.length} selected` : "Select games to filter cafes"}</p>
+                <h3 className="font-bold text-white">Choose Games</h3>
+                <p className="text-xs text-slate-400">{selectedGames.length > 0 ? `${selectedGames.length} selected` : "Select games to filter cafes"}</p>
               </div>
             </div>
-            <button onClick={() => setShowGamesPopup(false)} className="p-2 rounded-lg hover:bg-gray-100 transition-colors active:scale-95">
-              <X className="w-5 h-5 text-gray-400" />
+            <button onClick={() => setShowGamesPopup(false)} className="p-2 rounded-lg hover:bg-slate-700/60 transition-colors active:scale-95">
+              <X className="w-5 h-5 text-slate-400" />
             </button>
           </div>
           {/* Search */}
           <div className="px-5 pt-4 pb-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <input type="text" value={gameSearchQuery} onChange={(e) => setGameSearchQuery(e.target.value)}
-                placeholder="Search games..." className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-100" />
+                placeholder="Search games..." className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-600/60 bg-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/20" />
             </div>
           </div>
           {/* Game grid */}
@@ -1272,16 +1272,16 @@ export function BrowseCafes() {
                   const sel = selectedGames.includes(game);
                   return (
                     <button key={game} onClick={() => toggleGame(game)}
-                      className={`game-filter-card relative flex flex-col overflow-hidden rounded-xl border-2 transition-all text-left ${
-                        sel ? "border-purple-500 shadow-md ring-2 ring-purple-200" : "border-gray-200 hover:border-purple-300 hover:shadow-sm"
+                      className={`game-filter-card relative flex flex-col overflow-hidden rounded-xl border transition-all text-left ${
+                        sel ? "border-purple-500/60 shadow-lg shadow-purple-500/20 ring-1 ring-purple-500/30" : "border-slate-600/60 hover:border-purple-500/40 hover:shadow-md"
                       }`}
                       style={{ "--card-delay": `${i * 30}ms` } as React.CSSProperties}>
-                      <div className="w-full h-20 overflow-hidden bg-gray-100 flex items-center justify-center">
+                      <div className="w-full h-20 overflow-hidden bg-slate-800 flex items-center justify-center">
                         <SteamGameImage game={game} />
                       </div>
-                      <div className="p-2.5 bg-white flex items-center gap-2">
-                        <span className="text-xs font-semibold text-gray-800 truncate flex-1">{game}</span>
-                        {sel && <Check className="w-4 h-4 text-purple-600 flex-shrink-0" />}
+                      <div className="p-2.5 bg-slate-800/80 flex items-center gap-2">
+                        <span className="text-xs font-semibold text-slate-200 truncate flex-1">{game}</span>
+                        {sel && <Check className="w-4 h-4 text-purple-400 flex-shrink-0" />}
                       </div>
                       {sel && <div className="absolute inset-0 bg-purple-500/10 pointer-events-none" />}
                     </button>
@@ -1289,15 +1289,15 @@ export function BrowseCafes() {
                 })}
             </div>
             {allGames.length === 0 && (
-              <p className="text-center text-gray-400 text-sm py-8">No games listed by any cafe yet</p>
+              <p className="text-center text-slate-500 text-sm py-8">No games listed by any cafe yet</p>
             )}
           </div>
           {/* Footer */}
           {selectedGames.length > 0 && (
-            <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
-              <button onClick={() => setSelectedGames([])} className="text-sm text-gray-500 hover:text-gray-700 transition-colors">Clear all</button>
+            <div className="flex items-center justify-between p-4 border-t border-slate-700/60 bg-slate-800/80 rounded-b-2xl">
+              <button onClick={() => setSelectedGames([])} className="text-sm text-slate-400 hover:text-white transition-colors">Clear all</button>
               <button onClick={() => setShowGamesPopup(false)}
-                className="px-5 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition-all active:scale-95">
+                className="px-5 py-2 bg-purple-500 text-white text-sm font-semibold rounded-lg hover:bg-purple-400 transition-all active:scale-95 shadow-sm shadow-purple-500/30">
                 Show {filteredCafes.length} {filteredCafes.length === 1 ? "cafe" : "cafes"}
               </button>
             </div>
@@ -1310,20 +1310,20 @@ export function BrowseCafes() {
     {showHardwarePopup && (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => setShowHardwarePopup(false)}>
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm smart-filter-backdrop" />
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col smart-filter-popup" onClick={(e) => e.stopPropagation()}>
+        <div className="relative bg-slate-900 border border-slate-700/60 rounded-2xl shadow-2xl shadow-emerald-500/10 w-full max-w-lg max-h-[80vh] flex flex-col smart-filter-popup" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
-          <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div className="flex items-center justify-between p-5 border-b border-slate-700/60">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-emerald-100">
-                <Cpu className="w-5 h-5 text-emerald-600" />
+              <div className="p-2 rounded-xl bg-emerald-500/20">
+                <Cpu className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900">Choose Hardware</h3>
-                <p className="text-xs text-gray-500">{selectedHardware.length > 0 ? `${selectedHardware.length} selected` : "Filter cafes by specs"}</p>
+                <h3 className="font-bold text-white">Choose Hardware</h3>
+                <p className="text-xs text-slate-400">{selectedHardware.length > 0 ? `${selectedHardware.length} selected` : "Filter cafes by specs"}</p>
               </div>
             </div>
-            <button onClick={() => setShowHardwarePopup(false)} className="p-2 rounded-lg hover:bg-gray-100 transition-colors active:scale-95">
-              <X className="w-5 h-5 text-gray-400" />
+            <button onClick={() => setShowHardwarePopup(false)} className="p-2 rounded-lg hover:bg-slate-700/60 transition-colors active:scale-95">
+              <X className="w-5 h-5 text-slate-400" />
             </button>
           </div>
           {/* Hardware list */}
@@ -1331,7 +1331,7 @@ export function BrowseCafes() {
             {/* GPUs */}
             {allHardware.gpus.length > 0 && (
               <div className="mt-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2.5 flex items-center gap-1.5">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2.5 flex items-center gap-1.5">
                   <Monitor className="w-3.5 h-3.5" /> Graphics Cards
                 </h4>
                 <div className="flex flex-wrap gap-2">
@@ -1342,12 +1342,12 @@ export function BrowseCafes() {
                       <button key={gpu} onClick={() => toggleHardware(gpu)}
                         className={`hw-chip px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
                           sel
-                            ? "bg-emerald-600 text-white shadow-sm"
+                            ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/30"
                             : powerful
-                              ? "bg-gradient-to-r from-emerald-50 to-cyan-50 text-emerald-700 border border-emerald-200 hover:border-emerald-400 hw-powerful"
-                              : "bg-gray-50 text-gray-600 border border-gray-200 hover:border-emerald-300"
+                              ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:border-emerald-400/60 hw-powerful"
+                              : "bg-slate-800 text-slate-300 border border-slate-600/60 hover:border-emerald-500/40"
                         }`}>
-                        {powerful && !sel && <Zap className="w-3 h-3 text-amber-500" />}
+                        {powerful && !sel && <Zap className="w-3 h-3 text-amber-400" />}
                         {sel && <Check className="w-3 h-3" />}
                         {gpu}
                       </button>
@@ -1359,7 +1359,7 @@ export function BrowseCafes() {
             {/* Consoles */}
             {allHardware.consoles.length > 0 && (
               <div className="mt-5">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2.5 flex items-center gap-1.5">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2.5 flex items-center gap-1.5">
                   <Gamepad2 className="w-3.5 h-3.5" /> Consoles
                 </h4>
                 <div className="flex flex-wrap gap-2">
@@ -1370,12 +1370,12 @@ export function BrowseCafes() {
                       <button key={con} onClick={() => toggleHardware(con)}
                         className={`hw-chip px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
                           sel
-                            ? "bg-emerald-600 text-white shadow-sm"
+                            ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/30"
                             : powerful
-                              ? "bg-gradient-to-r from-emerald-50 to-cyan-50 text-emerald-700 border border-emerald-200 hover:border-emerald-400 hw-powerful"
-                              : "bg-gray-50 text-gray-600 border border-gray-200 hover:border-emerald-300"
+                              ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:border-emerald-400/60 hw-powerful"
+                              : "bg-slate-800 text-slate-300 border border-slate-600/60 hover:border-emerald-500/40"
                         }`}>
-                        {powerful && !sel && <Zap className="w-3 h-3 text-amber-500" />}
+                        {powerful && !sel && <Zap className="w-3 h-3 text-amber-400" />}
                         {sel && <Check className="w-3 h-3" />}
                         {con}
                       </button>
@@ -1385,15 +1385,15 @@ export function BrowseCafes() {
               </div>
             )}
             {allHardware.gpus.length === 0 && allHardware.consoles.length === 0 && (
-              <p className="text-center text-gray-400 text-sm py-8">No hardware data available</p>
+              <p className="text-center text-slate-500 text-sm py-8">No hardware data available</p>
             )}
           </div>
           {/* Footer */}
           {selectedHardware.length > 0 && (
-            <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
-              <button onClick={() => setSelectedHardware([])} className="text-sm text-gray-500 hover:text-gray-700 transition-colors">Clear all</button>
+            <div className="flex items-center justify-between p-4 border-t border-slate-700/60 bg-slate-800/80 rounded-b-2xl">
+              <button onClick={() => setSelectedHardware([])} className="text-sm text-slate-400 hover:text-white transition-colors">Clear all</button>
               <button onClick={() => setShowHardwarePopup(false)}
-                className="px-5 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-all active:scale-95">
+                className="px-5 py-2 bg-emerald-500 text-white text-sm font-semibold rounded-lg hover:bg-emerald-400 transition-all active:scale-95 shadow-sm shadow-emerald-500/30">
                 Show {filteredCafes.length} {filteredCafes.length === 1 ? "cafe" : "cafes"}
               </button>
             </div>
