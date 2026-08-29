@@ -819,6 +819,7 @@ export function BrowseCafes() {
 
       {/* ── Location Search + Filters ── */}
       <div className="animate-in bg-slate-900/90 backdrop-blur-sm rounded-xl shadow-lg shadow-slate-900/50 border border-slate-700/60 p-6 mb-8 search-glow transition-shadow" style={{ "--stagger": 3 } as React.CSSProperties}>
+        <h2 className="text-2xl sm:text-3xl font-bold mb-4 search-heading-gradient">Where do you want to play?</h2>
         <div className="flex flex-col md:flex-row gap-3">
           {/* Airbnb-style location combobox */}
           <div className="flex-1 relative" ref={locSearchRef}>
@@ -828,7 +829,7 @@ export function BrowseCafes() {
               role="combobox"
               aria-expanded={showLocDropdown}
               aria-autocomplete="list"
-              placeholder="Where do you want to play? (city, area, landmark...)"
+              placeholder="Search city, area, landmark..."
               value={locationQuery}
               onChange={(e) => handleLocationInput(e.target.value)}
               onFocus={() => setShowLocDropdown(true)}
