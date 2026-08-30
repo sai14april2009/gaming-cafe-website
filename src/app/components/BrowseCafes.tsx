@@ -835,6 +835,14 @@ export function BrowseCafes() {
               placeholder="Search city, area, landmark..."
               value={locationQuery}
               onChange={(e) => handleLocationInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (locationSuggestions.length > 0) {
+                    pickLocationSuggestion(locationSuggestions[0]);
+                  }
+                }
+              }}
               onFocus={() => setShowLocDropdown(true)}
               className="pl-10 pr-20"
             />
