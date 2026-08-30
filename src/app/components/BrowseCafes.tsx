@@ -361,9 +361,17 @@ function findNearestCity(loc: { lat: number; lng: number }, cafes: DbCafe[]): st
     const dlat = (c.latitude - loc.lat) * 111_139;
     const dlng = (c.longitude - loc.lng) * 111_139 * Math.cos(loc.lat * Math.PI / 180);
     const d = dlat * dlat + dlng * dlng; // squared distance, no sqrt needed for comparison
-    if (d < bestDist) { bestDist = d; best = c.city; }
+    if (d < bestDist) { bestDist = d; best = normalizeCity(c.city); }
   }
   return best;
+}
+
+/** Normalize city: trim, title-case each word, and if it contains a comma take
+ *  the last segment (handles "Baner Road, Baner, Pune" → "Pune", "PUNE" → "Pune",
+ *  "greater noida" → "Greater Noida"). */
+function normalizeCity(raw: string): string {
+  const part = raw.includes(",") ? raw.split(",").pop()!.trim() : raw.trim();
+  return part.replace(/\S+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 }
 
 /* ── Main Component ── */
@@ -509,17 +517,18 @@ export function BrowseCafes() {
   const cityList = useMemo(() => {
     const map = new Map<string, { count: number; systems: number; minPrice: number; maxPrice: number }>();
     dbCafes.forEach((c) => {
+      const city = normalizeCity(c.city);
       const cafeSys = systems.filter((s) => s.cafe_id === c.id);
       const lo = minSystemPrice(cafeSys.map((s) => s.price_per_hour), c.price_per_hour);
       const hi = maxSystemPrice(cafeSys.map((s) => s.price_per_hour), c.price_per_hour);
-      const prev = map.get(c.city);
+      const prev = map.get(city);
       if (prev) {
         prev.count++;
         prev.systems += cafeSys.length;
         prev.minPrice = Math.min(prev.minPrice, lo);
         prev.maxPrice = Math.max(prev.maxPrice, hi);
       } else {
-        map.set(c.city, { count: 1, systems: cafeSys.length, minPrice: lo, maxPrice: hi });
+        map.set(city, { count: 1, systems: cafeSys.length, minPrice: lo, maxPrice: hi });
       }
     });
     return Array.from(map.entries())
@@ -698,8 +707,8 @@ export function BrowseCafes() {
   };
 
   const filteredCafes = dbCafes.filter((cafe) => {
-    // City gate: only show cafes in the selected city
-    if (selectedCity && cafe.city !== selectedCity) return false;
+    // City gate: only show cafes in the selected city (normalized)
+    if (selectedCity && normalizeCity(cafe.city) !== selectedCity) return false;
     const cafeSys = systemsForCafe(cafe.id);
     const cafePrice = minSystemPrice(cafeSys.map((s) => s.price_per_hour), cafe.price_per_hour);
     const matchesPrice = priceFilter === "all" ||
