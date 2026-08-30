@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router";
 import {
   SlidersHorizontal, Star, MapPin, Monitor, Gamepad2,
-  Cpu, Zap, ChevronRight, Flame, Trophy, Swords, Target,
-  Users, Wifi, Shield, Navigation, Loader2, Map as MapIcon,
+  Cpu, Zap, ChevronRight,
+  Users, Shield, Navigation, Loader2, Map as MapIcon,
   ShieldCheck, Timer, IndianRupee, Radio, Wrench, MessageSquare,
   BarChart3, CalendarClock, MousePointerClick, XCircle, CheckCircle2,
   ArrowRight, X, Clock, Search, Check,
@@ -66,66 +66,34 @@ const HERO_SLIDES = [
   {
     image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1400&q=80",
     overlay: "linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(30,58,95,0.7) 50%, rgba(8,145,178,0.6) 100%)",
-    icon: Swords,
-    heading: "Level Up Your Game",
-    sub: "Premium rigs. Zero lag. Book your station and dominate.",
+    icon: Cpu,
+    heading: "Pick your exact rig",
+    sub: "See the GPU, CPU, RAM, and installed games before you book. No surprises when you sit down.",
     accent: "#06b6d4",
   },
   {
     image: "https://images.unsplash.com/photo-1511882150382-421056c89033?w=1400&q=80",
     overlay: "linear-gradient(135deg, rgba(26,16,37,0.88) 0%, rgba(76,29,149,0.7) 50%, rgba(124,58,237,0.6) 100%)",
-    icon: Trophy,
-    heading: "Where Champions Play",
-    sub: "RTX-powered PCs, PS5s, tournament setups — all near you.",
+    icon: ShieldCheck,
+    heading: "Your slot, guaranteed",
+    sub: "Availability updates in real time. Double-booking is blocked at the database level — not just the UI.",
     accent: "#a78bfa",
   },
   {
     image: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=1400&q=80",
     overlay: "linear-gradient(135deg, rgba(28,25,23,0.88) 0%, rgba(146,64,14,0.65) 50%, rgba(245,158,11,0.5) 100%)",
-    icon: Flame,
-    heading: "No Setup. Just Play.",
-    sub: "Walk in or book ahead. Your perfect gaming session starts here.",
+    icon: Timer,
+    heading: "Walk in, pay by the minute",
+    sub: "Arrive at 9:18? You pay from 9:18, not 9:00. Proportional billing, no rounding.",
     accent: "#fbbf24",
   },
   {
     image: "https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=1400&q=80",
     overlay: "linear-gradient(135deg, rgba(12,18,34,0.88) 0%, rgba(30,64,175,0.7) 50%, rgba(59,130,246,0.55) 100%)",
-    icon: Target,
-    heading: "Book. Play. Win.",
-    sub: "Pick your exact machine, see the specs, lock your slot.",
+    icon: Users,
+    heading: "Squad up, seat by seat",
+    sub: "Book for your group — each player assigned to a specific machine, all at the same time.",
     accent: "#60a5fa",
-  },
-  {
-    image: "https://images.unsplash.com/photo-1511882150382-421056c89033?w=1400&q=80",
-    overlay: "linear-gradient(135deg, rgba(6,20,18,0.88) 0%, rgba(6,95,70,0.68) 50%, rgba(16,185,129,0.52) 100%)",
-    icon: Cpu,
-    heading: "Book the Exact Machine",
-    sub: "See the GPU, the specs, the installed games — then lock it in.",
-    accent: "#34d399",
-  },
-  {
-    image: "https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=1400&q=80",
-    overlay: "linear-gradient(135deg, rgba(28,10,20,0.9) 0%, rgba(136,19,55,0.62) 50%, rgba(244,63,94,0.5) 100%)",
-    icon: ShieldCheck,
-    heading: "Never Double-Booked",
-    sub: "Your slot is yours. Real-time availability makes a clash impossible.",
-    accent: "#fb7185",
-  },
-  {
-    image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1400&q=80",
-    overlay: "linear-gradient(135deg, rgba(20,20,6,0.88) 0%, rgba(63,98,18,0.62) 50%, rgba(132,204,22,0.5) 100%)",
-    icon: Timer,
-    heading: "Pay Only for What You Play",
-    sub: "Walk in mid-hour? You're charged by the minute, never rounded up.",
-    accent: "#a3e635",
-  },
-  {
-    image: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=1400&q=80",
-    overlay: "linear-gradient(135deg, rgba(8,18,30,0.88) 0%, rgba(14,116,144,0.62) 50%, rgba(34,211,238,0.5) 100%)",
-    icon: Navigation,
-    heading: "Cafes Near You, Ranked",
-    sub: "Share your location and find the closest rigs, sorted by distance.",
-    accent: "#22d3ee",
   },
 ];
 
@@ -773,9 +741,6 @@ export function BrowseCafes() {
       distanceKm: distances[c.id] != null ? distances[c.id] / 1000 : null,
     }));
 
-  const totalSystems = systems.length;
-  const totalCafes = dbCafes.length;
-
   const slide = HERO_SLIDES[heroIdx];
   const SlideIcon = slide.icon;
 
@@ -806,15 +771,6 @@ export function BrowseCafes() {
               />
             </div>
             <div className="absolute inset-0" style={{ background: slide.overlay }} />
-            {/* Glow orbs */}
-            <div
-              className="hero-glow absolute rounded-full blur-3xl"
-              style={{ width: 200, height: 200, background: slide.accent, opacity: 0.2, top: "10%", right: "15%" }}
-            />
-            <div
-              className="hero-glow absolute rounded-full blur-3xl"
-              style={{ width: 150, height: 150, background: slide.accent, opacity: 0.12, bottom: "10%", left: "10%", animationDelay: "3s" }}
-            />
           </div>
 
           {/* Content */}
@@ -833,7 +789,7 @@ export function BrowseCafes() {
                   GameSpot
                 </span>
               </div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white text-shimmer mb-3 leading-tight">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
                 {slide.heading}
               </h2>
               <p className="text-white/70 text-base md:text-lg mb-6 max-w-md">
@@ -870,26 +826,6 @@ export function BrowseCafes() {
             ))}
           </div>
         </div>
-      </div>
-
-      {/* ── Animated stats row ── */}
-      <div className="animate-in grid grid-cols-2 md:grid-cols-4 gap-3 mb-8" style={{ "--stagger": 1 } as React.CSSProperties}>
-        {[
-          { icon: Monitor, label: "Gaming Systems", value: `${totalSystems}+`, color: "text-blue-600", bg: "bg-blue-50", delay: 0 },
-          { icon: Gamepad2, label: "Verified Cafes", value: String(totalCafes), color: "text-purple-600", bg: "bg-purple-50", delay: 1 },
-          { icon: Wifi, label: "Low Latency", value: "<5ms", color: "text-emerald-600", bg: "bg-emerald-50", delay: 2 },
-          { icon: Shield, label: "Verified Network", value: "100%", color: "text-amber-600", bg: "bg-amber-50", delay: 3 },
-        ].map(({ icon: Icon, label, value, color, bg, delay }) => (
-          <div key={label} className="stat-glass stat-pop rounded-xl px-4 py-3 flex items-center gap-3" style={{ animationDelay: `${delay * 100 + 300}ms` }}>
-            <div className={`${bg} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0`}>
-              <Icon className={`w-5 h-5 ${color}`} />
-            </div>
-            <div>
-              <div className={`text-lg font-bold ${color}`}>{value}</div>
-              <div className="text-[11px] text-gray-500 leading-tight">{label}</div>
-            </div>
-          </div>
-        ))}
       </div>
 
       {/* ── City Gate — mandatory before showing cafes ── */}
@@ -1371,8 +1307,6 @@ export function BrowseCafes() {
       {/* ── Bottom CTA banner ── */}
       <div className="animate-in mt-12 mb-4" style={{ "--stagger": 5 } as React.CSSProperties}>
         <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 p-8 md:p-10">
-          <div className="hero-glow absolute rounded-full blur-3xl" style={{ width: 180, height: 180, background: "#60a5fa", opacity: 0.15, top: "-20%", right: "10%" }} />
-          <div className="hero-glow absolute rounded-full blur-3xl" style={{ width: 120, height: 120, background: "#818cf8", opacity: 0.1, bottom: "-10%", left: "20%", animationDelay: "2s" }} />
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
               <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">Own a Gaming Cafe?</h3>
