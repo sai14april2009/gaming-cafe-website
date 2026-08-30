@@ -151,7 +151,7 @@ const OWNER_FEATURES = [
 /* ── Hooks ── */
 
 /** IntersectionObserver scroll-reveal: adds .reveal-visible with stagger delay */
-function useScrollReveal(itemCount: number) {
+function useScrollReveal(itemCount: number, key = "") {
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = containerRef.current;
@@ -169,7 +169,7 @@ function useScrollReveal(itemCount: number) {
     );
     el.querySelectorAll(".reveal-hidden").forEach((c) => obs.observe(c));
     return () => obs.disconnect();
-  }, [itemCount]);
+  }, [itemCount, key]);
   return containerRef;
 }
 
@@ -421,7 +421,7 @@ export function BrowseCafes() {
   const [gameSearchQuery, setGameSearchQuery] = useState("");
 
   const heroRef = useRef<HTMLDivElement>(null);
-  const gridRef = useScrollReveal(dbCafes.length);
+  const gridRef = useScrollReveal(dbCafes.length, selectedCity || "");
   useHeroParallax(heroRef);
 
   // All unique GPU/console values for autocomplete suggestions
