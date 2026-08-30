@@ -382,9 +382,45 @@ function CafeCard({ cafe, cafeSystems, delay, distanceKm }: {
   );
 }
 
+/* ── Helpers ── */
+
+/** Haversine-lite: find the city with the closest cafe to a given point */
+function findNearestCity(loc: { lat: number; lng: number }, cafes: DbCafe[]): string | null {
+  let best: string | null = null;
+  let bestDist = Infinity;
+  for (const c of cafes) {
+    if (c.latitude == null || c.longitude == null) continue;
+    const dlat = (c.latitude - loc.lat) * 111_139;
+    const dlng = (c.longitude - loc.lng) * 111_139 * Math.cos(loc.lat * Math.PI / 180);
+    const d = dlat * dlat + dlng * dlng; // squared distance, no sqrt needed for comparison
+    if (d < bestDist) { bestDist = d; best = c.city; }
+  }
+  return best;
+}
+
 /* ── Main Component ── */
 
 export function BrowseCafes() {
+  /* ── City gate — mandatory before showing cafes ── */
+  const [selectedCity, setSelectedCity] = useState<string | null>(() => {
+    try { return localStorage.getItem("gamespot_city"); } catch { return null; }
+  });
+  const selectCity = (city: string) => {
+    setSelectedCity(city);
+    try { localStorage.setItem("gamespot_city", city); } catch {}
+    // Reset filters when switching city
+    clearLocationSearch();
+    setPriceFilter("all");
+    setAvailableCafeIds(null);
+    setFilterHours([]);
+    setSelectedGames([]);
+    setSelectedHardware([]);
+  };
+  const clearCity = () => {
+    setSelectedCity(null);
+    try { localStorage.removeItem("gamespot_city"); } catch {}
+  };
+
   const [locationQuery, setLocationQuery] = useState("");
   const [locationSuggestions, setLocationSuggestions] = useState<AddressSuggestion[]>([]);
   const [showLocDropdown, setShowLocDropdown] = useState(false);
@@ -500,6 +536,35 @@ export function BrowseCafes() {
     });
     return Array.from(set).sort((a, b) => a - b);
   }, [cafeHoursMap]);
+
+  /* ── City list for the gate (derived from loaded cafes, no extra query) ── */
+  const cityList = useMemo(() => {
+    const map = new Map<string, { count: number; systems: number; minPrice: number; maxPrice: number }>();
+    dbCafes.forEach((c) => {
+      const cafeSys = systems.filter((s) => s.cafe_id === c.id);
+      const lo = minSystemPrice(cafeSys.map((s) => s.price_per_hour), c.price_per_hour);
+      const hi = maxSystemPrice(cafeSys.map((s) => s.price_per_hour), c.price_per_hour);
+      const prev = map.get(c.city);
+      if (prev) {
+        prev.count++;
+        prev.systems += cafeSys.length;
+        prev.minPrice = Math.min(prev.minPrice, lo);
+        prev.maxPrice = Math.max(prev.maxPrice, hi);
+      } else {
+        map.set(c.city, { count: 1, systems: cafeSys.length, minPrice: lo, maxPrice: hi });
+      }
+    });
+    return Array.from(map.entries())
+      .map(([city, d]) => ({ city, ...d }))
+      .sort((a, b) => b.count - a.count); // most cafes first
+  }, [dbCafes, systems]);
+
+  // If the stored city no longer has any cafes, clear it
+  useEffect(() => {
+    if (selectedCity && cityList.length > 0 && !cityList.some((c) => c.city === selectedCity)) {
+      clearCity();
+    }
+  }, [selectedCity, cityList]);
 
   // 7-day strip (calendar-card format matching booking interface)
   const dayOptions = useMemo(() =>
@@ -646,13 +711,18 @@ export function BrowseCafes() {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        // Auto-select nearest city if no city chosen yet
+        if (!selectedCity && dbCafes.length > 0) {
+          const nearest = findNearestCity(loc, dbCafes);
+          if (nearest) selectCity(nearest);
+        }
         setSelectedLocationLabel("My location");
         setLocationQuery("My location");
         await applyLocationSort(loc);
         setLocating(false);
       },
       () => {
-        setLocError("Couldn't get your location. Showing cafes by city instead.");
+        setLocError("Couldn't get your location. Pick your city instead.");
         setLocating(false);
       },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
@@ -660,6 +730,8 @@ export function BrowseCafes() {
   };
 
   const filteredCafes = dbCafes.filter((cafe) => {
+    // City gate: only show cafes in the selected city
+    if (selectedCity && cafe.city !== selectedCity) return false;
     const cafeSys = systemsForCafe(cafe.id);
     const cafePrice = minSystemPrice(cafeSys.map((s) => s.price_per_hour), cafe.price_per_hour);
     const matchesPrice = priceFilter === "all" ||
@@ -820,9 +892,68 @@ export function BrowseCafes() {
         ))}
       </div>
 
-      {/* ── Location Search + Filters ── */}
+      {/* ── City Gate — mandatory before showing cafes ── */}
+      {!selectedCity && (
+        <div className="animate-in mb-8" style={{ "--stagger": 2 } as React.CSSProperties}>
+          <div className="bg-slate-900/90 backdrop-blur-sm rounded-xl shadow-lg shadow-slate-900/50 border border-slate-700/60 p-6 search-glow transition-shadow">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2 search-heading-gradient">Select your city</h2>
+            <p className="text-slate-400 text-sm mb-5">Choose where you want to play — we'll show you all the gaming cafes there.</p>
+
+            {cityList.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
+                <span className="ml-3 text-slate-400">Loading cities…</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {cityList.map((c) => (
+                  <button
+                    key={c.city}
+                    onClick={() => selectCity(c.city)}
+                    className="group relative flex flex-col items-start gap-1.5 p-4 rounded-xl border border-slate-700/60 bg-slate-800/80 hover:border-cyan-500/60 hover:bg-slate-800 hover:shadow-lg hover:shadow-cyan-500/10 transition-all active:scale-[0.97] text-left"
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <MapPin className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                      <span className="font-bold text-white text-base truncate">{c.city}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-400 pl-6">
+                      <span>{c.count} {c.count === 1 ? "cafe" : "cafes"}</span>
+                      <span>{c.systems} systems</span>
+                    </div>
+                    <div className="text-[11px] text-cyan-400/80 font-medium pl-6">
+                      ₹{c.minPrice}–₹{c.maxPrice}/hr
+                    </div>
+                    <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-hover:text-cyan-400 transition-colors" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* GPS shortcut below city cards */}
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={useMyLocation}
+                disabled={locating}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-600/60 text-slate-300 text-sm font-medium hover:border-cyan-500/40 hover:text-cyan-300 transition-all active:scale-95"
+              >
+                {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+                Use my current location
+              </button>
+              {locError && <span className="text-xs text-amber-500 self-center ml-3">{locError}</span>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Location Search + Filters (shown only after city selected) ── */}
+      {selectedCity && (
       <div className="animate-in bg-slate-900/90 backdrop-blur-sm rounded-xl shadow-lg shadow-slate-900/50 border border-slate-700/60 p-6 mb-8 search-glow transition-shadow" style={{ "--stagger": 3 } as React.CSSProperties}>
-        <h2 className="text-2xl sm:text-3xl font-bold mb-4 search-heading-gradient">Where do you want to play?</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl sm:text-3xl font-bold search-heading-gradient">Cafes in {selectedCity}</h2>
+          <button onClick={clearCity} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-cyan-400 transition-colors">
+            <MapPin className="w-4 h-4" /> Change city
+          </button>
+        </div>
         <div className="flex flex-col md:flex-row gap-3">
           {/* Airbnb-style location combobox */}
           <div className="flex-1 relative" ref={locSearchRef}>
@@ -832,7 +963,7 @@ export function BrowseCafes() {
               role="combobox"
               aria-expanded={showLocDropdown}
               aria-autocomplete="list"
-              placeholder="Search city, area, landmark..."
+              placeholder={selectedCity ? `Search area in ${selectedCity}...` : "Search city, area, landmark..."}
               value={locationQuery}
               onChange={(e) => handleLocationInput(e.target.value)}
               onKeyDown={(e) => {
@@ -1045,12 +1176,15 @@ export function BrowseCafes() {
           ))}
         </div>
       </div>
+      )}
 
-      {/* ── Results count + controls ── */}
+      {/* ── Results count + controls (city selected only) ── */}
+      {selectedCity && (
+      <>
       <div className="animate-in flex flex-wrap items-center justify-between gap-2 mb-4" style={{ "--stagger": 4 } as React.CSSProperties}>
         <div className="flex items-center gap-3">
           <p className="text-gray-600 font-medium">
-            {filteredCafes.length} {filteredCafes.length === 1 ? "cafe" : "cafes"} found
+            {filteredCafes.length} {filteredCafes.length === 1 ? "cafe" : "cafes"} in {selectedCity}
           </p>
           {hasDistances && (
             <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium bg-emerald-50 px-2.5 py-1 rounded-full">
@@ -1104,8 +1238,10 @@ export function BrowseCafes() {
         <div className="text-center py-16">
           <Gamepad2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 text-lg font-medium">No cafes found matching your filters</p>
-          <p className="text-gray-400 text-sm mt-1">Try a different location or adjust your filters</p>
+          <p className="text-gray-400 text-sm mt-1">Try adjusting your filters</p>
         </div>
+      )}
+      </>
       )}
 
       {/* ── Why GameSpot — problem → solution ── */}
