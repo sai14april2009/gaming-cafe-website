@@ -6,7 +6,7 @@ import {
   Users, Shield, Navigation, Loader2, Map as MapIcon,
   ShieldCheck, Timer, IndianRupee, Radio, Wrench, MessageSquare,
   BarChart3, CalendarClock, MousePointerClick, XCircle, CheckCircle2,
-  ArrowRight, X, Clock, Search, Check,
+  ArrowRight, X, Clock, Search, Check, ArrowLeftRight,
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { supabase } from "../../supabase";
@@ -889,11 +889,23 @@ export function BrowseCafes() {
       {/* ── Location Search + Filters (shown only after city selected) ── */}
       {selectedCity && (
       <div className="animate-in bg-slate-900/90 backdrop-blur-sm rounded-xl shadow-lg shadow-slate-900/50 border border-slate-700/60 p-6 mb-8 search-glow transition-shadow" style={{ "--stagger": 3 } as React.CSSProperties}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl sm:text-3xl font-bold search-heading-gradient">Cafes in {selectedCity}</h2>
-          <button onClick={clearCity} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-cyan-400 transition-colors">
-            <MapPin className="w-4 h-4" /> Change city
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <button
+            onClick={clearCity}
+            aria-label={`Currently browsing ${selectedCity}. Change city.`}
+            className="city-chip self-start"
+          >
+            <MapPin className="chip-pin w-4 h-4" />
+            <span className="chip-label">You're in</span>
+            <span className="chip-city">{selectedCity}</span>
+            <span className="mx-1 text-slate-600">·</span>
+            <span className="text-cyan-300/90">Change</span>
+            <ArrowLeftRight className="chip-swap w-4 h-4" />
           </button>
+          <h2 className="text-lg sm:text-xl font-semibold text-slate-300/90">
+            <span className="text-slate-500 font-normal">Showing cafes in </span>
+            <span className="search-heading-gradient font-bold">{selectedCity}</span>
+          </h2>
         </div>
         <div className="flex flex-col md:flex-row gap-3">
           {/* Airbnb-style location combobox */}
