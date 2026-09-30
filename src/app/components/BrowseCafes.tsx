@@ -443,10 +443,12 @@ export function BrowseCafes() {
           .eq("is_approved", true),
         supabase
           .from("gaming_systems")
-          .select("id, cafe_id, name, type, gpu, cpu, ram, console, price_per_hour"),
+          .select("id, cafe_id, name, type, gpu, cpu, ram, console, price_per_hour")
+          .range(0, 9999),
         supabase
           .from("cafe_hours")
-          .select("cafe_id, day_of_week, open_time, close_time"),
+          .select("cafe_id, day_of_week, open_time, close_time")
+          .range(0, 9999),
       ]);
       if (cafesData) setDbCafes(cafesData as DbCafe[]);
       if (sysData) setSystems(sysData as DbSystem[]);
