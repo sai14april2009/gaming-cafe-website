@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../supabase";
 import { crossesMidnight } from "../utils/cafeHours";
 import { geocodeAddress } from "../utils/geocode";
+import { normalizeCity } from "../utils/city";
 import { LocationPicker } from "./LocationPicker";
 import { HardwareCombobox } from "./HardwareCombobox";
 import { GPU_GROUPS, CPU_GROUPS, RAM_GROUPS, CONSOLE_GROUPS } from "../data/hardwareOptions";
@@ -593,7 +594,7 @@ export function RegisterCafe({ onRegistered }: { onRegistered: () => void }) {
       .insert({
         owner_id: user?.id,
         name: form.name, description: form.description,
-        city: form.city, address: form.address,
+        city: normalizeCity(form.city), address: form.address,
         phone: form.phone, email: form.email,
         price_per_hour: parseFloat(form.price_per_hour),
         image_url: form.image_url,

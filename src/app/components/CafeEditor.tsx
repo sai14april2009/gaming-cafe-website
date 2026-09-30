@@ -3,6 +3,7 @@ import { supabase } from "../../supabase";
 import { Button } from "./ui/button";
 import { X, Plus, Search, Loader2 } from "lucide-react";
 import { crossesMidnight } from "../utils/cafeHours";
+import { normalizeCity } from "../utils/city";
 import { LocationPicker } from "./LocationPicker";
 
 // "HH:MM" -> "H:MM AM/PM" (leading zero stripped)
@@ -174,7 +175,7 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
       .update({
         name: form.name,
         description: form.description,
-        city: form.city,
+        city: normalizeCity(form.city),
         address: form.address,
         phone: form.phone,
         email: form.email,

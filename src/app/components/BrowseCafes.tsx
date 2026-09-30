@@ -16,6 +16,7 @@ import { searchAddresses, type AddressSuggestion } from "../utils/geocode";
 import { SteamGameImage } from "./SteamGameImage";
 import { hoursForUniformSchedule, type CafeHoursSchedule } from "../utils/cafeHours";
 import { toLocalDateString } from "../utils/date";
+import { normalizeCity } from "../utils/city";
 
 /* ── Types ── */
 
@@ -366,13 +367,6 @@ function findNearestCity(loc: { lat: number; lng: number }, cafes: DbCafe[]): st
   return best;
 }
 
-/** Normalize city: trim, title-case each word, and if it contains a comma take
- *  the last segment (handles "Baner Road, Baner, Pune" → "Pune", "PUNE" → "Pune",
- *  "greater noida" → "Greater Noida"). */
-function normalizeCity(raw: string): string {
-  const part = raw.includes(",") ? raw.split(",").pop()!.trim() : raw.trim();
-  return part.replace(/\S+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
-}
 
 /* ── Main Component ── */
 
