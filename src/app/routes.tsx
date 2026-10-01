@@ -8,6 +8,7 @@ import { BookingConfirm } from "./components/BookingConfirm";
 import { Dashboard } from "./components/Dashboard";
 import { AdminApprovals } from "./components/AdminApprovals";
 import { MyBookings } from "./components/MyBookings";
+import { CounterPage } from "./components/CounterPage";
 import { NotFound } from "./components/NotFound";
 
 export const router = createBrowserRouter([
@@ -18,6 +19,7 @@ export const router = createBrowserRouter([
       { index: true, Component: BrowseCafes },
       { path: "cafe/db/:id", Component: DbCafeDetails },
       { path: "my-bookings", Component: MyBookings },
+      { path: "counter", Component: CounterPage },
       { path: "*", Component: NotFound },
     ],
   },

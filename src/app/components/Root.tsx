@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { Gamepad2, User, LogOut, ShieldCheck, Ticket } from "lucide-react";
+import { Gamepad2, User, LogOut, ShieldCheck, Ticket, Store, LayoutDashboard } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const ADMIN_EMAILS = [
@@ -41,7 +41,7 @@ export function Root() {
             <div className="flex items-center gap-2">
               {user ? (
                 <>
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-700">
+                  <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-700">
                     <User className="w-4 h-4" />
                     <span className="text-sm font-medium">{profile?.full_name || user.email}</span>
                   </div>
@@ -57,9 +57,33 @@ export function Root() {
                     <span className="hidden lg:inline">My Bookings</span>
                   </Link>
                   {profile?.role === "owner" && (
-                    <Link to="/dashboard" className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors">
-                      Dashboard
-                    </Link>
+                    <>
+                      <Link
+                        to="/counter"
+                        aria-label="Counter"
+                        aria-current={isActive("/counter") ? "page" : undefined}
+                        className={`counter-nav group flex items-center gap-2 px-3.5 lg:px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-500 ${
+                          isActive("/counter")
+                            ? "bg-gradient-to-r from-emerald-600 to-teal-600 ring-2 ring-emerald-300"
+                            : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+                        }`}
+                      >
+                        <span className="relative flex h-2 w-2">
+                          <span className="counter-nav-ping absolute inline-flex h-full w-full rounded-full bg-white/70" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                        </span>
+                        <Store className="w-4 h-4" />
+                        <span className="hidden lg:inline">Counter</span>
+                      </Link>
+                      <Link
+                        to="/dashboard"
+                        aria-label="Dashboard"
+                        className="flex items-center gap-2 px-3.5 lg:px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                        <span className="hidden lg:inline">Dashboard</span>
+                      </Link>
+                    </>
                   )}
                   {isAdmin && (
                     <Link to="/admin" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 transition-colors">
@@ -72,7 +96,7 @@ export function Root() {
                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
-                    <span className="text-sm">Sign out</span>
+                    <span className="hidden md:inline text-sm">Sign out</span>
                   </button>
                 </>
               ) : (

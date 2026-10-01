@@ -5,18 +5,17 @@ import { Navigate } from "react-router";
 import { RegisterCafe } from "./RegisterCafe";
 import { CafeEditor } from "./CafeEditor";
 import { SystemsManager } from "./SystemsManager";
-import { CounterMode } from "./CounterMode";
 import { LiveSessions } from "./LiveSessions";
 import { BookingsList } from "./BookingsList";
 import { RepairSlotsManager } from "./RepairSlotsManager";
 import { RevenueStats } from "./RevenueStats";
-import { BarChart3, Settings, Monitor, Radio, History, Store } from "lucide-react";
+import { BarChart3, Settings, Monitor, Radio, History } from "lucide-react";
 
 export function Dashboard() {
   const { user, profile, loading: authLoading } = useAuth();
   const [cafe, setCafe] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "details" | "systems" | "counter" | "live" | "bookings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "details" | "systems" | "live" | "bookings">("overview");
 
   // Depend on user?.id, not the whole user object. Supabase swaps in a fresh user
   // object on every background token refresh (same person, new reference); keying on
@@ -93,7 +92,6 @@ export function Dashboard() {
     { key: "overview" as const, label: "Overview", icon: BarChart3 },
     { key: "details" as const, label: "Cafe Details", icon: Settings },
     { key: "systems" as const, label: "Gaming Systems", icon: Monitor },
-    { key: "counter" as const, label: "Counter", icon: Store },
     { key: "live" as const, label: "Live Now", icon: Radio },
     { key: "bookings" as const, label: "Booking History", icon: History },
   ];
@@ -160,9 +158,6 @@ export function Dashboard() {
             cafeId={cafe.id}
             pricePerHour={cafe.price_per_hour}
           />
-        )}
-        {activeTab === "counter" && (
-          <CounterMode cafeId={cafe.id} pricePerHour={cafe.price_per_hour} />
         )}
         {activeTab === "live" && (
           <LiveSessions cafeId={cafe.id} pricePerHour={cafe.price_per_hour} />
