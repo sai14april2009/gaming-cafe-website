@@ -3,7 +3,7 @@ import { supabase } from "../../supabase";
 import { effectiveSystemPrice } from "../utils/pricing";
 import { hoursForUniformSchedule, type CafeHoursSchedule } from "../utils/cafeHours";
 import { toLocalDateString } from "../utils/date";
-import { Monitor, Gamepad2, X, Play, Square, Plus, Zap, Clock, Check } from "lucide-react";
+import { Monitor, Gamepad2, X, Play, Square, Plus, Clock, Check } from "lucide-react";
 
 interface Props {
   cafeId: string;
@@ -15,6 +15,10 @@ interface Sys {
   name: string;
   type: string | null;
   price_per_hour: number | null;
+  gpu: string | null;
+  cpu: string | null;
+  ram: string | null;
+  console: string | null;
 }
 interface WalkIn {
   id: string;
@@ -42,15 +46,22 @@ interface Repair {
 
 type TileState = "available" | "occupied" | "reserved" | "booked" | "repair" | "closed";
 
-// Seat sheet can be in "pick a duration" mode, or — once a duration that doesn't
-// fit here is chosen — "here's where it fits" mode (wantHours set).
 type Sheet =
-  | { kind: "seat"; systemId: string; wantHours: number | null }
   | { kind: "settle"; sessionId: string }
   | { kind: "info"; systemId: string }
   | null;
 
-const CHIP_HOURS = [1, 2, 3];
+// Duration the owner is seating for, chosen up front. null = "Open" (start the clock,
+// settle on exit). A number N = seat N continuous hours from now.
+type SeatFor = number | null;
+const DURATIONS: SeatFor[] = [null, 1, 2, 3, 4];
+
+// Compact hardware identifier so the owner can spot the physical machine.
+function specLine(s: Sys): string {
+  if (s.type === "Console") return s.console || "Console";
+  const parts = [s.gpu, s.cpu, s.ram].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "PC";
+}
 
 export function CounterMode({ cafeId, pricePerHour }: Props) {
   const [systems, setSystems] = useState<Sys[]>([]);
@@ -61,6 +72,7 @@ export function CounterMode({ cafeId, pricePerHour }: Props) {
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
   const [sheet, setSheet] = useState<Sheet>(null);
+  const [seatFor, setSeatFor] = useState<SeatFor>(null);
   const [toast, setToast] = useState<string | null>(null);
   const extendingRef = useRef<Set<string>>(new Set());
 
@@ -73,7 +85,7 @@ export function CounterMode({ cafeId, pricePerHour }: Props) {
 
   const fetchAll = useCallback(async () => {
     const [{ data: sys }, { data: wi }, { data: bk }, { data: rp }, { data: hrs }] = await Promise.all([
-      supabase.from("gaming_systems").select("id, name, type, price_per_hour").eq("cafe_id", cafeId).order("created_at", { ascending: true }),
+      supabase.from("gaming_systems").select("id, name, type, price_per_hour, gpu, cpu, ram, console").eq("cafe_id", cafeId).order("created_at", { ascending: true }),
       supabase.from("walk_in_sessions").select("*").eq("cafe_id", cafeId).eq("session_date", today).in("status", ["scheduled", "active"]),
       supabase.from("bookings").select("id, system_id, start_time, end_time, players").eq("cafe_id", cafeId).eq("booking_date", today).eq("status", "confirmed"),
       supabase.from("repair_slots").select("system_id, start_hour, end_hour").eq("cafe_id", cafeId).eq("repair_date", today),
@@ -271,14 +283,24 @@ export function CounterMode({ cafeId, pricePerHour }: Props) {
 
   const onTile = (sysId: string) => {
     const st = tileState(sysId);
-    if (st === "available") setSheet({ kind: "seat", systemId: sysId, wantHours: null });
-    else if (st === "occupied") setSheet({ kind: "settle", sessionId: activeFor(sysId)!.id });
+    if (st === "available") {
+      if (seatFor === null) { seat(sysId, null); return; } // Open — one tap
+      const r = runway(sysId);
+      if (r >= seatFor) { seat(sysId, seatFor); return; } // fits the chosen hours
+      // Doesn't fit — the board already shows it dimmed; guide instead of mis-seating.
+      const name = systems.find((s) => s.id === sysId)?.name || "This machine";
+      setToast(`${name} only has ${r}h free — pick ${r}h or Open to seat it.`);
+    } else if (st === "occupied") setSheet({ kind: "settle", sessionId: activeFor(sysId)!.id });
     else if (st === "reserved" || st === "booked") setSheet({ kind: "info", systemId: sysId });
     // repair / closed → not actionable
   };
 
   const freeCount = systems.filter((s) => tileState(s.id) === "available").length;
   const busyCount = systems.filter((s) => tileState(s.id) === "occupied").length;
+  // When a specific duration is chosen, how many machines can actually hold it.
+  const fitCount = seatFor === null
+    ? freeCount
+    : systems.filter((s) => tileState(s.id) === "available" && runway(s.id) >= seatFor).length;
 
   if (loading) return <div className="text-center py-12 text-gray-500">Loading the counter…</div>;
 
@@ -294,20 +316,44 @@ export function CounterMode({ cafeId, pricePerHour }: Props) {
 
   return (
     <div>
-      {/* Summary bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Counter</h2>
-          <p className="text-sm text-gray-500">Tap a machine to seat a walk-in or settle up.</p>
+          <p className="text-sm text-gray-500">
+            {seatFor === null
+              ? "Tap a free machine to start the clock."
+              : `Tap a highlighted machine to seat ${seatFor}h.`}
+          </p>
         </div>
-        <div className="flex items-center gap-2 text-sm font-semibold">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" /> {freeCount} free
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200">
-            <span className="w-2 h-2 rounded-full bg-amber-500" /> {busyCount} in use
-          </span>
-        </div>
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-sm font-semibold">
+          <span className="w-2 h-2 rounded-full bg-amber-500" /> {busyCount} in use
+        </span>
+      </div>
+
+      {/* Duration selector — choose how long the customer wants, the board answers */}
+      <div className="flex flex-wrap items-center gap-2 mb-5 p-3 rounded-xl bg-white border border-gray-200">
+        <span className="text-sm font-semibold text-gray-500 mr-1">Seat for</span>
+        {DURATIONS.map((d) => {
+          const on = seatFor === d;
+          return (
+            <button
+              key={String(d)}
+              onClick={() => setSeatFor(d)}
+              aria-pressed={on}
+              className={`dur-chip px-4 py-2 rounded-lg text-sm font-bold border-2 ${
+                on
+                  ? "border-emerald-500 bg-emerald-500 text-white"
+                  : "border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700"
+              }`}
+            >
+              {d === null ? "Open" : `${d}h`}
+            </button>
+          );
+        })}
+        <span className="ml-auto text-sm font-semibold text-emerald-700">
+          {seatFor === null ? `${freeCount} free` : `${fitCount} fit ${seatFor}h`}
+        </span>
       </div>
 
       {!openNow && (
@@ -324,8 +370,17 @@ export function CounterMode({ cafeId, pricePerHour }: Props) {
           const reserved = reservedFor(s.id);
           const Icon = s.type === "Console" ? Gamepad2 : Monitor;
 
+          // With a duration chosen, an available machine either fits it or not.
+          const r = st === "available" ? runway(s.id) : 0;
+          const fits = seatFor === null || r >= seatFor;
+          // A free machine that can't hold the chosen duration is shown but dimmed.
+          const dimmed = st === "available" && !fits;
+
           const theme =
-            st === "available" ? "bg-emerald-50 border-emerald-300 text-emerald-900 hover:border-emerald-400"
+            st === "available"
+              ? fits
+                ? "bg-emerald-50 border-emerald-300 text-emerald-900 hover:border-emerald-400"
+                : "bg-gray-50 border-gray-200 text-gray-500"
             : st === "occupied" ? "bg-amber-50 border-amber-400 text-amber-900 hover:border-amber-500"
             : st === "reserved" ? "bg-yellow-50 border-yellow-300 text-yellow-900"
             : st === "booked" ? "bg-rose-50 border-rose-300 text-rose-900"
@@ -339,7 +394,7 @@ export function CounterMode({ cafeId, pricePerHour }: Props) {
               key={s.id}
               onClick={() => onTile(s.id)}
               disabled={!actionable}
-              className={`counter-tile text-left rounded-2xl border-2 p-4 min-h-[112px] flex flex-col justify-between ${theme} ${actionable ? "cursor-pointer" : "cursor-default"} focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500`}
+              className={`counter-tile text-left rounded-2xl border-2 p-4 min-h-[128px] flex flex-col ${theme} ${actionable ? "cursor-pointer" : "cursor-default"} focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500`}
             >
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-1.5 font-bold text-[15px]">
@@ -348,31 +403,47 @@ export function CounterMode({ cafeId, pricePerHour }: Props) {
                 {st === "occupied" && <span className="counter-live-dot w-2.5 h-2.5 rounded-full bg-amber-500" />}
               </div>
 
-              {st === "occupied" && active ? (
-                <div>
-                  <div className="text-2xl font-bold tabular-nums leading-none">{fmtElapsed(active)}</div>
-                  <div className="text-sm font-semibold mt-1">₹{liveAmount(active)} so far</div>
-                </div>
-              ) : st === "available" ? (
-                <div>
-                  <div className="text-lg font-bold">Free</div>
-                  <div className="text-xs opacity-70 mt-0.5">Tap to seat</div>
-                </div>
-              ) : st === "reserved" && reserved ? (
-                <div>
-                  <div className="text-sm font-bold">Reserved</div>
-                  <div className="text-xs opacity-70 mt-0.5">Starts {fmtHour(reserved.start_time)} · tap to start</div>
-                </div>
-              ) : st === "booked" ? (
-                <div>
-                  <div className="text-sm font-bold">Booked online</div>
-                  <div className="text-xs opacity-70 mt-0.5">Tap for details</div>
-                </div>
-              ) : st === "repair" ? (
-                <div className="text-sm font-bold">Under repair</div>
-              ) : (
-                <div className="text-sm font-semibold">Closed</div>
-              )}
+              {/* Hardware line — identify the physical machine */}
+              <p className={`text-xs mt-1 truncate ${dimmed ? "text-gray-400" : "opacity-70"}`} title={specLine(s)}>
+                {specLine(s)}
+              </p>
+
+              <div className="mt-auto pt-2">
+                {st === "occupied" && active ? (
+                  <>
+                    <div className="text-2xl font-bold tabular-nums leading-none">{fmtElapsed(active)}</div>
+                    <div className="text-sm font-semibold mt-1">₹{liveAmount(active)} so far</div>
+                  </>
+                ) : st === "available" ? (
+                  fits ? (
+                    <>
+                      <div className="text-lg font-bold">{seatFor === null ? "Free" : `Fits ${seatFor}h`}</div>
+                      <div className="text-xs opacity-70 mt-0.5">
+                        {seatFor === null ? "Tap to start clock" : "Tap to seat"} · ₹{rateFor(s.id)}/hr
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-base font-bold">Only {r}h free</div>
+                      <div className="text-xs opacity-70 mt-0.5">Booked soon</div>
+                    </>
+                  )
+                ) : st === "reserved" && reserved ? (
+                  <>
+                    <div className="text-sm font-bold">Reserved</div>
+                    <div className="text-xs opacity-70 mt-0.5">Starts {fmtHour(reserved.start_time)} · tap to start</div>
+                  </>
+                ) : st === "booked" ? (
+                  <>
+                    <div className="text-sm font-bold">Booked online</div>
+                    <div className="text-xs opacity-70 mt-0.5">Tap for details</div>
+                  </>
+                ) : st === "repair" ? (
+                  <div className="text-sm font-bold">Under repair</div>
+                ) : (
+                  <div className="text-sm font-semibold">Closed</div>
+                )}
+              </div>
             </button>
           );
         })}
@@ -396,7 +467,6 @@ export function CounterMode({ cafeId, pricePerHour }: Props) {
             >
               <X className="w-5 h-5" />
             </button>
-            {sheet.kind === "seat" && <SeatSheet systemId={sheet.systemId} wantHours={sheet.wantHours} />}
             {sheet.kind === "settle" && <SettleSheet sessionId={sheet.sessionId} />}
             {sheet.kind === "info" && <InfoSheet systemId={sheet.systemId} />}
           </div>
@@ -413,100 +483,6 @@ export function CounterMode({ cafeId, pricePerHour }: Props) {
   );
 
   // ── Sheets (closures over state; kept inline so they share helpers) ──
-
-  function SeatSheet({ systemId, wantHours }: { systemId: string; wantHours: number | null }) {
-    const sys = systems.find((s) => s.id === systemId)!;
-    const r = runway(systemId);
-    const rate = rateFor(systemId);
-    const runwayLabel =
-      r >= bookableHours.length ? "free rest of the day" : `free for ${r}h`;
-
-    // "Doesn't fit here" → suggest machines that do.
-    if (wantHours && wantHours > r) {
-      const fits = systems.filter((s) => s.id !== systemId && runway(s.id) >= wantHours);
-      return (
-        <div>
-          <h3 className="text-lg font-bold text-gray-900 pr-6">{sys.name} only has {r}h free</h3>
-          <p className="text-sm text-gray-500 mt-1 mb-4">
-            {r === 0 ? "It's booked from now." : `Booked after ${r}h.`} Here's where {wantHours}h fits:
-          </p>
-          {fits.length === 0 ? (
-            <p className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4">
-              No machine has {wantHours}h free right now. Offer {r > 0 ? `${r}h here, or ` : ""}a shorter session.
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {fits.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => seat(s.id, wantHours)}
-                  className="dur-chip flex items-center justify-between gap-2 px-3 py-3 rounded-xl border-2 border-cyan-300 bg-cyan-50 text-cyan-900 font-semibold hover:border-cyan-400"
-                >
-                  <span className="inline-flex items-center gap-1.5">
-                    {s.type === "Console" ? <Gamepad2 className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
-                    {s.name}
-                  </span>
-                  <span className="text-xs opacity-70">{runway(s.id) >= bookableHours.length ? "all day" : `${runway(s.id)}h`}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="flex gap-2 mt-4">
-            {r > 0 && (
-              <button onClick={() => seat(systemId, r)} className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold hover:bg-gray-50">
-                Seat {r}h here
-              </button>
-            )}
-            <button onClick={() => setSheet({ kind: "seat", systemId, wantHours: null })} className="flex-1 py-2.5 rounded-xl text-gray-500 font-medium hover:bg-gray-50">
-              Back
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div>
-        <h3 className="text-lg font-bold text-gray-900 pr-6 inline-flex items-center gap-2">
-          {sys.type === "Console" ? <Gamepad2 className="w-5 h-5 text-emerald-600" /> : <Monitor className="w-5 h-5 text-emerald-600" />}
-          Seat on {sys.name}
-        </h3>
-        <p className="text-sm text-gray-500 mt-1 mb-5">
-          ₹{rate}/hr · {runwayLabel}
-        </p>
-
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">They know how long</p>
-        <div className="grid grid-cols-3 gap-2 mb-5">
-          {CHIP_HOURS.map((h) => {
-            const fits = h <= r;
-            return (
-              <button
-                key={h}
-                onClick={() => (fits ? seat(systemId, h) : setSheet({ kind: "seat", systemId, wantHours: h }))}
-                className={`dur-chip py-3 rounded-xl border-2 font-bold ${
-                  fits
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-800 hover:border-emerald-400"
-                    : "border-amber-200 bg-amber-50/60 text-amber-700"
-                }`}
-              >
-                {h}h
-                {!fits && <span className="block text-[10px] font-medium opacity-80">won't fit →</span>}
-              </button>
-            );
-          })}
-        </div>
-
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">They'll see how long</p>
-        <button
-          onClick={() => seat(systemId, null)}
-          className="dur-chip w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold inline-flex items-center justify-center gap-2 hover:from-emerald-600 hover:to-teal-600"
-        >
-          <Zap className="w-4 h-4" /> Start the clock
-        </button>
-        <p className="text-xs text-gray-400 text-center mt-2">Bills by minutes played. Settle when they leave.</p>
-      </div>
-    );
-  }
 
   function SettleSheet({ sessionId }: { sessionId: string }) {
     const session = walkIns.find((w) => w.id === sessionId);
