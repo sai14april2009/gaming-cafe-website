@@ -413,6 +413,11 @@ export function CounterMode({ cafeId, pricePerHour }: Props) {
                   <>
                     <div className="text-2xl font-bold tabular-nums leading-none">{fmtElapsed(active)}</div>
                     <div className="text-sm font-semibold mt-1">₹{liveAmount(active)} so far</div>
+                    <div className="text-[11px] font-medium opacity-70 mt-0.5">
+                      {active.open_ended
+                        ? "Open session"
+                        : `${active.end_time - active.start_time}h · ends ${fmtHour(active.end_time)}`}
+                    </div>
                   </>
                 ) : st === "available" ? (
                   fits ? (
