@@ -19,6 +19,7 @@ interface WalkInSession {
   start_time: number;
   end_time: number;
   started_at: string | null;
+  open_ended?: boolean;
 }
 
 interface GamingSystem {
@@ -93,7 +94,9 @@ export function LiveSessions({ cafeId, pricePerHour }: LiveSessionsProps) {
   // Auto-end check (walk-ins only — online bookings simply drop off Live Now when their slot passes)
   useEffect(() => {
     sessions.forEach((session) => {
-      if (session.status === "active" && session.started_at) {
+      if (session.status === "active" && session.started_at && !session.open_ended) {
+        // open_ended sessions roll over hour-by-hour from Counter Mode; auto-ending
+        // them at end_time would close a customer who is still playing.
         const activeForMs = now.getTime() - new Date(session.started_at).getTime();
         if (now.getHours() >= session.end_time && activeForMs > 2 * 60 * 1000) {
           handleEndSession(session);
