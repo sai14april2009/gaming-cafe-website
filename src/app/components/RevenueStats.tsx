@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import NumberFlow from "@number-flow/react";
 import { supabase } from "../../supabase";
 import { IndianRupee, Calendar, Users, TrendingUp, Clock } from "lucide-react";
 import { toLocalDateString } from "../utils/date";
@@ -79,7 +80,8 @@ export function RevenueStats({ cafeId }: RevenueStatsProps) {
   const cards = [
     {
       label: "Total Revenue",
-      value: `₹${stats.totalRevenue.toLocaleString("en-IN")}`,
+      value: stats.totalRevenue,
+      prefix: "₹",
       icon: IndianRupee,
       color: "from-green-500 to-emerald-600",
       bg: "bg-green-50",
@@ -128,7 +130,9 @@ export function RevenueStats({ cafeId }: RevenueStatsProps) {
                   <Icon className="w-5 h-5 text-white" />
                 </div>
               </div>
-              <p className="text-3xl font-bold text-gray-900 tracking-tight">{card.value}</p>
+              <p className="text-3xl font-bold text-gray-900 tracking-tight tabular-nums">
+                <NumberFlow value={card.value} prefix={card.prefix} locales="en-IN" />
+              </p>
             </div>
           );
         })}
