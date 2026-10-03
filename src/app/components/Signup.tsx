@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { supabase } from "../../supabase";
 import { useAuth } from "../context/AuthContext";
 import { Gamepad2, User, Mail, Lock, ArrowRight, Zap, Shield, Users, Monitor, Store } from "lucide-react";
+import { AuthStats } from "./AuthStats";
 
 export function Signup() {
   const navigate = useNavigate();
@@ -85,6 +86,7 @@ export function Signup() {
               </div>
             ))}
           </div>
+          <AuthStats />
         </div>
       </div>
 

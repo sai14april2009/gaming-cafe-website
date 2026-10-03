@@ -88,9 +88,34 @@
 }
 
 .auth-gradient {
-  background: linear-gradient(-45deg, #1e3a8a, #2563eb, #0891b2, #1e40af);
+  background: linear-gradient(-45deg, #1e3a8a, #2563eb, #7c3aed, #0891b2, #1e40af);
   background-size: 300% 300%;
   animation: gradient-shift 8s ease infinite;
+  position: relative;
+}
+/* Aurora glow layer — soft moving color blooms over the gradient for extra life */
+.auth-gradient::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(40% 50% at 20% 25%, rgba(167, 139, 250, 0.35), transparent 70%),
+    radial-gradient(45% 55% at 85% 70%, rgba(34, 211, 238, 0.30), transparent 70%);
+  mix-blend-mode: screen;
+  animation: aurora-drift 14s ease-in-out infinite;
+}
+@keyframes aurora-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.9; }
+  50%      { transform: translate3d(0, -4%, 0) scale(1.08); opacity: 1; }
+}
+
+/* Glassy stat tile on the auth branding panel */
+.auth-stat {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.4);
 }
 
 /* Floating decorative shapes */
@@ -698,6 +723,7 @@ a[class*="rounded"]:hover {
 
   /* Auth page */
   .auth-gradient { animation: none; }
+  .auth-gradient::after { animation: none; }
   .auth-float { animation: none; }
   .auth-field { animation: none; opacity: 1; }
   .auth-btn::after { animation: none; }

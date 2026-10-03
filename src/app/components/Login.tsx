@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
 import { supabase } from "../../supabase";
 import { Gamepad2, Mail, Lock, ArrowRight, Zap, Shield, Users } from "lucide-react";
+import { AuthStats } from "./AuthStats";
 
 export function Login() {
   const navigate = useNavigate();
@@ -74,6 +75,7 @@ export function Login() {
               </div>
             ))}
           </div>
+          <AuthStats />
         </div>
       </div>
 
