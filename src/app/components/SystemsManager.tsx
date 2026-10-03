@@ -1193,9 +1193,9 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                         <Pencil className="w-3 h-3 opacity-40 group-hover:opacity-100" />
                       </button>
                     )}
-                    <button onClick={() => handleDelete(system.id)}
+                    <button onClick={() => handleDelete(system.id)} aria-label={`Delete ${system.name}`}
                       className="text-red-400 hover:bg-red-50 p-1 rounded transition-colors">
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -1282,12 +1282,12 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
                 {isSelecting && (
                   <div className="border-t pt-4 mt-2">
                     {consecutiveWarning && (
-                      <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-2 mb-3 text-xs text-yellow-700 font-medium">
+                      <div role="alert" aria-live="polite" className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-2 mb-3 text-xs text-yellow-700 font-medium">
                         {consecutiveWarning}
                       </div>
                     )}
                     {panelError && (
-                      <div className="bg-red-50 border-2 border-red-400 rounded-lg p-2 mb-3 text-xs text-red-700 font-medium">
+                      <div role="alert" aria-live="polite" className="bg-red-50 border-2 border-red-400 rounded-lg p-2 mb-3 text-xs text-red-700 font-medium">
                         {panelError}
                       </div>
                     )}

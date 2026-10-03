@@ -316,9 +316,9 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
               <div key={i} className="relative group rounded-lg overflow-hidden aspect-video bg-gray-100">
                 <img src={url} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover"
                   onError={(e) => { (e.target as HTMLImageElement).src = ""; (e.target as HTMLImageElement).alt = "Failed to load"; }} />
-                <button type="button" onClick={() => setGalleryImages((prev) => prev.filter((_, j) => j !== i))}
+                <button type="button" aria-label={`Remove gallery image ${i + 1}`} onClick={() => setGalleryImages((prev) => prev.filter((_, j) => j !== i))}
                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs">
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
               </div>
             ))}
@@ -334,7 +334,7 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
                   setNewGalleryUrl("");
                 }
               }}
-              placeholder="Paste image URL..."
+              placeholder="Paste image URL…"
               className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-sm" />
             <Button type="button" variant="outline" disabled={!newGalleryUrl.trim()}
               onClick={() => { setGalleryImages((prev) => [...prev, newGalleryUrl.trim()]); setNewGalleryUrl(""); }}
@@ -358,7 +358,7 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
         <div className="flex gap-2">
           <input type="text" value={customAmenity} onChange={(e) => setCustomAmenity(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addCustomAmenity()}
-            placeholder="Add custom amenity..."
+            placeholder="Add custom amenity…"
             className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-sm" />
           <Button type="button" variant="outline" onClick={addCustomAmenity} className="gap-1">
             <Plus className="w-4 h-4" /> Add
@@ -394,7 +394,7 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input type="text" value={gameSearch} onChange={(e) => handleGameSearchChange(e.target.value)}
               onFocus={() => steamResults.length > 0 && setShowDropdown(true)}
-              placeholder="Search Steam games... (e.g. Valorant, CS2)"
+              placeholder="Search Steam games… (e.g. Valorant, CS2)"
               className="w-full pl-10 pr-10 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-cyan-400 text-sm" />
             {searchLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin" />}
           </div>
@@ -413,8 +413,8 @@ export function CafeEditor({ cafe, onUpdated }: CafeEditorProps) {
         </div>
       </div>
 
-      {error && <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 text-red-600 text-sm">{error}</div>}
-      {success && <div className="bg-green-50 border-2 border-green-300 rounded-lg p-3 text-green-600 text-sm">Saved successfully!</div>}
+      {error && <div role="alert" aria-live="polite" className="bg-red-50 border-2 border-red-300 rounded-lg p-3 text-red-600 text-sm">{error}</div>}
+      {success && <div role="status" aria-live="polite" className="bg-green-50 border-2 border-green-300 rounded-lg p-3 text-green-600 text-sm">Saved successfully!</div>}
 
       <Button onClick={handleSave} disabled={loading}
         className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-blue-600 to-cyan-400 hover:from-blue-700 hover:to-cyan-700">

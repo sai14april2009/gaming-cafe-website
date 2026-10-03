@@ -916,7 +916,7 @@ export function BrowseCafes() {
               role="combobox"
               aria-expanded={showLocDropdown}
               aria-autocomplete="list"
-              placeholder={selectedCity ? `Search area in ${selectedCity}...` : "Search city, area, landmark..."}
+              placeholder={selectedCity ? `Search area in ${selectedCity}…` : "Search city, area, landmark…"}
               value={locationQuery}
               onChange={(e) => handleLocationInput(e.target.value)}
               onKeyDown={(e) => {
@@ -935,8 +935,8 @@ export function BrowseCafes() {
               {selectedLocationLabel && (
                 <button onClick={clearLocationSearch}
                   className="p-1 rounded-full hover:bg-slate-700/60 text-slate-400 hover:text-white transition-colors"
-                  title="Clear location">
-                  <X className="w-4 h-4" />
+                  title="Clear location" aria-label="Clear location">
+                  <X className="w-4 h-4" aria-hidden="true" />
                 </button>
               )}
               <button onClick={useMyLocation} disabled={locating}

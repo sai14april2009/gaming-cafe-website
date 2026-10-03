@@ -480,8 +480,8 @@ export function CounterMode({ cafeId, pricePerHour }: Props) {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-gray-900 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2">
-          <Check className="w-4 h-4 text-emerald-400" /> {toast}
+        <div role="status" aria-live="polite" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-gray-900 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2">
+          <Check className="w-4 h-4 text-emerald-400" aria-hidden="true" /> {toast}
         </div>
       )}
     </div>

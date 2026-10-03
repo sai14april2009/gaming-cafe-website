@@ -100,7 +100,7 @@ export function Login() {
             </div>
 
             {error && (
-              <div className="auth-field bg-red-50 text-red-600 px-4 py-3 rounded-xl mb-6 text-sm border border-red-100" style={{ "--field-i": 0 } as React.CSSProperties}>
+              <div role="alert" aria-live="polite" className="auth-field bg-red-50 text-red-600 px-4 py-3 rounded-xl mb-6 text-sm border border-red-100" style={{ "--field-i": 0 } as React.CSSProperties}>
                 {error}
               </div>
             )}

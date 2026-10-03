@@ -446,7 +446,7 @@ export function AdvancedBookingInterface({
                   )}
                 </div>
                 {conflictWarning?.systemId === bookingState.systemId && (
-                  <div className="mb-3 bg-red-50 border-2 border-red-400 rounded-lg px-4 py-3 text-red-700 text-sm font-medium">
+                  <div role="alert" aria-live="polite" className="mb-3 bg-red-50 border-2 border-red-400 rounded-lg px-4 py-3 text-red-700 text-sm font-medium">
                     {conflictWarning.message}
                   </div>
                 )}

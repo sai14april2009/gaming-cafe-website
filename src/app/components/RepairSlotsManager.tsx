@@ -182,12 +182,12 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
       </div>
 
       {successMsg && (
-        <div className="mb-4 bg-green-50 border-2 border-green-400 rounded-lg px-4 py-3 text-green-700 text-sm font-medium">
+        <div role="status" aria-live="polite" className="mb-4 bg-green-50 border-2 border-green-400 rounded-lg px-4 py-3 text-green-700 text-sm font-medium">
           {successMsg}
         </div>
       )}
       {errorMsg && (
-        <div className="mb-4 bg-red-50 border-2 border-red-400 rounded-lg px-4 py-3 text-red-700 text-sm font-medium">
+        <div role="alert" aria-live="polite" className="mb-4 bg-red-50 border-2 border-red-400 rounded-lg px-4 py-3 text-red-700 text-sm font-medium">
           {errorMsg}
         </div>
       )}
@@ -312,8 +312,9 @@ export function RepairSlotsManager({ cafeId }: RepairSlotsManagerProps) {
                 onClick={() => handleDelete(slot.id)}
                 className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                 title="Remove repair slot"
+                aria-label="Remove repair slot"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           ))}

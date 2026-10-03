@@ -517,7 +517,7 @@ const handleConfirm = async () => {
 
         {/* Errors */}
         {errors.length > 0 && (
-          <div className="bg-red-50 border-2 border-red-300 rounded-xl p-4 mb-4">
+          <div role="alert" aria-live="polite" className="bg-red-50 border-2 border-red-300 rounded-xl p-4 mb-4">
             {errors.map((e, i) => <p key={i} className="text-red-600 text-sm">• {e}</p>)}
           </div>
         )}

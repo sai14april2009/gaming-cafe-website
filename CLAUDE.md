@@ -12,7 +12,7 @@ Gaming Cafe Booking Website ("GameSpot") — a Vite + React + TypeScript SPA whe
 - `npm run dev` — start the Vite dev server
 - `npm run build` — production build (`vite build`)
 
-There is no lint or test script configured in `package.json` — don't assume `npm test`/`npm run lint` exist.
+There is no lint or test script configured in `package.json` — don't assume `npm test`/`npm run lint` exist. There is no standalone `tsc` either (`npx tsc` errors). Use `npm run build` (vite build) to type-check / catch compile errors before committing.
 
 ## Environment
 
@@ -21,6 +21,15 @@ Supabase credentials are required at runtime via Vite env vars, read in `src/sup
 - `VITE_SUPABASE_ANON_KEY`
 
 There is no `.env.example` in the repo — check with the user for local credentials if `npm run dev` fails to reach Supabase.
+
+## Gotchas
+
+### Supabase default 1000-row cap
+An unbounded `supabase.from(x).select(...)` returns at most 1000 rows, silently (no error). On any query over a table that can exceed 1000 rows (e.g. `gaming_systems`, 1139 rows), add `.range(0, N)` or paginate — otherwise counts/prices/availability silently drop the tail rows. This caused the homepage to show "Kolkata 2 systems" (really 131).
+
+### Time zones
+- `walk_in_sessions.started_at`/`ended_at` are `timestamp without time zone`; Supabase returns them zone-less, so `new Date(ts)` reads them as LOCAL and invents an IST (~5.5h) offset. Append `"Z"` before parsing for any elapsed-time math (see `parseTs` in `CounterMode.tsx`).
+- The DB server's `now()` is UTC, but the app stores slot/booking/repair hours in the browser's LOCAL time (IST). When seeding test rows via SQL, use local hours, not `extract(hour from now())`.
 
 ## Architecture
 
@@ -38,6 +47,7 @@ The codebase used to have two parallel implementations of cafe browsing/booking 
 - **Current (only) path**: `BrowseCafes` (the homepage) and `Db*`-prefixed components (`DbCafeDetails`, `DbReviewsSection`) plus the owner-dashboard components (`Dashboard`, `CafeEditor`, `SystemsManager`, `LiveSessions`, `RepairSlotsManager`, `RevenueStats`, `RegisterCafe`, `AdminApprovals`) all query Supabase tables directly with `supabase.from(...)`. Cafe detail lives at `/cafe/db/:id` → `DbCafeDetails`.
 - `mockData.ts` was deleted entirely in Stage 2 (commit `60e3ebdd`). Shared types (`GamingSystem`) now live in `src/app/types.ts`; `src/app/data/gameImages.ts` exports `fetchGameImage()` which queries the Steam search proxy for real cover art (replaced the static Unsplash map 2026-08-24, commit `ecedfeab`). `SteamGameImage.tsx` wraps it as a React component with loading/error states.
 - `AdvancedBookingInterface` is fed a converted list of systems (using the `GamingSystem` shape from `src/app/types.ts`) and always queries `bookings`/`repair_slots`/`walk_in_sessions` live from Supabase to compute slot availability.
+- **Counter Mode** (`/counter` → `CounterPage` → `CounterMode.tsx`): front-desk POS board for walk-ins, separate from the dashboard and reached via its own header nav link (`Root.tsx`, owner-only, emerald pill). Duration-first — owner picks hours (Open/1h/2h/3h/4h), the board shows which systems fit; one tap seats. Tiles show hardware + session type. Reuses `walk_in_sessions`, the slot model, and the proportional-pricing rule. New column `walk_in_sessions.open_ended` (true = open session, don't auto-end at the hour boundary — `LiveSessions` honors it; `CounterMode` auto-extends it hour-by-hour while the next hour is free). Note: `/dashboard` is a standalone route (no shared header); `/counter` is a `Root` child so it has the header.
 
 ### Supabase schema (inferred — no migrations/SQL in repo)
 

@@ -74,12 +74,14 @@ function StarInput({
         <button
           key={s}
           type="button"
+          aria-label={`Rate ${s} of 5`}
           onMouseEnter={() => setHover(s)}
           onMouseLeave={() => setHover(0)}
           onClick={() => onChange(s)}
-          className="focus:outline-none"
+          className="focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
         >
           <Star
+            aria-hidden="true"
             className={`${size} transition-colors ${
               (hover || value) >= s ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
             }`}
@@ -546,7 +548,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                 {reviewImages.map((url, i) => (
                   <div key={i} className="relative group w-20 h-20 rounded-lg overflow-hidden bg-gray-100">
                     <img src={url} alt={`Review photo ${i + 1}`} className="w-full h-full object-cover" />
-                    <button type="button" onClick={() => setReviewImages((prev) => prev.filter((_, j) => j !== i))}
+                    <button type="button" aria-label={`Remove photo ${i + 1}`} onClick={() => setReviewImages((prev) => prev.filter((_, j) => j !== i))}
                       className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs">
                       ×
                     </button>
@@ -564,7 +566,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                       setNewImageUrl("");
                     }
                   }}
-                  placeholder="Paste image URL..."
+                  placeholder="Paste image URL…"
                   className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 text-sm" />
                 <button type="button" disabled={!newImageUrl.trim()}
                   onClick={() => { setReviewImages((prev) => [...prev, newImageUrl.trim()]); setNewImageUrl(""); }}
