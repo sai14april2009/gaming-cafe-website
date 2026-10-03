@@ -77,7 +77,7 @@ Cafe owners can start ad-hoc "walk-in" sessions for a system from the dashboard 
 - Do not add `.css`, `.tsx`, or `.ts` to `assetsInclude` in `vite.config.ts`.
 # GameOrbit / GameSpot — Project Brain
 *Paste this entire file at the start of any new chat so the AI has full context immediately.*
-*Last updated: 2026-08-24*
+*Last updated: 2026-10-03*
 
 ---
 
@@ -180,7 +180,7 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - 🔲 Image upload for cafe cover/gallery (currently URL paste only — needs Supabase Storage)
 - ~~🔲 Buffer system implementation (Smart Transition Buffer)~~ **CANCELLED (2026-08-11) — see Rule 8**
 - ✅ Filter in booking interface (PC/Console + Has-Free-Slots) — shipped 2026-08-18 (`fb196633`); GPU filter still Phase 2
-- ✅ Homepage filters (system type PC/Console + price range chips) — shipped 2026-08-18 (`fb196633`)
+- ✅ Homepage filters (system type PC/Console + price range chips) — shipped 2026-08-18 (`fb196633`). **Superseded 2026-08-29→30** by a mandatory city gate + dark-themed smart filters (Time Slots / Games / Hardware); see the "Homepage overhaul" subsection in Section 4.
 - ✅ Filter in Gaming Systems tab (owner dashboard: Free Now / In Use / Free at X time + PC/Console type) — shipped 2026-08-24 (`b0fa33d4`)
 - ✅ Hardware autocomplete + case-insensitive hardware filter — shipped 2026-08-24 (`5b834624`, `ae48f54e`); homepage GPU/console filter + brand-grouped `HardwareCombobox` on the Add-System form (see Section 14)
 - ✅ Airbnb-style location search — shipped 2026-08-26 (`e51cf469`, `edc077e7`); geocode-based combobox replaces text-match search + city dropdown; progressive word-drop fallback for Nominatim misses (see Section 13)
@@ -399,6 +399,52 @@ Customer-facing UI pass. All shipped + pushed; Vercel auto-deploys from main.
   `src/app/components/CafeMap.tsx` (Leaflet + markerClusterGroup), `src/app/components/LocationPicker.tsx`
   (draggable pin + address autocomplete). New deps: `leaflet`, `@types/leaflet`,
   `leaflet.markercluster`, `@types/leaflet.markercluster`.
+
+### Homepage overhaul + animation/a11y polish (2026-08-29 → 2026-10-03)
+
+Big customer-facing pass across two batches. All shipped to main; Vercel auto-deploys.
+
+- **Homepage city gate** (`270f1609`, 2026-08-30) — `BrowseCafes` no longer shows any
+  cafes until the visitor picks a city. Choice persists in `localStorage("gamespot_city")`;
+  the city chip (`e5a2b30b`, Section below) changes it. Filtering compares
+  `normalizeCity(cafe.city) === selectedCity` so case/variant mismatches don't hide cafes.
+- **Smart filters replace the old chips** (`fb69eeab` + `62aff617` + `d58acf25`, 2026-08-29→30) —
+  the PC/Console-type + price-range chips and the homepage hardware filter (Section 14) were
+  **removed** and replaced by three dark-themed "smart filter" cards: **Time Slots** (a
+  calendar-card date picker + booking-style slot grid — pick hours, see "X of Y cafes
+  available"; clears selected hours on day switch — `d78b417d`/`01fd15fe`/`3d9749cc`),
+  **Games** and **Hardware** (multi-select popups built from the live system/game data).
+  Popups were moved outside the `.browse-bg` wrapper so `position:fixed` resolves against the
+  viewport (`f5b6b45c`). Dark gaming theme for cards/panels/popups (`62aff617`); search
+  heading got a gradient + animated glow border (`b7b6c8e5`, glow switched blur→box-shadow for
+  reduced-motion correctness `34f8fc62`).
+- **De-AI'd the homepage** (`4425579a`, 2026-08-30) — removed the vanity stats row, floating
+  glow orbs, and shimmer; rewrote the hero copy. ~150 lines of JSX/CSS deleted. (Pairs with
+  the auth-page liveliness below — the *marketing* surfaces were quieted while the
+  *functional* numbers, below, were made real and animated.)
+- **Silent 1000-row truncation fix** (`190a63ef`, 2026-10-01) — see the Gotcha at the top of
+  this file. `gaming_systems`/`cafe_hours` homepage queries got `.range(0, 9999)`.
+- **City normalize-on-write + shared util** (`b44a64dc`, 2026-10-01) — `normalizeCity()` moved
+  to `src/app/utils/city.ts` (title-cases, takes the last comma-segment) and is now applied on
+  **write** (RegisterCafe/CafeEditor) as well as on read, so bad-cased/variant city strings
+  can't re-enter the DB. The city chip (`e5a2b30b`) is the prominent "You're in {city} ·
+  Change" control.
+- **Counter Mode** (`4817ba9c`→`89f4b8f9`, 2026-10-01) — front-desk POS board; fully
+  documented in the Architecture section above.
+- **Animation smoothing** (`d17e78f0`, 2026-10-02) — two abrupt transitions eased.
+- **a11y pass** (`bc2dafda`, 2026-10-03) — `role="alert" aria-live="polite"` on async
+  error/success banners across the booking, dashboard, auth and review surfaces; `aria-label`
+  on icon-only buttons (delete/clear/rate); `"..."`→`"…"`. Deliberately **did not** do the
+  blind `transition: all` narrowing sweep (would drop hover color/border transitions — needs
+  per-element verification). Additive only.
+- **Lively auth pages + NumberFlow** (`a9d4c3a0` + `8f1bc49a`, 2026-10-03) — new
+  `AuthStats.tsx` on the Login/Signup branding panel shows **real** Supabase counts (cafes /
+  gaming rigs / cities) counting up via **NumberFlow** (`@number-flow/react`) with a `motion`
+  (Framer Motion) spring stagger; richer `.auth-gradient` (violet + aurora layer) + glass
+  `.auth-stat` tiles. The owner dashboard **Overview** stat cards (`RevenueStats.tsx`) also
+  animate up with NumberFlow (₹ prefix + en-IN grouping on revenue). The gaming-rig count uses
+  a `head:true` count query to dodge the 1000-row cap. All honor `prefers-reduced-motion`.
+  New deps: `@number-flow/react`, `motion`.
 
 ### RLS is per-command — a missing policy fails SILENTLY (added 2026-08-21)
 
