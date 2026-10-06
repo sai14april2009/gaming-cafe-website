@@ -487,7 +487,14 @@ First perf pass. Two changes, both verified (`npm run build` + browser).
   blocking), and the fix (a `city_stats` view + two-phase city-scoped fetch) trades a free
   background load for an on-click wait, adds a prod schema object + a second copy of the
   effective-price rule, and has a legacy-unnormalized-city split risk. Revisit only if the
-  homepage first-load is measurably slow. #6 `select` only needed columns; #7 prefetch-on-hover.
+  homepage first-load is measurably slow. #6 select-only-needed-columns — **skipped 2026-10-07**:
+  the remaining `select("*")` are scoped owner queries returning few rows whose columns are
+  actually used (bookings.players for owner visibility, reviews.images/ratings for display), and
+  `AuthStats` already uses `head:true` (zero rows); column width was never the bottleneck. #7
+  prefetch-on-hover remains as optional polish.
+- **Perf pass concluded (2026-10-07):** shipped #1 code-splitting, #2 dead-dep removal, #3 lazy
+  map, #5 image lazy-loading. The homepage speed win came from #1 + #3. #4 and #6 were
+  deliberately skipped as marginal/risky; #7 is optional. Reopen only against a real measurement.
 
 ### RLS is per-command — a missing policy fails SILENTLY (added 2026-08-21)
 
