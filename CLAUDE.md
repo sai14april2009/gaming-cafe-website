@@ -474,10 +474,20 @@ First perf pass. Two changes, both verified (`npm run build` + browser).
   is a `import type`. Leaflet + CafeMap split into their own chunks fetched on map mount;
   `BrowseCafes` dropped 86→50 kB (23.5→13.9 gzip) and the `geocode` util (needed by the search
   box) shrank to ~1 kB. This was backlog item #3.
-- **Perf backlog (not done yet, in priority order):**
-  #4 homepage over-fetch (~1,139 `gaming_systems` rows sent to the client just for city counts —
-  move to an aggregate RPC like `get_booked_slots`/`nearby_cafes`); #5 image `loading="lazy"` +
-  dimensions + Unsplash sizing params; #6 `select` only needed columns; #7 prefetch-on-hover.
+- **Lazy-load below-the-fold images** (`625834f3`) — `loading="lazy"` + `decoding="async"` on
+  the many-at-once customer images: cafe-card covers (`BrowseCafes`), Steam capsules
+  (`SteamGameImage`), cafe-detail gallery, review photos. The detail-page main cover (page LCP)
+  and the hero carousel stay eager. No CLS (containers already reserve space via `aspect-*`).
+  **Skipped** the Unsplash `?w=` URL-sizing rewrite — `image_url` is owner-supplied and not all
+  Unsplash, so blindly appending params risks breaking non-Unsplash/already-parameterized URLs.
+  This was backlog item #5.
+- **Perf backlog (remaining):**
+  #4 homepage over-fetch (~1,139 `gaming_systems` rows pulled on mount for the city-gate
+  aggregates) — **deliberately skipped 2026-10-07**: the fetch overlaps the city-gate screen (not
+  blocking), and the fix (a `city_stats` view + two-phase city-scoped fetch) trades a free
+  background load for an on-click wait, adds a prod schema object + a second copy of the
+  effective-price rule, and has a legacy-unnormalized-city split risk. Revisit only if the
+  homepage first-load is measurably slow. #6 `select` only needed columns; #7 prefetch-on-hover.
 
 ### RLS is per-command — a missing policy fails SILENTLY (added 2026-08-21)
 
