@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
 import { Link } from "react-router";
 import {
   SlidersHorizontal, Star, MapPin, Monitor, Gamepad2,
@@ -10,7 +10,10 @@ import {
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { supabase } from "../../supabase";
-import { CafeMap, MapCafe } from "./CafeMap";
+import type { MapCafe } from "./CafeMap";
+// Lazy so Leaflet (~44 kB gzip) stays out of the homepage's first-load bundle —
+// only fetched when the map panel actually renders.
+const CafeMap = lazy(() => import("./CafeMap").then((m) => ({ default: m.CafeMap })));
 import { effectiveSystemPrice, minSystemPrice, maxSystemPrice } from "../utils/pricing";
 import { searchAddresses, type AddressSuggestion } from "../utils/geocode";
 import { SteamGameImage } from "./SteamGameImage";
@@ -1164,13 +1167,15 @@ export function BrowseCafes() {
       {/* ── Map panel ── */}
       {showMap && mapCafes.length > 0 && (
         <div className="animate-in mb-6" style={{ "--stagger": 4 } as React.CSSProperties}>
-          <CafeMap
-            cafes={mapCafes}
-            userLoc={userLoc}
-            onSelect={(id) =>
-              document.getElementById(`cafe-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })
-            }
-          />
+          <Suspense fallback={<div className="h-80 rounded-xl skeleton" />}>
+            <CafeMap
+              cafes={mapCafes}
+              userLoc={userLoc}
+              onSelect={(id) =>
+                document.getElementById(`cafe-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })
+              }
+            />
+          </Suspense>
         </div>
       )}
 
