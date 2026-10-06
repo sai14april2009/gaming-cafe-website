@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { Gamepad2, User, LogOut, ShieldCheck, Ticket, Store, LayoutDashboard } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { PageFallback } from "../routeFallback";
 
 const ADMIN_EMAILS = [
   "srisaikumar.ojjela@gmail.com",
@@ -115,7 +117,9 @@ export function Root() {
       </header>
 
       <main>
-        <Outlet />
+        <Suspense fallback={<PageFallback />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );
