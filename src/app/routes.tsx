@@ -7,7 +7,10 @@ import { PageFallback } from "./routeFallback";
 // homepage no longer ships the dashboard, booking flow, counter, admin, Leaflet and
 // Recharts in its first-load bundle. Named exports → remap to `default` for React.lazy.
 const BrowseCafes = lazy(() => import("./components/BrowseCafes").then((m) => ({ default: m.BrowseCafes })));
-const DbCafeDetails = lazy(() => import("./components/DbCafeDetails").then((m) => ({ default: m.DbCafeDetails })));
+const importDbCafeDetails = () => import("./components/DbCafeDetails");
+const DbCafeDetails = lazy(() => importDbCafeDetails().then((m) => ({ default: m.DbCafeDetails })));
+// Warm the detail chunk on cafe-card hover/focus (same import() → Vite dedupes the chunk).
+export const prefetchCafeDetails = importDbCafeDetails;
 const Login = lazy(() => import("./components/Login").then((m) => ({ default: m.Login })));
 const Signup = lazy(() => import("./components/Signup").then((m) => ({ default: m.Signup })));
 const BookingConfirm = lazy(() => import("./components/BookingConfirm").then((m) => ({ default: m.BookingConfirm })));

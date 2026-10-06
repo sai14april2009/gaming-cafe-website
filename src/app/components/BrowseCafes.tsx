@@ -17,6 +17,7 @@ const CafeMap = lazy(() => import("./CafeMap").then((m) => ({ default: m.CafeMap
 import { effectiveSystemPrice, minSystemPrice, maxSystemPrice } from "../utils/pricing";
 import { searchAddresses, type AddressSuggestion } from "../utils/geocode";
 import { SteamGameImage } from "./SteamGameImage";
+import { prefetchCafeDetails } from "../routes";
 import { hoursForUniformSchedule, type CafeHoursSchedule } from "../utils/cafeHours";
 import { toLocalDateString } from "../utils/date";
 import { normalizeCity } from "../utils/city";
@@ -251,6 +252,8 @@ function CafeCard({ cafe, cafeSystems, delay, distanceKm }: {
       ref={cardRef}
       id={`cafe-${cafe.id}`}
       to={`/cafe/db/${cafe.id}`}
+      onMouseEnter={prefetchCafeDetails}
+      onFocus={prefetchCafeDetails}
       className="reveal-hidden cafe-tilt cafe-card-glow group block bg-white rounded-xl overflow-hidden shadow-sm scroll-mt-24"
       style={{ animationDelay: `${delay * 120}ms` }}
     >
