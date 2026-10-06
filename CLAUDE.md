@@ -36,7 +36,7 @@ An unbounded `supabase.from(x).select(...)` returns at most 1000 rows, silently 
 ### Entry / routing
 
 - `src/main.tsx` mounts the app, wrapping the router in `AuthProvider` (`src/app/context/AuthContext.tsx`), which owns Supabase auth session state and the current user's `profiles` row (`user`, `profile`, `signOut()` via `useAuth()`).
-- `src/app/routes.tsx` defines all routes with `react-router`'s `createBrowserRouter`. `Root.tsx` (`src/app/components/Root.tsx`) is the layout shell (header/nav/`Outlet`) shown on `/`, `/games`, `/hardware`, and cafe detail pages.
+- `src/app/routes.tsx` defines all routes with `react-router`'s `createBrowserRouter`. `Root.tsx` (`src/app/components/Root.tsx`) is the layout shell (header/nav/`Outlet`) shown on `/`, `/games`, `/hardware`, and cafe detail pages. **Every page is code-split** (`React.lazy`, 2026-10-07) — `Root` stays eager and wraps its `<Outlet>` in `<Suspense>`; the standalone routes (`/login`, `/signup`, `/booking/confirm`, `/dashboard`, `/admin`) each wrap their own boundary; the shared spinner is `src/app/routeFallback.tsx`. Keep new routes lazy too, or the homepage bundle regrows.
 - `Root.tsx` also hardcodes an `ADMIN_EMAILS` allowlist that gates the `/admin` (`AdminApprovals`) link/route — there's no `role: "admin"` in the DB, admin-ness is purely this email list.
 - `vercel.json` rewrites all non-`/api` paths to `index.html` (SPA hosting on Vercel), and `api/*.ts` are Vercel serverless/edge functions (e.g. `api/steam-search.ts` proxies the Steam store search API to dodge CORS; `api/ping.ts` is a health check).
 
@@ -77,7 +77,7 @@ Cafe owners can start ad-hoc "walk-in" sessions for a system from the dashboard 
 - Do not add `.css`, `.tsx`, or `.ts` to `assetsInclude` in `vite.config.ts`.
 # GameOrbit / GameSpot — Project Brain
 *Paste this entire file at the start of any new chat so the AI has full context immediately.*
-*Last updated: 2026-10-03*
+*Last updated: 2026-10-07*
 
 ---
 
@@ -445,6 +445,34 @@ Big customer-facing pass across two batches. All shipped to main; Vercel auto-de
   animate up with NumberFlow (₹ prefix + en-IN grouping on revenue). The gaming-rig count uses
   a `head:true` count query to dodge the 1000-row cap. All honor `prefers-reduced-motion`.
   New deps: `@number-flow/react`, `motion`.
+
+### Performance pass — code-splitting + dead-dep removal (2026-10-07)
+
+First perf pass. Two changes, both verified (`npm run build` + browser).
+
+- **Route code-splitting** (`235d200e`) — `routes.tsx` was static-importing all 10 pages, so
+  the homepage first-load pulled the **entire** app (dashboard, booking, counter, admin, Leaflet,
+  Recharts) in one 1,103 kB (313 kB gzip) chunk — Vite was warning about it. Now every page is
+  `React.lazy`; `Root` wraps `<Outlet>` in `<Suspense>`, standalone routes get their own
+  boundaries, shared spinner in `routeFallback.tsx`. Result: homepage loads the shared core
+  (~135 kB gzip) + `BrowseCafes` (~23.5 kB gzip); Dashboard (30), Counter (5.4), BookingConfirm,
+  Admin, MyBookings are separate chunks fetched only on visit. See the routing note in the
+  Architecture section.
+- **Removed 17 dead deps + 7 unused vendored `ui/` primitives** (`580443b7`) — grep confirmed
+  **zero** `src` imports for `@mui/material`, `@mui/icons-material`, `@emotion/react`,
+  `@emotion/styled`, `react-slick`, `react-dnd`, `react-dnd-html5-backend`,
+  `react-responsive-masonry`, `react-popper`, `@popperjs/core`. Another 7 deps were imported
+  only by vendored shadcn primitives no app code uses, so both went: `recharts`+`chart.tsx`,
+  `react-day-picker`+`calendar.tsx`, `embla-carousel-react`+`carousel.tsx`, `vaul`+`drawer.tsx`,
+  `cmdk`+`command.tsx`, `input-otp`+`input-otp.tsx`, `react-resizable-panels`+`resizable.tsx`.
+  **Vite already tree-shook these from the bundle, so chunk sizes were unchanged** — the win is a
+  smaller/cleaner `node_modules`, faster installs, less supply-chain surface, −2,479 lines of
+  dead code. Lockfile verified clean; `npm prune` cleared disk.
+- **Perf backlog (not done yet, in priority order):** #3 lazy-mount the Leaflet map (`geocode`
+  chunk is ~44.5 kB gzip, still pulled eagerly because `BrowseCafes` imports `CafeMap` directly);
+  #4 homepage over-fetch (~1,139 `gaming_systems` rows sent to the client just for city counts —
+  move to an aggregate RPC like `get_booked_slots`/`nearby_cafes`); #5 image `loading="lazy"` +
+  dimensions + Unsplash sizing params; #6 `select` only needed columns; #7 prefetch-on-hover.
 
 ### RLS is per-command — a missing policy fails SILENTLY (added 2026-08-21)
 
