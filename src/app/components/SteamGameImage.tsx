@@ -20,5 +20,5 @@ export function SteamGameImage({ game }: { game: string }) {
   if (src === "" || broken) {
     return <Gamepad2 className="w-8 h-8 text-gray-400" />;
   }
-  return <img src={src} alt={game} className="w-full h-full object-cover" onError={() => setBroken(true)} />;
+  return <img src={src} alt={game} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={() => setBroken(true)} />;
 }

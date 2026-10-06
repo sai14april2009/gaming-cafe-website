@@ -227,7 +227,7 @@ const handleBookingComplete = (bookings: any) => {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
             {cafe.gallery_images.map((url: string, i: number) => (
               <div key={i} className="rounded-lg overflow-hidden aspect-video bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity">
-                <img src={url} alt={`${cafe.name} gallery ${i + 1}`} className="w-full h-full object-cover"
+                <img src={url} alt={`${cafe.name} gallery ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
               </div>
             ))}

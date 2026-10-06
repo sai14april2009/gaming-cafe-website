@@ -547,7 +547,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
               <div className="flex flex-wrap gap-2 mb-2">
                 {reviewImages.map((url, i) => (
                   <div key={i} className="relative group w-20 h-20 rounded-lg overflow-hidden bg-gray-100">
-                    <img src={url} alt={`Review photo ${i + 1}`} className="w-full h-full object-cover" />
+                    <img src={url} alt={`Review photo ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                     <button type="button" aria-label={`Remove photo ${i + 1}`} onClick={() => setReviewImages((prev) => prev.filter((_, j) => j !== i))}
                       className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs">
                       ×
@@ -700,7 +700,7 @@ export function DbReviewsSection({ cafeId, cafeName }: DbReviewsSectionProps) {
                         {review.images.map((url: string, i: number) => (
                           <a key={i} href={url} target="_blank" rel="noopener noreferrer"
                             className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 block hover:opacity-90 transition-opacity">
-                            <img src={url} alt={`Review photo ${i + 1}`} className="w-full h-full object-cover" />
+                            <img src={url} alt={`Review photo ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                           </a>
                         ))}
                       </div>
