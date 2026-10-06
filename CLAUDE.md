@@ -468,8 +468,13 @@ First perf pass. Two changes, both verified (`npm run build` + browser).
   **Vite already tree-shook these from the bundle, so chunk sizes were unchanged** — the win is a
   smaller/cleaner `node_modules`, faster installs, less supply-chain surface, −2,479 lines of
   dead code. Lockfile verified clean; `npm prune` cleared disk.
-- **Perf backlog (not done yet, in priority order):** #3 lazy-mount the Leaflet map (`geocode`
-  chunk is ~44.5 kB gzip, still pulled eagerly because `BrowseCafes` imports `CafeMap` directly);
+- **Lazy-mount the Leaflet map** (`cffe563e`) — `CafeMap` was a static import in `BrowseCafes`,
+  so Leaflet + markercluster (~43 kB gzip) rode in the homepage's first-load bundle even though
+  the map only renders after a city is picked. Now `React.lazy` + a Suspense skeleton; `MapCafe`
+  is a `import type`. Leaflet + CafeMap split into their own chunks fetched on map mount;
+  `BrowseCafes` dropped 86→50 kB (23.5→13.9 gzip) and the `geocode` util (needed by the search
+  box) shrank to ~1 kB. This was backlog item #3.
+- **Perf backlog (not done yet, in priority order):**
   #4 homepage over-fetch (~1,139 `gaming_systems` rows sent to the client just for city counts —
   move to an aggregate RPC like `get_booked_slots`/`nearby_cafes`); #5 image `loading="lazy"` +
   dimensions + Unsplash sizing params; #6 `select` only needed columns; #7 prefetch-on-hover.
