@@ -89,7 +89,7 @@ Cafe owners can start ad-hoc "walk-in" sessions for a system from the dashboard 
 - Do not add `.css`, `.tsx`, or `.ts` to `assetsInclude` in `vite.config.ts`.
 # GameOrbit / GameSpot — Project Brain
 *Paste this entire file at the start of any new chat so the AI has full context immediately.*
-*Last updated: 2026-10-07*
+*Last updated: 2026-10-07 (Tier-2 reliability: repair_no_overlap constraint + RevenueStats fix confirmed)*
 
 ---
 
@@ -257,16 +257,16 @@ or a bug in the UI. Both need the `btree_gist` extension (already installed).
   Hours are parsed out of the `"HH:MM"` text columns with `split_part`. Note the scope: only `confirmed` rows are guarded, so ending or cancelling a booking releases its slot.
 - **`walk_in_no_overlap`** on `walk_in_sessions` — `EXCLUDE USING gist (system_id =, session_date =, int4range(start_time, end_time, '[)') &&) WHERE (status <> 'ended')`.
   `start_time`/`end_time` are already integers here. `ended` rows are excluded so historical overlaps (created before the UI guard existed) don't block the constraint.
-- **`repair_slots` has NO exclusion constraint.** repair-vs-repair concurrency is guarded
-  **app-level only**, via `findSlotConflicts` (`src/app/utils/slotConflicts.ts`) called
-  pre-insert on *both* repair write paths — the Gaming Systems grid (`createRepairFromGrid`)
-  and the Repair Slots form (`RepairSlotsManager.handleAddRepair`). There is no DB backstop
-  for a repair overlap, so a true race between two repair inserts is not caught by Postgres.
-  **Fast-follow candidate:** a `repair_no_overlap` exclusion constraint on `repair_slots`
-  (`EXCLUDE gist (system_id =, repair_date =, int4range(start_hour, end_hour, '[)') &&)`) if
-  repair-insert concurrency ever becomes a real vector. The **23P01 catch already present in
-  both repair write paths is defensive/future-proof** — it will start actually firing the moment
-  such a constraint is added, no code change needed.
+- **`repair_slots` now has `repair_no_overlap`** (added 2026-10-07, migration
+  `repair_no_overlap_constraint`): `EXCLUDE USING gist (system_id =, repair_date =,
+  int4range(start_hour, end_hour, '[)') &&)`. `start_hour`/`end_hour` are already integers
+  here (no `split_part`, unlike `bookings`). Unlike the other two constraints it is **not**
+  status-scoped — `repair_slots` has no status column; a repair row existing *is* the block,
+  and removing the row frees the slot. So repair-vs-repair concurrency now has a DB backstop
+  matching `bookings_no_overlap`/`walk_in_no_overlap`. App-level `findSlotConflicts`
+  (`src/app/utils/slotConflicts.ts`) still runs pre-insert on *both* repair write paths — the
+  grid (`createRepairFromGrid`) and the form (`RepairSlotsManager.handleAddRepair`) — so the
+  constraint only fires on a true race; both paths catch `23P01` and show "just taken".
 - **Not covered by any single-table constraint: cross-table overlaps** — walk-in vs online
   booking, repair vs booking, repair vs walk-in. Exclusion constraints are single-table, so all
   cross-table directions are enforced **app-level only** — now uniformly through the shared
@@ -613,7 +613,7 @@ depending on the exact minutes involved. Fixed across three stages, all live:
   the grid and `walk_in_no_overlap`). Repair removal now works on future dates too. The
   current-hour walk-in-now flow (proportional pricing, 20-min cutoff, conflict popup) is
   preserved unchanged as a separate path. Verified by role simulation (all rolled back).
-- **RevenueStats counts cancelled bookings** in Total Revenue, and `upcomingBookings` compares a UTC-parsed `booking_date` against `now`, so today's later bookings are not counted as upcoming.
+- ~~**RevenueStats counts cancelled bookings** in Total Revenue, and `upcomingBookings` compares a UTC-parsed `booking_date` against `now`~~ **FIXED** (verified 2026-10-07; was already corrected in the dashboard overhaul `cef1506b`). Revenue/booking/player totals now use a `["confirmed","completed"]` allowlist (`RevenueStats.tsx:38`) so cancelled/pending are excluded; `upcomingBookings` compares on the LOCAL day (`booking_date` string + `start_time` "HH:MM" lexically) instead of UTC-parsing the date, so today's later bookings count.
 - **Exclusion constraint only covers `status = 'confirmed'`** — ending or cancelling a booking releases its slot from the DB-level guard. Low impact today (past hours are filtered from the grid), but relevant if booking editing is added.
 - ~~Mock demo data ships alongside real data~~ **Stage 1 DONE (2026-07-29, commit `a263e907`).**
   The homepage (`BrowseCafes`) no longer shows any mock cafés — it's purely Supabase-backed
@@ -1234,9 +1234,10 @@ Three tables claim the same `(system, date, hour)`: `bookings` (online), `walk_i
 - **Layer 1 — DB exclusion constraints (race-proof, single-table).** `bookings_no_overlap`
   (`WHERE status='confirmed'`) and `walk_in_no_overlap` (`WHERE status<>'ended'`) are Postgres
   `EXCLUDE USING gist` guards that hold even under a concurrent race or a UI bug. Status-scoped
-  so cancelling/ending frees the slot. `repair_slots` has **no** constraint (app-level only; a
-  `repair_no_overlap` is a fast-follow, and the 23P01 catch is already wired to fire when added).
-  Gap: single-table constraints can't see a walk-in overlapping an *online booking*.
+  so cancelling/ending frees the slot. `repair_slots` now has `repair_no_overlap` too
+  (2026-10-07, un-scoped — no status column, the row existing is the block), so all three
+  single-table backstops exist. Gap: single-table constraints can't see a walk-in overlapping
+  an *online booking*.
 - **Layer 2 — app-level `findSlotConflicts()`** ([src/app/utils/slotConflicts.ts:19](src/app/utils/slotConflicts.ts))
   closes the cross-table gap: one pre-insert query across all three tables (`scheduled|active`
   walk-ins, `confirmed` bookings, all repairs) — status scoping mirrors the constraints exactly
