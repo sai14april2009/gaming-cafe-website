@@ -214,7 +214,8 @@ const handleBookingComplete = (bookings: any) => {
       <div className="animate-in max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8" style={{"--stagger": 0} as React.CSSProperties}>
         <div className="rounded-xl overflow-hidden aspect-[16/6] bg-gray-100">
           {cafe.image_url ? (
-            <img src={cafe.image_url} alt={cafe.name} className="w-full h-full object-cover" />
+            <img src={cafe.image_url} alt={cafe.name} className="w-full h-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
           )}

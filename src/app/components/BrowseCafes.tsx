@@ -229,6 +229,8 @@ function CafeCard({ cafe, cafeSystems, delay, distanceKm }: {
 }) {
   const cardRef = useRef<HTMLAnchorElement>(null);
   useCardTilt(cardRef as React.RefObject<HTMLElement | null>, 5);
+  // Fall back to the gradient placeholder if image_url 404s / fails to load.
+  const [imgBroken, setImgBroken] = useState(false);
 
   const pcCount = cafeSystems.filter((s) => s.type === "PC").length;
   const consoleCount = cafeSystems.filter((s) => s.type === "Console").length;
@@ -259,12 +261,13 @@ function CafeCard({ cafe, cafeSystems, delay, distanceKm }: {
     >
       {/* Image with overlay */}
       <div className="relative aspect-[16/10] overflow-hidden bg-gray-100">
-        {cafe.image_url ? (
+        {cafe.image_url && !imgBroken ? (
           <img
             src={cafe.image_url}
             alt={cafe.name}
             loading="lazy"
             decoding="async"
+            onError={() => setImgBroken(true)}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />
         ) : (
