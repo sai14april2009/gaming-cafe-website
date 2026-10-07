@@ -43,6 +43,25 @@ when seeding image URLs, verify each actually returns `200 · image/jpeg` before
 trust a valid-looking Unsplash URL format. (Pinterest `i.pinimg.com` loads fine as an `<img>`
 even though `fetch()` CORS-fails it — test with an `Image()`, not `fetch`.)
 
+### SPA SEO — client-set meta tags + the noindex trap
+The Figma-Make scaffold shipped `index.html` with `<meta name="robots" content="noindex,
+nofollow">` — it silently told Google **never to index the site** (removed 2026-10-07; the #1
+reason nothing ranked). Beyond that, this is a client-rendered SPA (`createBrowserRouter`), so
+there are two different crawlers to think about:
+- **Google renders JS**, so per-page titles/descriptions set client-side *do* get picked up.
+  Per-route meta is done with `useDocumentMeta(title, description)`
+  (`src/app/utils/useDocumentMeta.ts`) — a ~20-line hook (no react-helmet; React 18 doesn't
+  hoist `<title>`/`<meta>` natively, that's React 19). Wired into `BrowseCafes` (homepage) and
+  `DbCafeDetails` (`"<Cafe> — Gaming Cafe in <city> | GameSpot"`). Add a `useDocumentMeta` call
+  to any new public page.
+- **Social crawlers (WhatsApp, Facebook, iMessage) do NOT run JS** — they only read the static
+  `index.html`. So the Open Graph / Twitter-card defaults live in `index.html` (site-wide title,
+  description, `og:image`), and **every shared link shows the same generic preview**. Per-cafe
+  social preview images would need SSR/prerender of the cafe route — deliberately deferred (big
+  change for an MVP). The `og:image` uses a **verified-200** Unsplash ID (same gotcha as broken
+  covers — don't point it at an unverified ID). `public/robots.txt` allows all (no sitemap line
+  until a real sitemap exists, else Search Console flags the 404).
+
 ## Architecture
 
 ### Entry / routing
@@ -89,7 +108,7 @@ Cafe owners can start ad-hoc "walk-in" sessions for a system from the dashboard 
 - Do not add `.css`, `.tsx`, or `.ts` to `assetsInclude` in `vite.config.ts`.
 # GameOrbit / GameSpot — Project Brain
 *Paste this entire file at the start of any new chat so the AI has full context immediately.*
-*Last updated: 2026-10-07 (Tier-2 reliability: repair_no_overlap constraint + RevenueStats fix confirmed)*
+*Last updated: 2026-10-07 (Tier-2 reliability + Tier-3 SEO: per-page meta, OG tags, removed Figma noindex)*
 
 ---
 
@@ -196,7 +215,9 @@ Sri Sai Kumar Ojjela, 17, India. Currently studying for JEE; will go full-time o
 - ✅ Filter in Gaming Systems tab (owner dashboard: Free Now / In Use / Free at X time + PC/Console type) — shipped 2026-08-24 (`b0fa33d4`)
 - ✅ Hardware autocomplete + case-insensitive hardware filter — shipped 2026-08-24 (`5b834624`, `ae48f54e`); homepage GPU/console filter + brand-grouped `HardwareCombobox` on the Add-System form (see Section 14)
 - ✅ Airbnb-style location search — shipped 2026-08-26 (`e51cf469`, `edc077e7`); geocode-based combobox replaces text-match search + city dropdown; progressive word-drop fallback for Nominatim misses (see Section 13)
+- ✅ SEO basics — removed the Figma `noindex`, per-page titles/descriptions via `useDocumentMeta`, Open Graph/Twitter defaults in `index.html`, `robots.txt` (2026-10-07, see Section 4). Per-cafe social preview images (SSR/prerender) still deferred.
 - 🔲 Custom SMTP (Resend/SendGrid) before real users
+- 🔲 Error monitoring (Sentry) + product analytics (PostHog) — Tier-3 items, deferred (need owner to create accounts/keys)
 - ✅ Mobile responsiveness — homepage + customer booking flow 2026-08-18 (`873ea087`); owner dashboard 2026-08-26 (`03fac8af`)
 - 🔲 Customer data collection (name, phone, email, city) for analytics — Phase 2
 - 🔲 Marketing campaign feature for café owners — Phase 2

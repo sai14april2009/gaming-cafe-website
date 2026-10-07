@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { supabase } from "../../supabase";
+import { useDocumentMeta } from "../utils/useDocumentMeta";
 import type { MapCafe } from "./CafeMap";
 // Lazy so Leaflet (~44 kB gzip) stays out of the homepage's first-load bundle —
 // only fetched when the map panel actually renders.
@@ -382,6 +383,11 @@ function findNearestCity(loc: { lat: number; lng: number }, cafes: DbCafe[]): st
 /* ── Main Component ── */
 
 export function BrowseCafes() {
+  useDocumentMeta(
+    "GameSpot — Book Gaming Cafes & PCs by the Hour",
+    "Browse and book gaming cafes near you — reserve the exact PC or console by the hour, see live availability, specs and games."
+  );
+
   /* ── City gate — mandatory before showing cafes ── */
   const [selectedCity, setSelectedCity] = useState<string | null>(() => {
     try { return localStorage.getItem("gamespot_city"); } catch { return null; }

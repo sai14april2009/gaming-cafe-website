@@ -10,6 +10,7 @@ import { AdvancedBookingInterface } from "./AdvancedBookingInterface";
 import { useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { DbReviewsSection } from "./DbReviewsSection";
+import { useDocumentMeta } from "../utils/useDocumentMeta";
 
 interface DbCafe {
   id: string;
@@ -54,6 +55,11 @@ export function DbCafeDetails() {
   const [showHourSelection, setShowHourSelection] = useState(false);
   const [showAdvancedBooking, setShowAdvancedBooking] = useState(false);
   const { user } = useAuth();
+
+  useDocumentMeta(
+    cafe ? `${cafe.name} — Gaming Cafe in ${cafe.city} | GameSpot` : undefined,
+    cafe ? cafe.description : undefined
+  );
 
   useEffect(() => {
     const fetchCafe = async () => {
