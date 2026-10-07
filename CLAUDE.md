@@ -31,6 +31,18 @@ An unbounded `supabase.from(x).select(...)` returns at most 1000 rows, silently 
 - `walk_in_sessions.started_at`/`ended_at` are `timestamp without time zone`; Supabase returns them zone-less, so `new Date(ts)` reads them as LOCAL and invents an IST (~5.5h) offset. Append `"Z"` before parsing for any elapsed-time math (see `parseTs` in `CounterMode.tsx`).
 - The DB server's `now()` is UTC, but the app stores slot/booking/repair hours in the browser's LOCAL time (IST). When seeding test rows via SQL, use local hours, not `extract(hour from now())`.
 
+### Broken cover images — fabricated Unsplash IDs 404
+A `cafes.image_url` like `https://images.unsplash.com/photo-<ID>?w=800&q=80` is only valid if that
+exact photo exists on Unsplash. A plausible-but-invented ID (e.g. seed data generated with
+made-up `photo-<digits>-<hex>` strings) returns **HTTP 404 + an HTML page**, so the `<img>` shows
+the browser's broken-image glyph — not a hotlink/CORS/expiry problem, just a dead ID. Found
+2026-10-07: 4 fabricated IDs were reused across 26 seed cafes; repointed to verified-working IDs
+in prod. Two guards now exist: **(1)** cafe-card + detail covers have an `onError` fallback to the
+gradient placeholder (`imgBroken` state in `CafeCard`), so any dead URL degrades cleanly; **(2)**
+when seeding image URLs, verify each actually returns `200 · image/jpeg` before inserting — don't
+trust a valid-looking Unsplash URL format. (Pinterest `i.pinimg.com` loads fine as an `<img>`
+even though `fetch()` CORS-fails it — test with an `Image()`, not `fetch`.)
+
 ## Architecture
 
 ### Entry / routing
