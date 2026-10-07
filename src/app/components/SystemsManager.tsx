@@ -379,7 +379,14 @@ export function SystemsManager({ cafeId, pricePerHour }: SystemsManagerProps) {
     setPanelSaving(false);
 
     if (error) {
-      setPanelError(`Could not block for repair: ${error.message}`);
+      // 23P01 = repair_no_overlap exclusion violation (a concurrent overlapping insert
+      // that slipped past the pre-insert findSlotConflicts check). Show the same
+      // "just taken" message as the other write paths instead of a raw DB error.
+      setPanelError(
+        (error as any).code === "23P01"
+          ? "That slot was just taken on this system. Pick another slot."
+          : `Could not block for repair: ${error.message}`
+      );
       fetchAll();
       return;
     }
