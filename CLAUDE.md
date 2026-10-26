@@ -108,7 +108,7 @@ Cafe owners can start ad-hoc "walk-in" sessions for a system from the dashboard 
 - Do not add `.css`, `.tsx`, or `.ts` to `assetsInclude` in `vite.config.ts`.
 # GameOrbit / GameSpot — Project Brain
 *Paste this entire file at the start of any new chat so the AI has full context immediately.*
-*Last updated: 2026-10-07 (Tier-2 reliability + Tier-3 SEO: per-page meta, OG tags, removed Figma noindex)*
+*Last updated: 2026-10-26 (Supabase keep-alive documented; /api/ping now touches the DB)*
 
 ---
 
@@ -349,9 +349,14 @@ rows, not all 11 on their cafe.
 - Steam game search via Vercel edge function
 - Reviews system
 - RLS on all tables
-- Supabase auto-pause prevented via cron-job.org hitting `/api/ping` — **but until 2026-10-26 the ping never
-  touched Supabase** (it just returned "ok"), so it only kept Vercel warm and Supabase still emailed a pause
-  warning. `api/ping.ts` now does one tiny REST read (`cafes?select=id&limit=1`) so each ping counts as DB activity.
+- Supabase auto-pause (free tier: ~7 days with no DB activity) prevented by a **cron-job.org** job
+  "GameSpot Supabase Keep-Alive" (job id `7926283`): daily 05:30 UTC (11:00 IST), `GET
+  https://zvgfmjzrnzallkwgrgqb.supabase.co/rest/v1/cafes?select=id&limit=1` with the publishable key in the
+  `apikey` + `Authorization: Bearer` headers. It calls **Supabase directly, not `/api/ping`**. Its history only
+  starts 2026-10-25, which is why Supabase emailed a "going to be paused" warning around then (a week of no
+  activity before the job existed). `api/ping.ts` was also made to do the same 1-row REST read (2026-10-26,
+  `ec6f8691`) — previously it only returned "ok" and never touched Supabase — so it's a spare manual
+  keep-alive (`/api/ping` → `{"status":"ok","db":200}`), not what the cron uses.
 - vercel.json fixed for /api/ routes
 - Bookings save with all columns (user_id, cafe_id, system_id, players jsonb)
 - BookingsList shows full booking detail including player name + phone
