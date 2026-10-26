@@ -349,7 +349,9 @@ rows, not all 11 on their cafe.
 - Steam game search via Vercel edge function
 - Reviews system
 - RLS on all tables
-- Supabase auto-pause prevented via cron-job.org
+- Supabase auto-pause prevented via cron-job.org hitting `/api/ping` — **but until 2026-10-26 the ping never
+  touched Supabase** (it just returned "ok"), so it only kept Vercel warm and Supabase still emailed a pause
+  warning. `api/ping.ts` now does one tiny REST read (`cafes?select=id&limit=1`) so each ping counts as DB activity.
 - vercel.json fixed for /api/ routes
 - Bookings save with all columns (user_id, cafe_id, system_id, players jsonb)
 - BookingsList shows full booking detail including player name + phone
